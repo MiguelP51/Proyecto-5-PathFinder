@@ -81,9 +81,9 @@ Flujo:
 
 El integrador revisa:
 
-* consistencia del código
-* conflictos
-* cumplimiento de estándares
+* Consistencia del código
+* Conflictos
+* Cumplimiento de estándares
 
 Si todo es correcto, se realiza el merge.
 
@@ -111,14 +111,14 @@ El equipo de QA valida el sistema desplegado desde la rama `develop`.
 
 Actividades:
 
-* ejecución de casos de prueba
-* validación funcional
-* reporte de errores
+* Ejecución de casos de prueba
+* Validación funcional
+* Reporte de errores
 
 Resultado:
 
-* aprobación → pasa a producción
-* rechazo → regresa a desarrollo
+* Aprobación → pasa a producción
+* Rechazo → regresa a desarrollo
 
 QA no ejecuta comandos Git sobre ramas principales.
 
@@ -145,9 +145,9 @@ git push origin main
 
 Responsabilidades del implantador:
 
-* asegurar que el código está validado
-* gestionar el despliegue en producción
-* configurar el entorno productivo
+* Asegurar que el código está validado
+* Gestionar el despliegue en producción
+* Configurar el entorno productivo
 
 Importante:
 
@@ -181,23 +181,3 @@ git push origin --delete feature/login
 
 ---
 
-## Buenas Prácticas
-
-* No realizar commits directos en `main`.
-* No hacer merge sin validación previa.
-* Mantener la separación de responsabilidades por rol.
-* Utilizar Pull Requests para control de cambios.
-* El código en `main` debe estar siempre listo para producción.
-
----
-
-## Objetivo
-
-Este flujo permite:
-
-* asegurar la calidad del software
-* reducir errores en producción
-* mantener control sobre los cambios
-* facilitar el trabajo en equipo
-
----
