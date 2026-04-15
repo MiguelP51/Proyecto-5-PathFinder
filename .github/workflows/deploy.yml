@@ -1,0 +1,77 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Definir entorno según rama
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "ENV=production" >> $GITHUB_ENV
+            echo "HOST=${{ secrets.EC2_HOST_PROD }}" >> $GITHUB_ENV
+            echo "USER=${{ secrets.EC2_USER_PROD }}" >> $GITHUB_ENV
+            echo "KEY=${{ secrets.EC2_SSH_KEY_PROD }}" >> $GITHUB_ENV
+          else
+            echo "ENV=development" >> $GITHUB_ENV
+            echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
+            echo "USER=${{ secrets.EC2_USER_DEV }}" >> $GITHUB_ENV
+            echo "KEY=${{ secrets.EC2_SSH_KEY_DEV }}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ env.USER }}
+          key: ${{ env.KEY }}
+          script: |
+            # ==============================
+            #  CONFIGURACIÓN PENDIENTE
+            # ==============================
+
+            # Reemplazar con la ruta donde estará tu proyecto en la VM
+            cd /home/usuario/tu-proyecto
+
+            # Nota: Asegurarse que el repo esté clonado con SSH (no HTTPS)
+
+            # ==============================
+            #  DEPLOY
+            # ==============================
+
+            echo "Desplegando rama: ${GITHUB_REF_NAME}"
+            echo "Entorno: $ENV"
+
+            # Opción segura (recomendada)
+            git fetch --all
+            git reset --hard origin/${GITHUB_REF_NAME}
+
+            # ==============================
+            # PENDIENTE SEGÚN STACK
+            # ==============================
+
+            # EJEMPLOS (comentado por ahora)
+
+            # Node.js
+            # npm install
+            # npm run build
+            # pm2 restart app || pm2 start npm --name "app" -- start
+
+            # Python
+            # pip install -r requirements.txt
+            # systemctl restart mi_app
+
+            # Java
+            # ./gradlew build
+            # systemctl restart mi_app
+
+            echo "Deploy completado"
