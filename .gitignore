@@ -1,0 +1,26 @@
+# ======================
+# JAVA / SPRING
+# ======================
+backend/target/
+*.log
+
+# ======================
+# NODE / NEXT
+# ======================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# ======================
+# ENV
+# ======================
+.env
+.env.local
+.env.*.local
+
+# ======================
+# IDE / OS
+# ======================
+.vscode/
+.DS_Store
+Thumbs.db
