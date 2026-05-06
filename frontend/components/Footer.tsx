@@ -1,4 +1,5 @@
-import styles from '../styles/AboutUsPage.module.css';
+import styles from "../styles/Footer.module.css";
+import { Target, Mail, Phone, MapPin } from "lucide-react";
 
 type IconProps = {
   name: string;
@@ -49,10 +50,10 @@ export default function Footer() {
         <section className={styles.footerBrand} aria-label="PathFinder">
           <div className={styles.footerLogoRow}>
             <span className={styles.footerLogoMark}>
-              <Icon name="target" />
+              <Target size={34} strokeWidth={2.3} />
             </span>
 
-            <div>
+            <div className={styles.footerLogoText}>
               <strong>PathFinder</strong>
               <span>Tu camino al éxito</span>
             </div>

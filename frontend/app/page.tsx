@@ -1,4 +1,5 @@
 import styles from "../styles/Landpage.module.css";
+import Footer from "../components/Footer";
 import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
     Target, Star, Clock3, ShieldCheck, CheckCircle2, Info } from "lucide-react";
 
@@ -69,7 +70,7 @@ export default function Home() {
                 </p>
 
                 <div className={styles.benefitsGrid}>
-                    <article className={styles.benefitCard}>
+                    <article className={`${styles.benefitCard} ${styles.benefitCardPurple}`}>
                         <div className={`${styles.benefitIconBox} ${styles.iconRocket}`}>
                             <Rocket size={28} strokeWidth={2.4} />
                         </div>
@@ -80,7 +81,7 @@ export default function Home() {
                         </p>
                     </article>
 
-                    <article className={styles.benefitCard}>
+                    <article className={`${styles.benefitCard} ${styles.benefitCardPink}`}>
                         <div className={`${styles.benefitIconBox} ${styles.iconUsers}`}>
                             <UsersRound size={28} strokeWidth={2.4} />
                         </div>
@@ -91,7 +92,7 @@ export default function Home() {
                         </p>
                     </article>
 
-                    <article className={styles.benefitCard}>
+                    <article className={`${styles.benefitCard} ${styles.benefitCardFuchsia}`}>
                         <div className={`${styles.benefitIconBox} ${styles.iconGlobe}`}>
                             <Globe2 size={28} strokeWidth={2.4} />
                         </div>
@@ -102,7 +103,7 @@ export default function Home() {
                         </p>
                     </article>
 
-                    <article className={styles.benefitCard}>
+                    <article className={`${styles.benefitCard} ${styles.benefitCardOrange}`}>
                         <div className={`${styles.benefitIconBox} ${styles.iconAward}`}>
                             <Award size={28} strokeWidth={2.4} />
                         </div>
@@ -125,7 +126,7 @@ export default function Home() {
                 </p>
 
                 <div className={styles.areasGrid}>
-                    <article className={styles.areaCard}>
+                    <article className={`${styles.areaCard} ${styles.areaCardPurple}`}>
                         <div className={`${styles.areaIconBox} ${styles.areaIconPurple}`}>
                             <UsersRound size={34} strokeWidth={2.2} />
                         </div>
@@ -140,7 +141,7 @@ export default function Home() {
                         </button>
                     </article>
 
-                    <article className={styles.areaCard}>
+                    <article className={`${styles.areaCard} ${styles.areaCardPink}`}>
                         <div className={`${styles.areaIconBox} ${styles.areaIconPink}`}>
                             <TrendingUp size={34} strokeWidth={2.2} />
                         </div>
@@ -155,7 +156,7 @@ export default function Home() {
                         </button>
                     </article>
 
-                    <article className={styles.areaCard}>
+                    <article className={`${styles.areaCard} ${styles.areaCardFuchsia}`}>
                         <div className={`${styles.areaIconBox} ${styles.areaIconFuchsia}`}>
                             <Award size={34} strokeWidth={2.2} />
                         </div>
@@ -170,7 +171,7 @@ export default function Home() {
                         </button>
                     </article>
 
-                    <article className={styles.areaCard}>
+                    <article className={`${styles.areaCard} ${styles.areaCardRed}`}>
                         <div className={`${styles.areaIconBox} ${styles.areaIconRed}`}>
                             <BriefcaseBusiness size={34} strokeWidth={2.2} />
                         </div>
@@ -185,7 +186,7 @@ export default function Home() {
                         </button>
                     </article>
 
-                    <article className={styles.areaCard}>
+                    <article className={`${styles.areaCard} ${styles.areaCardOrange}`}>
                         <div className={`${styles.areaIconBox} ${styles.areaIconOrange}`}>
                             <Target size={34} strokeWidth={2.2} />
                         </div>
@@ -394,6 +395,7 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+            <Footer />
         </div>
     );
 }
