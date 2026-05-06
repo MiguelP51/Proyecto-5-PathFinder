@@ -246,19 +246,64 @@
   text-align: left;
   box-shadow: 0 12px 30px rgba(14, 62, 102, 0.05);
   box-sizing: border-box;
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          background 0.25s ease,
+          border-color 0.25s ease;
+}
+
+.benefitCard:hover {
+  transform: translateY(-8px) scale(1.03);
+  background: var(--benefit-hover-bg);
+  border-color: var(--benefit-hover-border);
+  box-shadow: 0 20px 38px var(--benefit-hover-shadow);
+}
+
+.benefitCardPurple {
+  --benefit-hover-bg: linear-gradient(135deg, rgba(111, 99, 255, 0.12), rgba(156, 61, 244, 0.08));
+  --benefit-hover-border: rgba(111, 99, 255, 0.25);
+  --benefit-hover-shadow: rgba(111, 99, 255, 0.16);
+}
+
+.benefitCardPink {
+  --benefit-hover-bg: linear-gradient(135deg, rgba(186, 66, 220, 0.12), rgba(239, 75, 200, 0.08));
+  --benefit-hover-border: rgba(186, 66, 220, 0.25);
+  --benefit-hover-shadow: rgba(186, 66, 220, 0.16);
+}
+
+.benefitCardFuchsia {
+  --benefit-hover-bg: linear-gradient(135deg, rgba(247, 53, 134, 0.12), rgba(242, 24, 108, 0.08));
+  --benefit-hover-border: rgba(247, 53, 134, 0.25);
+  --benefit-hover-shadow: rgba(247, 53, 134, 0.16);
+}
+
+.benefitCardOrange {
+  --benefit-hover-bg: linear-gradient(135deg, rgba(255, 63, 110, 0.12), rgba(255, 106, 0, 0.08));
+  --benefit-hover-border: rgba(255, 106, 0, 0.25);
+  --benefit-hover-shadow: rgba(255, 106, 0, 0.16);
 }
 
 .benefitIconBox {
   width: 58px;
   height: 58px;
   border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 28px;
-  font-size: 24px;
   color: #ffffff;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 28px;
+  box-shadow: 0 14px 26px rgba(185, 48, 156, 0.22);
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease;
+}
+
+.benefitCard:hover .benefitIconBox {
+  transform: rotate(7deg) scale(1.08);
+  box-shadow: 0 18px 30px rgba(100, 55, 129, 0.24);
 }
 
 .iconRocket {
@@ -291,6 +336,7 @@
   font-size: 15px;
   line-height: 1.6;
 }
+
 
 @media (max-width: 1024px) {
   .benefitsGrid {
@@ -367,6 +413,49 @@
   text-align: center;
   box-shadow: 0 10px 26px rgba(14, 62, 102, 0.04);
   box-sizing: border-box;
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          background 0.25s ease,
+          border-color 0.25s ease;
+}
+
+.areaCard:hover {
+  transform: translateY(-8px) scale(1.03);
+  background: var(--area-hover-bg);
+  border-color: var(--area-hover-border);
+  box-shadow: 0 20px 38px var(--area-hover-shadow);
+}
+
+.areaCardPurple {
+  --area-hover-bg: linear-gradient(135deg, rgba(111, 99, 255, 0.12), rgba(143, 77, 240, 0.08));
+  --area-hover-border: rgba(111, 99, 255, 0.25);
+  --area-hover-shadow: rgba(111, 99, 255, 0.16);
+}
+
+.areaCardPink {
+  --area-hover-bg: linear-gradient(135deg, rgba(186, 66, 220, 0.12), rgba(239, 75, 200, 0.08));
+  --area-hover-border: rgba(186, 66, 220, 0.25);
+  --area-hover-shadow: rgba(186, 66, 220, 0.16);
+}
+
+.areaCardFuchsia {
+  --area-hover-bg: linear-gradient(135deg, rgba(247, 53, 134, 0.12), rgba(242, 24, 108, 0.08));
+  --area-hover-border: rgba(247, 53, 134, 0.25);
+  --area-hover-shadow: rgba(247, 53, 134, 0.16);
+}
+
+.areaCardRed {
+  --area-hover-bg: linear-gradient(135deg, rgba(255, 63, 110, 0.12), rgba(255, 68, 56, 0.08));
+  --area-hover-border: rgba(255, 68, 56, 0.25);
+  --area-hover-shadow: rgba(255, 68, 56, 0.16);
+}
+
+.areaCardOrange {
+  --area-hover-bg: linear-gradient(135deg, rgba(255, 106, 0, 0.12), rgba(247, 147, 30, 0.08));
+  --area-hover-border: rgba(255, 106, 0, 0.25);
+  --area-hover-shadow: rgba(255, 106, 0, 0.16);
 }
 
 .areaIconBox {
@@ -379,6 +468,15 @@
   justify-content: center;
   align-items: center;
   box-shadow: 0 14px 24px rgba(100, 55, 129, 0.18);
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease;
+}
+
+.areaCard:hover .areaIconBox {
+  transform: rotate(7deg) scale(1.08);
+  box-shadow: 0 18px 30px rgba(100, 55, 129, 0.24);
 }
 
 .areaIconPurple {
@@ -543,6 +641,17 @@
   text-align: center;
   box-shadow: 0 10px 26px rgba(14, 62, 102, 0.04);
   box-sizing: border-box;
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          border-color 0.25s ease;
+}
+
+.stepCard:hover {
+  transform: translateY(-8px) scale(1.03);
+  border-color: rgba(142, 52, 143, 0.35);
+  box-shadow: 0 20px 38px rgba(100, 55, 129, 0.16);
 }
 
 .stepCard:not(:last-child)::after {
@@ -570,6 +679,15 @@
   justify-content: center;
   align-items: center;
   box-shadow: 0 14px 24px rgba(100, 55, 129, 0.18);
+
+  transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease;
+}
+
+.stepCard:hover .stepIconBox {
+  transform: rotate(7deg) scale(1.08);
+  box-shadow: 0 18px 30px rgba(100, 55, 129, 0.24);
 }
 
 .stepIconPurple {
