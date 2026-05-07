@@ -1,0 +1,620 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.pageShell {
+  --ink: #1f1c2f;
+  --muted: #6f6a7c;
+  --line: #e9e7ef;
+  --purple: #7445f6;
+  --blue: #1160f4;
+  --cyan: #08a7d3;
+  --pink: #d52bd9;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcff 42%, #ffffff 72%, #ffffff 100%);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.header {
+  background: linear-gradient(90deg, rgba(214, 222, 255, .95), rgba(238, 205, 255, .95));
+  border-bottom: 1px solid rgba(124, 77, 255, .16);
+}
+
+.headerInner {
+  width: min(1414px, calc(100% - 48px));
+  height: 102px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.logo {
+  width: 99px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 7px;
+  background: #ffffff;
+  color: #0e2d44;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(27, 39, 79, .06);
+}
+
+.logoMark {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #0e2d44;
+}
+
+.logoMark svg,
+.iconOnly svg,
+.profileButton svg,
+.contactIcon svg,
+.hoursCard svg,
+.form button svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.logoText {
+  font-size: 15px;
+  line-height: .9;
+  font-weight: 800;
+  letter-spacing: .4px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  flex: 1;
+}
+
+.nav a {
+  color: #3d3551;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 14px 0;
+}
+
+.nav .activeNav {
+  padding: 15px 22px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .82);
+  color: #4b2a8f;
+  box-shadow: 0 8px 22px rgba(69, 46, 126, .08);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.iconOnly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: rgba(72, 55, 105, .45);
+}
+
+.iconOnly svg,
+.profileButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profileButton {
+  min-width: 91px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .92);
+  color: #181524;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 7px 18px rgba(29, 20, 66, .08);
+}
+
+.hero {
+  position: relative;
+  min-height: 284px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 88%, rgba(78, 78, 255, .54), transparent 35%),
+    radial-gradient(circle at 82% 14%, rgba(35, 102, 255, .46), transparent 34%),
+    linear-gradient(112deg, #3657f3 0%, #2366f5 52%, #0b51f2 100%);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(ellipse at 45% 66%, rgba(255, 255, 255, .12), transparent 34%);
+  filter: blur(20px);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, calc(100% - 40px));
+  margin: 0 auto;
+  text-align: center;
+  color: #fff;
+  padding-top: 28px;
+}
+
+.heroPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  height: 42px;
+  margin-bottom: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .12);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.hero h1 {
+  margin: 0 0 31px;
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, .92);
+  font-size: 25px;
+  line-height: 1.45;
+}
+
+.contactSection {
+  width: min(1238px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 107px 0 123px;
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 37px;
+  align-items: start;
+}
+
+.infoStack {
+  display: grid;
+  gap: 37px;
+}
+
+.infoCard,
+.hoursCard,
+.formCard,
+.faqCard {
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  box-shadow: 0 1px 6px rgba(22, 16, 58, .03);
+}
+
+.infoCard {
+  min-height: 484px;
+  padding: 36px 36px 33px;
+}
+
+.infoCard h2,
+.hoursCard h2,
+.formCard h2 {
+  margin: 0;
+  color: #1b1725;
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.infoCard > p,
+.formCard > p {
+  margin: 17px 0 38px;
+  color: #736e7d;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.contactItem {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 23px;
+  align-items: start;
+  margin-bottom: 32px;
+}
+
+.contactIcon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 12px 22px rgba(54, 87, 231, .22);
+}
+
+.contactIcon svg {
+  width: 31px;
+  height: 31px;
+}
+
+.emailIcon {
+  background: linear-gradient(135deg, #10b5ef, #1672e7);
+}
+
+.phoneIcon {
+  background: linear-gradient(135deg, #6a43f4, #e328c8);
+}
+
+.contactItem h3 {
+  margin: 0 0 10px;
+  color: #211d2b;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.contactItem a,
+.contactItem p {
+  display: block;
+  color: #756f7f;
+  font-size: 16px;
+  line-height: 1.45;
+  text-decoration: none;
+  margin: 0;
+}
+
+.divider {
+  height: 1px;
+  background: #eceaf2;
+  margin: 8px 0 31px;
+}
+
+.socialSection h3 {
+  margin: 0 0 24px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.socialGrid a {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 17px;
+  background: #fafcff;
+  border-radius: 3px;
+  color: #1e1b27;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.socialGrid span {
+  min-width: 21px;
+  font-weight: 800;
+}
+
+.hoursCard {
+  padding: 28px 0 0;
+  overflow: hidden;
+}
+
+.hoursCard h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 28px 25px;
+  font-size: 16px;
+}
+
+.hoursCard h2 svg {
+  width: 21px;
+  height: 21px;
+  color: #6c61a6;
+}
+
+.hoursCard dl {
+  margin: 0;
+}
+
+.hoursCard dl div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 65px;
+  padding: 0 28px;
+  background: #f7fbff;
+  color: #6f6a7c;
+  font-size: 16px;
+}
+
+.hoursCard dl div:nth-child(2) {
+  background: #eef6ff;
+}
+
+.hoursCard dt,
+.hoursCard dd {
+  margin: 0;
+}
+
+.hoursCard dd {
+  color: #1e1b27;
+  font-weight: 800;
+}
+
+.formCard {
+  position: relative;
+  min-height: 759px;
+  padding: 36px 36px 34px;
+  box-shadow: 0 30px 55px rgba(36, 38, 58, .18);
+}
+
+.form {
+  display: grid;
+  gap: 25px;
+}
+
+.form label {
+  display: grid;
+  gap: 12px;
+  color: #211d2b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  border: 1px solid #e7e5ed;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e1b27;
+  font: inherit;
+  outline: none;
+}
+
+.form input,
+.form select {
+  height: 59px;
+  padding: 0 18px;
+}
+
+.form select {
+  color: #8b8495;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #b5adbf 50%), linear-gradient(135deg, #b5adbf 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.form textarea {
+  height: 83px;
+  resize: vertical;
+  padding: 16px 18px;
+}
+
+.form button {
+  height: 65px;
+  border: 0;
+  border-radius: 10px;
+  background: #a69cf8;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(105, 88, 230, .18);
+}
+
+.form button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.noticeBox {
+  margin-top: 23px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #eef7ff, #f8fbff);
+  border: 1px solid #e6eef8;
+  padding: 19px 20px 20px;
+}
+
+.noticeBox strong {
+  display: block;
+  color: #1d1a25;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.noticeBox p {
+  margin: 0;
+  color: #575361;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.faqSection {
+  width: min(860px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 109px 0 118px;
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 82px;
+}
+
+.sectionTitle h2 {
+  margin: 0 0 34px;
+  color: #191622;
+  font-size: 19px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.sectionTitle p {
+  margin: 0;
+  color: #625e6c;
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+.faqList {
+  display: grid;
+  gap: 27px;
+}
+
+.faqCard {
+  min-height: 133px;
+  padding: 33px 34px 28px;
+}
+
+.faqCard h3 {
+  margin: 0 0 22px;
+  color: #1b1725;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.faqCard p {
+  margin: 0;
+  color: #706b7a;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .headerInner {
+    height: auto;
+    min-height: 92px;
+    flex-wrap: wrap;
+    padding: 18px 0;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .contactGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formCard {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .headerInner,
+  .contactSection,
+  .faqSection {
+    width: min(100% - 28px, 1238px);
+  }
+
+  .headerActions {
+    gap: 8px;
+  }
+
+  .profileButton {
+    min-width: 82px;
+    font-size: 14px;
+  }
+
+  .hero {
+    min-height: 310px;
+  }
+
+  .heroContent {
+    padding-top: 24px;
+  }
+
+  .heroPill {
+    margin-bottom: 36px;
+  }
+
+  .hero p {
+    font-size: 18px;
+    line-height: 1.55;
+  }
+
+  .contactSection {
+    padding-top: 64px;
+    padding-bottom: 72px;
+  }
+
+  .infoCard,
+  .formCard {
+    padding: 28px 22px;
+  }
+
+  .contactItem {
+    grid-template-columns: 48px 1fr;
+    gap: 16px;
+  }
+
+  .contactIcon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .socialGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hoursCard dl div {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 15px 22px;
+  }
+
+  .faqSection {
+    padding-top: 70px;
+  }
+}
