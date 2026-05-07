@@ -1,5 +1,6 @@
 import styles from "../styles/Landpage.module.css";
 import Footer from "../components/Footer";
+import Link from "next/link";
 import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
     Target, Star, Clock3, ShieldCheck, CheckCircle2, Info } from "lucide-react";
 
@@ -28,16 +29,16 @@ export default function Home() {
                     </p>
 
                     <div className={styles.heroButtons}>
-                        <button className={styles.primaryButton}>
+                        <Link href="/areas" className={styles.primaryButton}>
                             <Rocket size={18} strokeWidth={2.4} />
                             <span>Explorar Áreas</span>
                             <ArrowRight size={18} strokeWidth={2.4} />
-                        </button>
+                        </Link>
 
-                        <button className={styles.secondaryButton}>
+                        <Link href="/simulation" className={styles.secondaryButton}>
                             <Zap size={18} strokeWidth={2.4} />
                             <span>Iniciar Simulación</span>
-                        </button>
+                        </Link>
                     </div>
 
                     <div className={styles.statsContainer}>
@@ -136,9 +137,12 @@ export default function Home() {
                             Gestiona el talento y crea ambientes laborales excepcionales
                         </p>
 
-                        <button className={`${styles.areaButton} ${styles.areaButtonPurple}`}>
+                        <Link
+                            href="/areas#recursos-humanos"
+                            className={`${styles.areaButton} ${styles.areaButtonPurple}`}
+                        >
                             Explorar
-                        </button>
+                        </Link>
                     </article>
 
                     <article className={`${styles.areaCard} ${styles.areaCardPink}`}>
@@ -151,9 +155,12 @@ export default function Home() {
                             Crea estrategias que impulsen el crecimiento de marcas
                         </p>
 
-                        <button className={`${styles.areaButton} ${styles.areaButtonPink}`}>
+                        <Link
+                            href="/areas#marketing"
+                            className={`${styles.areaButton} ${styles.areaButtonPink}`}
+                        >
                             Explorar
-                        </button>
+                        </Link>
                     </article>
 
                     <article className={`${styles.areaCard} ${styles.areaCardFuchsia}`}>
@@ -166,9 +173,12 @@ export default function Home() {
                             Administra recursos y asegura la estabilidad financiera
                         </p>
 
-                        <button className={`${styles.areaButton} ${styles.areaButtonFuchsia}`}>
+                        <Link
+                            href="/areas#finanzas"
+                            className={`${styles.areaButton} ${styles.areaButtonFuchsia}`}
+                        >
                             Explorar
-                        </button>
+                        </Link>
                     </article>
 
                     <article className={`${styles.areaCard} ${styles.areaCardRed}`}>
@@ -181,9 +191,12 @@ export default function Home() {
                             Lidera ventas y relaciones estratégicas con clientes
                         </p>
 
-                        <button className={`${styles.areaButton} ${styles.areaButtonRed}`}>
+                        <Link
+                            href="/areas#comercial"
+                            className={`${styles.areaButton} ${styles.areaButtonRed}`}
+                        >
                             Explorar
-                        </button>
+                        </Link>
                     </article>
 
                     <article className={`${styles.areaCard} ${styles.areaCardOrange}`}>
@@ -196,16 +209,19 @@ export default function Home() {
                             Optimiza la cadena de suministro y distribución
                         </p>
 
-                        <button className={`${styles.areaButton} ${styles.areaButtonOrange}`}>
+                        <Link
+                            href="/areas#logistica"
+                            className={`${styles.areaButton} ${styles.areaButtonOrange}`}
+                        >
                             Explorar
-                        </button>
+                        </Link>
                     </article>
                 </div>
 
-                <button className={styles.viewAllAreasButton}>
+                <Link href="/areas" className={styles.viewAllAreasButton}>
                     <span>Ver todas las áreas en detalle</span>
                     <ArrowRight size={18} strokeWidth={2.4} />
-                </button>
+                </Link>
 
             </section>
 
@@ -365,16 +381,16 @@ export default function Home() {
                     </p>
 
                     <div className={styles.ctaButtons}>
-                        <button className={styles.ctaPrimaryButton}>
+                        <Link href="/simulation" className={styles.ctaPrimaryButton}>
                             <Rocket size={18} strokeWidth={2.4} />
                             <span>Comenzar Simulación</span>
                             <ArrowRight size={18} strokeWidth={2.4} />
-                        </button>
+                        </Link>
 
-                        <button className={styles.ctaSecondaryButton}>
+                        <Link href="/contact" className={styles.ctaSecondaryButton}>
                             <Info size={18} strokeWidth={2.4} />
                             <span>Más Información</span>
-                        </button>
+                        </Link>
                     </div>
 
                     <div className={styles.ctaFeatures}>

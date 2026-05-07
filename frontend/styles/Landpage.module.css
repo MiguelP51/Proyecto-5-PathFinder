@@ -101,6 +101,7 @@
   align-items: center;
   gap: 14px;
   box-shadow: 0 12px 24px rgba(100, 55, 129, 0.25);
+  text-decoration: none;
 }
 
 .secondaryButton {
@@ -118,6 +119,7 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
+  text-decoration: none;
 }
 
 .statsContainer {
@@ -522,6 +524,7 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .areaButtonPurple {
@@ -566,6 +569,7 @@
   justify-content: center;
   gap: 16px;
   box-shadow: 0 12px 24px rgba(185, 48, 156, 0.25);
+  text-decoration: none;
 }
 
 @media (max-width: 1280px) {
@@ -973,6 +977,7 @@
   justify-content: center;
   gap: 14px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
 }
 
 .ctaPrimaryButton {
