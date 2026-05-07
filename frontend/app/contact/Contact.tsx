@@ -282,7 +282,7 @@ function FAQ() {
 export default function ContactPage() {
   return (
     <main className={styles.pageShell}>
-      <Header />
+      {/* <Header /> */}
       <Hero />
       <ContactMain />
       <FAQ />

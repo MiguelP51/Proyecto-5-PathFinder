@@ -225,7 +225,7 @@ function CTA() {
 export default function AboutUsPage() {
   return (
     <main className={styles.pageShell}>
-      <Header />
+      {/* <Header /> */}
       <Hero />
       <MissionVision />
       <Values />
