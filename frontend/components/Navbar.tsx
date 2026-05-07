@@ -16,6 +16,7 @@ export default function Navbar() {
             {/* Menú de navegación */}
             <ul className={styles.navList}>
                 <li className={styles.navItem}><Link href="/" data-text="Inicio">Inicio</Link></li>
+                <li className={styles.navItem}><Link href="/areas" data-text="Áreas">Áreas</Link></li>
                 <li className={styles.navItem}><Link href="/about" data-text="Sobre nosotros">Sobre nosotros</Link></li>
                 <li className={styles.navItem}><Link href="/contact" data-text="Contacto">Contacto</Link></li>
                 <li className={styles.navItem}><Link href="/simulation" data-text="Simulación">Simulación</Link></li>
