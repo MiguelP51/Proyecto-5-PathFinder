@@ -9,7 +9,7 @@ export default function Navbar() {
             {/* Logo en la izquierda */}
             <div className={styles.logo}>
                 <Link href="/">
-                    <img src="/assets/logo.png" alt="Logo" className={styles.logoImg} />
+                    <img src="/assets/logo-pf.png" alt="Logo" className={styles.logoImg} />
                 </Link>
             </div>
 
