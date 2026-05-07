@@ -14,6 +14,13 @@ body {
     justify-content: center;
     align-items: center;
     background: linear-gradient(112deg, #FCFBFF 0%, #F6F3FB 63.66%, #EEE8F8 127.31%);
+    
+    /*
+    background-image: url('/assets/login-background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+*/
     position: fixed;
     top: 0;
     left: 0;
