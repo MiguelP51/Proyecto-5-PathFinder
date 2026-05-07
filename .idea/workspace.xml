@@ -5,11 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/components/Footer.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/styles/Footer.module.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/app/areas/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/styles/Areas.module.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/styles/Landpage.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/Landpage.module.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Navbar.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,6 +18,7 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="TypeScript JSX File" />
         <option value="CSS File" />
       </list>
     </option>
@@ -69,6 +69,9 @@
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\components" />
     </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\public\areas" />
+    </key>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -85,7 +88,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1778084242675</updated>
-      <workItem from="1778084244691" duration="12984000" />
+      <workItem from="1778084244691" duration="16805000" />
     </task>
     <servers />
   </component>
