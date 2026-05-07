@@ -83,6 +83,7 @@
     background: #ffffff;
     padding: 86px 24px 96px;
     box-sizing: border-box;
+    scroll-margin-top: 100px;
 }
 
 .areaDetailGrid {

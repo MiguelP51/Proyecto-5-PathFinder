@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 type AreaItem = {
+    id: string;
     title: string;
     description: string;
     image: string;
@@ -30,6 +31,7 @@ type AreaStyle = CSSProperties & {
 
 const areas: AreaItem[] = [
     {
+        id: "recursos-humanos",
         title: "Recursos Humanos",
         description:
             "Gestionan el talento humano, asegurando un ambiente laboral óptimo y el cumplimiento de políticas internas.",
@@ -61,6 +63,7 @@ const areas: AreaItem[] = [
         ],
     },
     {
+        id: "marketing",
         title: "Marketing",
         description:
             "Se encarga de crear, comunicar y entregar valor a los clientes, gestionando la marca y promoviendo productos o servicios para impulsar el crecimiento.",
@@ -92,6 +95,7 @@ const areas: AreaItem[] = [
         ],
     },
     {
+        id: "finanzas",
         title: "Finanzas",
         description:
             "Administra los recursos económicos de la empresa, asegurando la liquidez, rentabilidad y estabilidad financiera para apoyar la toma de decisiones estratégicas",
@@ -123,6 +127,7 @@ const areas: AreaItem[] = [
         ],
     },
     {
+        id: "comercial",
         title: "Comercial",
         description:
             "Lidera las actividades de ventas y la gestión de la relación con los clientes, impulsando los ingresos y expandiendo la cuota de mercado de la empresa.",
@@ -154,6 +159,7 @@ const areas: AreaItem[] = [
         ],
     },
     {
+        id: "logistica",
         title: "Logística",
         description:
             "Planifica, implementa y controla el flujo eficiente y efectivo de bienes, servicios e información desde el punto de origen hasta el punto de consumo.",
@@ -201,7 +207,7 @@ function AreaDetail({
     };
 
     return (
-        <section className={styles.areaDetailSection} style={areaStyle}>
+        <section id={area.id} className={styles.areaDetailSection} style={areaStyle}>
             <div
                 className={`${styles.areaDetailGrid} ${
                     reverse ? styles.areaDetailGridReverse : ""
