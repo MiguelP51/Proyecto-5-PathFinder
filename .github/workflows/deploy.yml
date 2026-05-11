@@ -13,6 +13,32 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Detectar cambios
+        id: changes
+        run: |
+
+          echo "Detectando cambios..."
+
+          FRONT_CHANGED=false
+          BACK_CHANGED=false
+
+          git fetch origin develop
+
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+          echo "$CHANGED_FILES"
+
+          if echo "$CHANGED_FILES" | grep '^frontend/'; then
+            FRONT_CHANGED=true
+          fi
+
+          if echo "$CHANGED_FILES" | grep '^backend/'; then
+            BACK_CHANGED=true
+          fi
+
+          echo "FRONT_CHANGED=$FRONT_CHANGED" >> $GITHUB_ENV
+          echo "BACK_CHANGED=$BACK_CHANGED" >> $GITHUB_ENV
+
       - name: Configurar variables
         run: |
           echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
@@ -42,19 +68,27 @@ jobs:
             echo "Deteniendo contenedores..."
             docker-compose down
 
-            echo "Limpiando imágenes Docker antiguas..."
+            echo "Limpiando Docker..."
             docker system prune -af
 
-            echo "Construyendo frontend..."
-            docker-compose build frontend
+            if [ "${FRONT_CHANGED}" = "true" ]; then
+              echo "Rebuild frontend..."
+              docker-compose build frontend
+            else
+              echo "Frontend sin cambios"
+            fi
 
-            echo "Construyendo backend..."
-            docker-compose build backend
+            if [ "${BACK_CHANGED}" = "true" ]; then
+              echo "Rebuild backend..."
+              docker-compose build backend
+            else
+              echo "Backend sin cambios"
+            fi
 
             echo "Levantando servicios..."
             docker-compose up -d
 
-            echo "Verificando contenedores..."
+            echo "Contenedores activos:"
             docker ps
 
             echo "================================="
