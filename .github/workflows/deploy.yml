@@ -3,7 +3,6 @@ name: Deploy to AWS EC2
 on:
   push:
     branches:
-      - main
       - develop
 
 jobs:
@@ -14,64 +13,51 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Definir entorno según rama
+      - name: Configurar variables
         run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            echo "ENV=production" >> $GITHUB_ENV
-            echo "HOST=${{ secrets.EC2_HOST_PROD }}" >> $GITHUB_ENV
-            echo "USER=${{ secrets.EC2_USER_PROD }}" >> $GITHUB_ENV
-            echo "KEY=${{ secrets.EC2_SSH_KEY_PROD }}" >> $GITHUB_ENV
-          else
-            echo "ENV=development" >> $GITHUB_ENV
-            echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
-            echo "USER=${{ secrets.EC2_USER_DEV }}" >> $GITHUB_ENV
-            echo "KEY=${{ secrets.EC2_SSH_KEY_DEV }}" >> $GITHUB_ENV
-          fi
+          echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
+          echo "USER=${{ secrets.EC2_USER_DEV }}" >> $GITHUB_ENV
+          echo "KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
-      - name: Deploy vía SSH
+      - name: Deploy en EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.HOST }}
           username: ${{ env.USER }}
           key: ${{ env.KEY }}
           script: |
-            # ==============================
-            #  CONFIGURACIÓN PENDIENTE
-            # ==============================
 
-            # Reemplazar con la ruta donde estará tu proyecto en la VM
-            cd /home/usuario/tu-proyecto
+            echo "================================="
+            echo " INICIANDO DEPLOY DEVELOP "
+            echo "================================="
 
-            # Nota: Asegurarse que el repo esté clonado con SSH (no HTTPS)
+            cd /home/ubuntu/Proyecto-5-PathFinder
 
-            # ==============================
-            #  DEPLOY
-            # ==============================
-
-            echo "Desplegando rama: ${GITHUB_REF_NAME}"
-            echo "Entorno: $ENV"
-
-            # Opción segura (recomendada)
+            echo "Actualizando repositorio..."
             git fetch --all
-            git reset --hard origin/${GITHUB_REF_NAME}
+            git reset --hard origin/develop
 
-            # ==============================
-            # PENDIENTE SEGÚN STACK
-            # ==============================
+            echo "Deteniendo contenedores..."
+            docker-compose down
 
-            # EJEMPLOS (comentado por ahora)
+            echo "Limpiando imágenes Docker antiguas..."
+            docker system prune -af
 
-            # Node.js
-            # npm install
-            # npm run build
-            # pm2 restart app || pm2 start npm --name "app" -- start
+            echo "Construyendo frontend..."
+            docker-compose build frontend
 
-            # Python
-            # pip install -r requirements.txt
-            # systemctl restart mi_app
+            echo "Construyendo backend..."
+            docker-compose build backend
 
-            # Java
-            # ./gradlew build
-            # systemctl restart mi_app
+            echo "Levantando servicios..."
+            docker-compose up -d
 
-            echo "Deploy completado"
+            echo "Verificando contenedores..."
+            docker ps
+
+            echo "================================="
+            echo " DEPLOY COMPLETADO "
+            echo "================================="
+
