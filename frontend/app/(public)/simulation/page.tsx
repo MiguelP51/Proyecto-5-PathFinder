@@ -1,4 +1,4 @@
-import SimulationPage from "@/app/simulation/SimulationPage";
+import SimulationPage from "./SimulationPage";
 
 export default function Simulation() {
     return <SimulationPage />;

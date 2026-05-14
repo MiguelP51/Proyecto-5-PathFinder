@@ -1,5 +1,5 @@
 import styles from "../../styles/Landpage.module.css"
-import ContactPage from '@/app/contact/Contact';
+import ContactPage from './Contact';
 
 export default function Contact() {
     return <ContactPage />; 

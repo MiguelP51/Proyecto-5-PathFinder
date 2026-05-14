@@ -1,5 +1,5 @@
-import Footer from '../../components/Footer';
-import styles from '../../styles/ContactPage.module.css';
+import Footer from '../../../components/Footer';
+import styles from '../../../styles/ContactPage.module.css';
 
 const navItems = ['Inicio', 'Áreas', 'Nosotros', 'Contacto', 'Simulación', 'Aula Virtual'];
 

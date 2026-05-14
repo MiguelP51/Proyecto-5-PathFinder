@@ -7,7 +7,7 @@ import {
     TrendingUp,
 } from "lucide-react";
 import Footer from "@/components/Footer";
-import styles from "../../styles/Simulation.module.css";
+import styles from "../../../styles/Simulation.module.css";
 
 const processSteps = [
     {

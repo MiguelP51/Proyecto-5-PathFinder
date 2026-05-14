@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import styles from '../../styles/AboutUsPage.module.css';
-import Footer from '../../components/Footer';
+import styles from '../../../styles/AboutUsPage.module.css';
+import Footer from '../../../components/Footer';
 
 const navItems = ['Inicio', 'Áreas', 'Nosotros', 'Contacto', 'Simulación', 'Aula Virtual'];
 

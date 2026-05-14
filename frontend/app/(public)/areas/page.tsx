@@ -1,4 +1,4 @@
-import styles from "../../styles/Areas.module.css";
+import styles from "../../../styles/Areas.module.css";
 import type { CSSProperties } from "react";
 import {
     UsersRound,

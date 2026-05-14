@@ -1,6 +1,6 @@
-import styles from "../../styles/Landpage.module.css"
+import styles from '../../../styles/Landpage.module.css';
 
-import AboutUsPage from '@/app/about/AboutUsPage';
+import AboutUsPage from './AboutUsPage';
 
 export default function About() {
     return <AboutUsPage />;

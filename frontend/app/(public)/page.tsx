@@ -1,5 +1,5 @@
-import styles from "../styles/Landpage.module.css";
-import Footer from "../components/Footer";
+import styles from "../../styles/Landpage.module.css";
+import Footer from "../../components/Footer";
 import Link from "next/link";
 import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
     Target, Star, Clock3, ShieldCheck, CheckCircle2, Info } from "lucide-react";
