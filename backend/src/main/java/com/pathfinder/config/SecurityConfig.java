@@ -44,7 +44,13 @@ public class SecurityConfig {
                                 "/health",
                                 "/oauth2/**",
                                 "/auth/**",
-                                "/h2-console/**"
+                                "/h2-console/**",
+                                "/api/cv/extract",
+
+                                // Swagger
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/mentor/**").hasAnyRole("MENTOR", "ADMIN")
@@ -71,7 +77,6 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

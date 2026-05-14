@@ -1,7 +1,7 @@
 package com.pathfinder.security;
 
-import com.pathfinder.model.User;
-import com.pathfinder.repository.UserRepository;
+import com.pathfinder.model.entity.Usuario;
+import com.pathfinder.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
@@ -13,17 +13,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + email));
-
+    public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
+        Usuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + correo));
         return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
+                usuario.getCorreo(),
                 "",
-                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name()))
         );
     }
 }

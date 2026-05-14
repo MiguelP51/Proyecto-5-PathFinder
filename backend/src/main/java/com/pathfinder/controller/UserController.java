@@ -19,7 +19,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMe(
             @AuthenticationPrincipal UserDetails userDetails) {
-        var user = userService.getCurrentUser(userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(user)));
+        var usuario = userService.getCurrentUser(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(usuario)));
     }
 }
