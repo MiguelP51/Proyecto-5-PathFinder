@@ -1,25 +1,25 @@
 package com.pathfinder.dto.response;
 
-import com.pathfinder.model.User;
+import com.pathfinder.model.entity.Usuario;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
 public class UserResponse {
-    private Long id;
+    private Integer id;
     private String email;
     private String name;
     private String pictureUrl;
     private String role;
 
-    public static UserResponse from(User user) {
+    public static UserResponse from(Usuario usuario) {
         return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .pictureUrl(user.getPictureUrl())
-                .role(user.getRole().name())
+                .id(usuario.getIdUsuario())
+                .email(usuario.getCorreo())
+                .name(usuario.getNombreCompleto())
+                .pictureUrl(usuario.getAvatarUrl())
+                .role(usuario.getRol() != null ? usuario.getRol().name() : null)
                 .build();
     }
 }

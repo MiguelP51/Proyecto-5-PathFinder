@@ -1,6 +1,7 @@
 package com.pathfinder.repository;
 
-import com.pathfinder.model.User;
+import com.pathfinder.model.entity.Usuario;
+import com.pathfinder.model.enums.RolUsuario;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -13,26 +14,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserRepositoryTest {
 
     @Autowired
-    private UserRepository userRepository;
+    private UsuarioRepository usuarioRepository;
 
     @Test
     void deberiaPersistirYEncontrarPorEmail() {
-        User user = User.builder()
-                .email("test@pathfinder.com")
-                .name("Test User")
-                .role(User.Role.STUDENT)
-                .build();
+        Usuario usuario = new Usuario();
+        usuario.setCorreo("test@pathfinder.com");
+        usuario.setNombreCompleto("Test User");
+        usuario.setRol(RolUsuario.USER);
 
-        userRepository.save(user);
+        usuarioRepository.save(usuario);
 
-        var found = userRepository.findByEmail("test@pathfinder.com");
+        var found = usuarioRepository.findByCorreo("test@pathfinder.com");
         assertThat(found).isPresent();
-        assertThat(found.get().getName()).isEqualTo("Test User");
-        assertThat(found.get().getRole()).isEqualTo(User.Role.STUDENT);
+        assertThat(found.get().getNombreCompleto()).isEqualTo("Test User");
+        assertThat(found.get().getRol()).isEqualTo(RolUsuario.USER);
     }
 
     @Test
     void deberiaRetornarFalseSiEmailNoExiste() {
-        assertThat(userRepository.existsByEmail("noexiste@mail.com")).isFalse();
+        assertThat(usuarioRepository.existsByCorreo("noexiste@mail.com")).isFalse();
     }
 }
