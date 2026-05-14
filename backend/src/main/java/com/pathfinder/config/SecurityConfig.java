@@ -44,6 +44,7 @@ public class SecurityConfig {
                                 "/health",
                                 "/oauth2/**",
                                 "/auth/**",
+                                "/api/auth/**",
                                 "/h2-console/**",
                                 "/api/cv/extract",
 
