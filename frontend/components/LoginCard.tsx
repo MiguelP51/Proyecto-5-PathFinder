@@ -4,42 +4,9 @@ import { signIn } from 'next-auth/react';
 import styles from "../styles/LoginRegister.module.css";
 
 const handleGoogleLogin = async () => {
-  const width = 500;
-  const height = 600;
-  const left = window.screenX + (window.outerWidth - width) / 2;
-  const top = window.screenY + (window.outerHeight - height) / 2;
-
-  // 1. Primero abre el popup vacío
-  const popup = window.open('', 'Google Login', `width=${width},height=${height},left=${left},top=${top}`);
-
-  // 2. Obtén el CSRF token de next-auth
-  const { csrfToken } = await fetch('/api/auth/csrf').then(r => r.json());
-
-  // 3. Haz POST directo al provider — salta la pantalla intermedia
-  if (popup) {
-    popup.document.write(`
-      <form id="f" method="POST" action="/api/auth/signin/google">
-        <input type="hidden" name="csrfToken" value="${csrfToken}" />
-        <input type="hidden" name="callbackUrl" value="/home" />
-      </form>
-      <script>document.getElementById('f').submit();</script>
-    `);
-  }
-
-  // 4. Detecta cuando el popup cierra y redirige
-  const interval = setInterval(async () => {
-    try {
-      if (popup?.closed) {
-        clearInterval(interval);
-        const session = await fetch('/api/auth/session').then(r => r.json());
-        if (session?.user) {
-          window.location.href = '/home';
-        }
-      }
-    } catch {
-      clearInterval(interval);
-    }
-  }, 500);
+  signIn('google', {
+    callbackUrl: 'http://localhost:3000/home', // Usar URL absoluta
+  });
 };
 const LoginCard = () => {
   return (
