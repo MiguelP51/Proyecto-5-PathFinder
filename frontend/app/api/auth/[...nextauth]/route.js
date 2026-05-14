@@ -16,14 +16,16 @@ export const authOptions = {
     async signIn({ user }) {
       // Aquí mandas los datos al backend Java
       try {
-        // await fetch(`${process.env.BACKEND_URL}/auth/google`, {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //     email: user.email,
-        //     nombre: user.name,
-        //   }),
-        // });
+        const res = await fetch(`${process.env.BACKEND_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            googleUid: account.providerAccountId, // UID de Google
+            correo: user.email,
+            nombreCompleto: user.name,
+            avatarUrl: user.image,
+          }),
+        });
         return true; // permite el login
       } catch {
         return false; // bloquea el login si el backend falla
