@@ -22,8 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <Providers>
-          <Navbar />
-          <main style={{ marginTop: '80px' }}>{children}</main>
+          <main>{children}</main>
         </Providers>
       </body>
     </html>
