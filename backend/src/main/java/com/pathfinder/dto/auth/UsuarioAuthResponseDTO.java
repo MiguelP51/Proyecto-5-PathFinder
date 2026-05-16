@@ -9,9 +9,11 @@ import lombok.Data;
 public class UsuarioAuthResponseDTO {
 
     private Integer idUsuario;
-    private String googleUid;
-    private String nombreCompleto;
     private String correo;
+    private String nombreCompleto;
     private String avatarUrl;
     private RolUsuario rol;
+
+    private boolean nuevoUsuario;
+    private boolean requiereCompletarPerfil;
 }
