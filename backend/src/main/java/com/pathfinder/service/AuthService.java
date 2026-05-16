@@ -1,9 +1,9 @@
 package com.pathfinder.service;
 
 import com.pathfinder.dto.auth.LoginRequestDTO;
-import com.pathfinder.dto.auth.LoginResponseDTO;
+import com.pathfinder.dto.auth.UsuarioAuthResponseDTO;
 
 public interface AuthService {
 
-    LoginResponseDTO login(LoginRequestDTO request);
+    UsuarioAuthResponseDTO login(LoginRequestDTO request);
 }
