@@ -9,10 +9,21 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  return (
-    <div>
-      <h1>Hola, {session.user.name} 👋</h1>
-      <p>{session.user.email}</p>
-    </div>
-  );
+  const rol = (session.user as { rol?: string }).rol;
+
+  if (rol === "ADMIN") {
+    redirect("/admin/dashboard");
+  }
+
+  if (rol === "MENTOR") {
+    redirect("/mentor/dashboard");
+  }
+
+  // Estudiante (USER) — si es nuevo, va a completar perfil primero
+  const nuevoUsuario = (session.user as { nuevoUsuario?: boolean }).nuevoUsuario;
+  if (nuevoUsuario) {
+    redirect("/profile");
+  }
+
+  redirect("/student/dashboard");
 }
