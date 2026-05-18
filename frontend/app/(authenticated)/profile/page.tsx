@@ -265,7 +265,7 @@ export default function ProfileSetupPage() {
         body: JSON.stringify(dto),
       }, (session as { googleIdToken?: string } | null)?.googleIdToken);
 
-      router.push("/home");
+      router.push("/student/dashboard");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error guardando el perfil"
@@ -276,7 +276,7 @@ export default function ProfileSetupPage() {
   };
 
   const handleSkip = () => {
-    router.push("/home");
+    router.push("/student/dashboard");
   };
 
   // Progreso

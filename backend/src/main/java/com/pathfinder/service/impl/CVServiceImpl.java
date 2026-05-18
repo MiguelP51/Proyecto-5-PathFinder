@@ -804,6 +804,10 @@ public class CVServiceImpl implements CVService {
         perfil.setFechaActualizacionCv(LocalDateTime.now());
         perfilCVRepository.save(perfil);
 
+        // Marcar como usuario que ya completó su perfil
+        usuario.setNuevoUsuario(false);
+        usuarioRepository.save(usuario);
+
         // Experiencias — borra las anteriores y guarda las nuevas
         experienciaRepo.deleteByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv());
         if (dto.getExperiencias() != null) {

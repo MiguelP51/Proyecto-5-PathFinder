@@ -31,4 +31,7 @@ public class Usuario extends AuditoriaBase {
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
+
+    @Column(name = "nuevo_usuario", nullable = false)
+    private Boolean nuevoUsuario = true;
 }
