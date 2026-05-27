@@ -24,3 +24,7 @@ frontend/out/
 .vscode/
 .DS_Store
 Thumbs.db
+
+certbot/
+*.pem
+*.key
