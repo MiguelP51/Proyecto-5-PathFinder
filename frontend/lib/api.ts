@@ -10,7 +10,7 @@
  *
  *   // Con auth (guardar CV, obtener CV)
  *   const session = await getSession();
- *   const data = await apiFetch("/api/cv/me", {}, session.googleIdToken);
+ *   const data = await apiFetch("/api/cv/me", {}, session.backendJwt);
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";

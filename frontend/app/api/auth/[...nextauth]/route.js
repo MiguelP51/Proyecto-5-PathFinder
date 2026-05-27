@@ -13,7 +13,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       try {
         // Llama al backend con los datos de Google
         const res = await fetch(`${process.env.BACKEND_URL}/api/auth/login`, {
@@ -35,7 +35,9 @@ export const authOptions = {
         user.idUsuario = data.idUsuario;
         user.rol = data.rol;
         user.nuevoUsuario = data.nuevoUsuario;
+        user.requiereCompletarPerfil = data.requiereCompletarPerfil;
         user.avatarUrl = data.avatarUrl;
+        user.backendJwt = data.backendJwt;
 
         return true;
       } catch (err) {
@@ -51,7 +53,9 @@ export const authOptions = {
         token.idUsuario = user.idUsuario;
         token.rol = user.rol;
         token.nuevoUsuario = user.nuevoUsuario;
+        token.requiereCompletarPerfil = user.requiereCompletarPerfil;
         token.avatarUrl = user.avatarUrl;
+        token.backendJwt = user.backendJwt;
         token.googleIdToken = account?.id_token;
       }
       return token;
@@ -61,9 +65,17 @@ export const authOptions = {
       session.user.idUsuario = token.idUsuario;
       session.user.rol = token.rol;
       session.user.nuevoUsuario = token.nuevoUsuario;
+      session.user.requiereCompletarPerfil = token.requiereCompletarPerfil;
       session.user.avatarUrl = token.avatarUrl;
-      session.googleIdToken = token.googleIdToken; // para llamadas al back que requieran JWT
+      session.backendJwt = token.backendJwt;
+      session.googleIdToken = token.googleIdToken;
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/home`;
     },
   },
 };

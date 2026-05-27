@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface PerfilCVRepository extends JpaRepository<PerfilCV, Integer> {
     Optional<PerfilCV> findByUsuario_IdUsuario(Integer idUsuario);
     Optional<PerfilCV> findByUsuario_Correo(String correo);
+    boolean existsByUsuario_Correo(String correo);
 }

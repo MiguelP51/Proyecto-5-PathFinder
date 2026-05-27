@@ -184,11 +184,11 @@ export default function ProfileSetupPage() {
         fullName: session.user?.name || prev.fullName,
         email: session.user?.email || prev.email,
       }));
-      setPhotoUrl(session.user?.image || "");
+      setPhotoUrl(session.user?.avatarUrl || session.user?.image || "");
 
       // Cargar CV guardado si existe
-      const idToken = (session as { googleIdToken?: string }).googleIdToken;
-      apiFetch<CVExtractadoDTO>("/api/cv/me", {}, idToken)
+      const backendJwt = (session as { backendJwt?: string }).backendJwt;
+      apiFetch<CVExtractadoDTO>("/api/cv/me", {}, backendJwt)
         .then((dto) => {
           const mapped = mapDtoToState(dto);
           if (mapped.personalData.fullName) {
@@ -259,13 +259,13 @@ export default function ProfileSetupPage() {
         tools
       );
 
-      // PUT /api/cv/save — requiere JWT de Google (que el back valida)
+      // PUT /api/cv/save — requiere JWT emitido por el backend
       await apiFetch<CVExtractadoDTO>("/api/cv/save", {
         method: "PUT",
         body: JSON.stringify(dto),
-      }, (session as { googleIdToken?: string } | null)?.googleIdToken);
+      }, (session as { backendJwt?: string } | null)?.backendJwt);
 
-      router.push("/student/dashboard");
+      router.push("/?session=active");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error guardando el perfil"
@@ -276,7 +276,7 @@ export default function ProfileSetupPage() {
   };
 
   const handleSkip = () => {
-    router.push("/student/dashboard");
+    router.push("/?session=active");
   };
 
   // Progreso

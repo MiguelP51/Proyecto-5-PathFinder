@@ -4,6 +4,7 @@ import "next-auth/jwt";
 declare module "next-auth" {
   interface Session {
     googleIdToken?: string;
+    backendJwt?: string;
     user: {
       name?: string | null;
       email?: string | null;
@@ -11,6 +12,7 @@ declare module "next-auth" {
       idUsuario?: number;
       rol?: string;
       nuevoUsuario?: boolean;
+      requiereCompletarPerfil?: boolean;
       avatarUrl?: string;
     };
   }
@@ -19,6 +21,7 @@ declare module "next-auth" {
     idUsuario?: number;
     rol?: string;
     nuevoUsuario?: boolean;
+    requiereCompletarPerfil?: boolean;
     avatarUrl?: string;
     backendJwt?: string;
   }
@@ -29,7 +32,9 @@ declare module "next-auth/jwt" {
     idUsuario?: number;
     rol?: string;
     nuevoUsuario?: boolean;
+    requiereCompletarPerfil?: boolean;
     avatarUrl?: string;
     googleIdToken?: string;
+    backendJwt?: string;
   }
 }

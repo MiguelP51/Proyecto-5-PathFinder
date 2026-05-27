@@ -9,21 +9,11 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const rol = (session.user as { rol?: string }).rol;
-
-  if (rol === "ADMIN") {
-    redirect("/admin/dashboard");
-  }
-
-  if (rol === "MENTOR") {
-    redirect("/mentor/dashboard");
-  }
-
-  // Estudiante (USER) — si es nuevo, va a completar perfil primero
-  const nuevoUsuario = (session.user as { nuevoUsuario?: boolean }).nuevoUsuario;
-  if (nuevoUsuario) {
+  // Si no tiene CV/perfil guardado, va a completar perfil primero
+  const requiereCompletarPerfil = (session.user as { requiereCompletarPerfil?: boolean }).requiereCompletarPerfil;
+  if (requiereCompletarPerfil) {
     redirect("/profile");
   }
 
-  redirect("/student/dashboard");
+  redirect("/?session=active");
 }
