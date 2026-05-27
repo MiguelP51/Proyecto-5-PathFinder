@@ -8,9 +8,12 @@ import com.pathfinder.model.enums.EstadoSesion;
 import com.pathfinder.model.enums.RolUsuario;
 import com.pathfinder.repository.SesionAutenticacionRepository;
 import com.pathfinder.repository.UsuarioRepository;
+import com.pathfinder.repository.PerfilCVRepository;
+import com.pathfinder.security.jwt.JwtTokenProvider;
 import com.pathfinder.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -23,6 +26,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final SesionAutenticacionRepository sesionAutenticacionRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final PerfilCVRepository perfilCVRepository;
+
+    @Value("${app.admin.email:jhuamanp@pucp.edu.pe}")
+    private String adminEmail;
 
     @Override
     @Transactional
@@ -39,6 +47,8 @@ public class AuthServiceImpl implements AuthService {
                 .orElseGet(() -> crearUsuario(request, correoNormalizado));
 
         registrarSesionExitosa(usuario);
+        String backendJwt = jwtTokenProvider.generateToken(usuario.getCorreo());
+        boolean requiereCompletarPerfil = !perfilCVRepository.existsByUsuario_Correo(usuario.getCorreo());
 
         return new UsuarioAuthResponseDTO(
                 usuario.getIdUsuario(),
@@ -46,8 +56,9 @@ public class AuthServiceImpl implements AuthService {
                 usuario.getNombreCompleto(),
                 usuario.getAvatarUrl(),
                 usuario.getRol(),
+                backendJwt,
                 nuevoUsuario,
-                nuevoUsuario
+                requiereCompletarPerfil
         );
     }
 
@@ -66,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
         usuario.setCorreo(correoNormalizado);
         usuario.setNombreCompleto(normalizarTexto(request.getNombreCompleto()));
         usuario.setAvatarUrl(normalizarTexto(request.getAvatarUrl()));
-        usuario.setRol(RolUsuario.USER);
+        usuario.setRol(resolveRole(correoNormalizado));
         usuario.setActivo(true);
 
         return usuarioRepository.save(usuario);
@@ -81,7 +92,9 @@ public class AuthServiceImpl implements AuthService {
             usuario.setAvatarUrl(request.getAvatarUrl().trim());
         }
 
-        if (usuario.getRol() == null) {
+        if (adminEmail.equalsIgnoreCase(usuario.getCorreo())) {
+            usuario.setRol(RolUsuario.ADMIN);
+        } else if (usuario.getRol() == null) {
             usuario.setRol(RolUsuario.USER);
         }
 
@@ -106,5 +119,9 @@ public class AuthServiceImpl implements AuthService {
 
     private String normalizarTexto(String valor) {
         return StringUtils.hasText(valor) ? valor.trim() : null;
+    }
+
+    private RolUsuario resolveRole(String correoNormalizado) {
+        return adminEmail.equalsIgnoreCase(correoNormalizado) ? RolUsuario.ADMIN : RolUsuario.USER;
     }
 }

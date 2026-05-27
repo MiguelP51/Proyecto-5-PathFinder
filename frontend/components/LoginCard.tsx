@@ -5,7 +5,7 @@ import styles from "../styles/LoginRegister.module.css";
 
 const handleGoogleLogin = async () => {
   signIn('google', {
-    callbackUrl: 'http://localhost:3000/home', // Usar URL absoluta
+    callbackUrl: '/home',
   });
 };
 const LoginCard = () => {

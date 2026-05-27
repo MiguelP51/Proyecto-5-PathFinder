@@ -11,12 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -30,15 +33,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${app.oauth2.authorized-redirect-uris}")
     private String redirectUri;
 
-    private static final Set<String> ADMINS = Set.of(
-            "jhuamanp@pucp.edu.pe"
-    );
+    @Value("${app.admin.email:jhuamanp@pucp.edu.pe}")
+    private String adminEmail;
+
+    private final HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+
     private static final Set<String> MENTORS = Set.of(
             "jhuamanperez1@gmail.com"
     );
 
     private RolUsuario resolveRole(String email) {
-        if (ADMINS.contains(email))  return RolUsuario.ADMIN;
+        if (adminEmail.equalsIgnoreCase(email))  return RolUsuario.ADMIN;
         if (MENTORS.contains(email)) return RolUsuario.MENTOR;
         return RolUsuario.USER;
     }
@@ -54,13 +59,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String picture  = (String) attrs.get("picture");
         String googleId = (String) attrs.get("sub");
 
-        Usuario usuario = usuarioRepository.findByCorreo(email).orElseGet(() -> {
+        Optional<Usuario> usuarioOptional = usuarioRepository.findByCorreo(email);
+        boolean nuevoUsuario = usuarioOptional.isEmpty();
+        Usuario usuario = usuarioOptional.orElseGet(() -> {
             Usuario u = new Usuario();
             u.setCorreo(email);
             u.setNombreCompleto(name);
             u.setAvatarUrl(picture);
             u.setGoogleUid(googleId);
             u.setRol(resolveRole(email));
+            u.setActivo(true);
             return usuarioRepository.save(u);
         });
 
@@ -69,13 +77,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         usuarioRepository.save(usuario);
 
         String token = jwtTokenProvider.generateToken(email);
-        String targetUrl = redirectUri.split(",")[0];
+        String targetUrl = resolveTargetUrl(request);
         String redirectUrl = UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("token", token)
                 .queryParam("role", usuario.getRol().name())
+                .queryParam("newUser", nuevoUsuario)
                 .build().toUriString();
 
         log.info("Login exitoso: {} → {}", email, usuario.getRol());
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    }
+
+    private String resolveTargetUrl(HttpServletRequest request) {
+        SavedRequest savedRequest = requestCache.getRequest(request, null);
+        if (savedRequest != null && isSwaggerUrl(savedRequest.getRedirectUrl())) {
+            requestCache.removeRequest(request, null);
+            return savedRequest.getRedirectUrl();
+        }
+        return redirectUri.split(",")[0];
+    }
+
+    private boolean isSwaggerUrl(String url) {
+        return url != null && (url.contains("/swagger-ui") || url.contains("/v3/api-docs"));
     }
 }

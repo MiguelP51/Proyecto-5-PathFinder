@@ -1,5 +1,6 @@
 import styles from "@/styles/Landpage.module.css";
 import Footer from "@/components/Footer";
+import SessionOpenNotice from "@/components/SessionOpenNotice";
 import Link from "next/link";
 import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
     Target, Star, Clock3, ShieldCheck, CheckCircle2, Info } from "lucide-react";
@@ -7,6 +8,7 @@ import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, Briefca
 export default function Home() {
     return (
         <div className={styles.landing}>
+            <SessionOpenNotice />
             <section className={styles.hero}>
                 <div className={styles.heroContent}>
                     <h1 className={styles.heroTitle}>

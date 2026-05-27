@@ -13,6 +13,7 @@ public class UsuarioAuthResponseDTO {
     private String nombreCompleto;
     private String avatarUrl;
     private RolUsuario rol;
+    private String backendJwt;
 
     private boolean nuevoUsuario;
     private boolean requiereCompletarPerfil;
