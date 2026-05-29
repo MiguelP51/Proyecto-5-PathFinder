@@ -5,7 +5,7 @@ import styles from "../styles/LoginRegister.module.css";
 
 const handleGoogleLogin = async () => {
   signIn('google', {
-    callbackUrl: '/home',
+    callbackUrl: '/profile',
   });
 };
 const LoginCard = () => {
