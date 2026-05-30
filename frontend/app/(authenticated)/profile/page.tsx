@@ -45,7 +45,7 @@ interface CVExtractadoDTO {
     carrera?: string;
     fechaInicio?: string;
     fechaFin?: string;
-    cursosRelevantes?: string[];
+    cursosRelevantes?: string[] | string;
   }>;
   habilidades?: Array<{ nombre?: string; tipo?: string; nivel?: string }>;
   idiomas?: Array<{ nombre?: string; nivel?: string }>;
@@ -82,7 +82,11 @@ function mapDtoToState(dto: CVExtractadoDTO) {
       career: f.carrera || "",
       startDate: f.fechaInicio || "",
       endDate: f.fechaFin || "",
-      relevantCourses: f.cursosRelevantes || [],
+      relevantCourses: Array.isArray(f.cursosRelevantes)
+        ? f.cursosRelevantes
+        : (typeof f.cursosRelevantes === "string" && f.cursosRelevantes.trim().length > 0)
+        ? f.cursosRelevantes.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
     })),
     experiences: (dto.experiencias || []).map((e, i) => ({
       id: String(i + 1),
@@ -127,7 +131,8 @@ function mapStateToDtoForSave(
       carrera: e.career,
       fechaInicio: e.startDate,
       fechaFin: e.endDate,
-      cursosRelevantes: e.relevantCourses,
+      // Enviar cursosRelevantes como string separado por comas al backend
+      cursosRelevantes: (e.relevantCourses || []).join(","),
     })),
     experiencias: experiences.map((e) => ({
       empresa: e.company,
@@ -189,20 +194,20 @@ export default function ProfileSetupPage() {
       // Cargar CV guardado si existe
       const backendJwt = (session as { backendJwt?: string }).backendJwt;
       apiFetch<CVExtractadoDTO>("/api/cv/me", {}, backendJwt)
-        .then((dto) => {
-          const mapped = mapDtoToState(dto);
-          if (mapped.personalData.fullName) {
-            setPersonalData((prev) => ({ ...prev, ...mapped.personalData }));
-          }
-          if (mapped.educations.length > 0) setEducations(mapped.educations);
-          if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
-          if (mapped.skills.length > 0) setSkills(mapped.skills);
-          if (mapped.languages.length > 0) setLanguages(mapped.languages);
-          if (mapped.tools.length > 0) setTools(mapped.tools);
-        })
-        .catch(() => {
+          .then((dto) => {
+            const mapped = mapDtoToState(dto);
+            if (mapped.personalData.fullName) {
+              setPersonalData((prev) => ({ ...prev, ...mapped.personalData }));
+            }
+            if (mapped.educations.length > 0) setEducations(mapped.educations);
+            if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
+            if (mapped.skills.length > 0) setSkills(mapped.skills);
+            if (mapped.languages.length > 0) setLanguages(mapped.languages);
+            if (mapped.tools.length > 0) setTools(mapped.tools);
+          })
+          .catch(() => {
           // Sin CV guardado aún, no pasa nada
-        });
+          });
     }
   }, [status, session]);
 
