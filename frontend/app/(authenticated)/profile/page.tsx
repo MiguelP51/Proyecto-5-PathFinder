@@ -17,7 +17,7 @@ import {
   type SkillItem,
 } from "@/components/profile-setup/skills-languages-tools-section";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 // ─── Tipos que devuelve el backend ───────────────────────────────────────────
@@ -155,6 +155,7 @@ export default function ProfileSetupPage() {
   const router = useRouter();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingCV, setIsProcessingCV] = useState(false);
   const [cvUploaded, setCvUploaded] = useState(false);
   const [cvFileName, setCvFileName] = useState("");
@@ -207,7 +208,12 @@ export default function ProfileSetupPage() {
           })
           .catch(() => {
           // Sin CV guardado aún, no pasa nada
+          })
+          .finally(() => {
+            setIsLoadingData(false);
           });
+    } else if (status === "unauthenticated") {
+      setIsLoadingData(false);
     }
   }, [status, session]);
 
@@ -303,6 +309,17 @@ export default function ProfileSetupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-[#0E3E66]" />
+          <p className="text-lg font-medium text-slate-600">Cargando tu perfil...</p>
+        </div>
       </div>
     );
   }
