@@ -13,7 +13,7 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Detectar cambios
         id: changes
@@ -24,9 +24,11 @@ jobs:
           FRONT_CHANGED=false
           BACK_CHANGED=false
 
-          git fetch origin develop
-
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-tree -r --name-only HEAD)
+          fi
 
           echo "$CHANGED_FILES"
 
