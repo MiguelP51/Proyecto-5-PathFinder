@@ -37,8 +37,8 @@ interface CVExtractadoDTO {
     cargo?: string;
     fechaInicio?: string;
     fechaFin?: string;
-    descripcion?: string;
-    logros?: string;
+    funcionesRealizadas?: string;
+    logrosResultados?: string;
   }>;
   formaciones?: Array<{
     institucion?: string;
@@ -80,8 +80,8 @@ function mapDtoToState(dto: CVExtractadoDTO) {
       id: String(i + 1),
       institution: f.institucion || "",
       career: f.carrera || "",
-      startDate: f.fechaInicio || "",
-      endDate: f.fechaFin || "",
+      startDate: f.fechaInicio  || "",
+      endDate: f.fechaFin  || "",
       relevantCourses: Array.isArray(f.cursosRelevantes)
         ? f.cursosRelevantes
         : (typeof f.cursosRelevantes === "string" && f.cursosRelevantes.trim().length > 0)
@@ -92,10 +92,10 @@ function mapDtoToState(dto: CVExtractadoDTO) {
       id: String(i + 1),
       company: e.empresa || "",
       position: e.cargo || "",
-      startDate: e.fechaInicio || "",
-      endDate: e.fechaFin || "",
-      functions: e.descripcion || "",
-      achievements: e.logros || "",
+      startDate: e.fechaInicio  || "",
+      endDate: e.fechaFin  || "",
+      functions: e.funcionesRealizadas || "",
+      achievements: e.logrosResultados || "",
     })),
     skills: (dto.habilidades || []).map((h) => ({
       name: h.nombre || "",
@@ -139,8 +139,8 @@ function mapStateToDtoForSave(
       cargo: e.position,
       fechaInicio: e.startDate,
       fechaFin: e.endDate,
-      descripcion: e.functions,
-      logros: e.achievements,
+      funcionesRealizadas: e.functions,
+      logrosResultados: e.achievements,
     })),
     habilidades: skills.map((s) => ({ nombre: s.name, nivel: s.level })),
     idiomas: languages.map((l) => ({ nombre: l.name, nivel: l.level })),
