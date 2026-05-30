@@ -21,4 +21,6 @@ public interface CVService {
      * Devuelve el CV guardado del usuario autenticado.
      */
     CVExtractadoDTO obtenerCV(String correoUsuario);
+
+    CVExtractadoDTO obtenerCVPorUsuarioId(Integer idUsuario);
 }

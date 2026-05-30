@@ -903,6 +903,99 @@ public class CVServiceImpl implements CVService {
     // =========================================================
     // OBTENER CV
     // =========================================================
+    @Override
+    public CVExtractadoDTO obtenerCVPorUsuarioId(Integer idUsuario) {
+        PerfilCV perfil = perfilCVRepository.findByUsuario_IdUsuario(idUsuario)
+                .orElseThrow(() -> new RuntimeException("CV no encontrado para usuario id: " + idUsuario));
+
+        CVExtractadoDTO dto = new CVExtractadoDTO();
+        dto.setNombreCompleto(perfil.getUsuario().getNombreCompleto());
+        dto.setCorreoContacto(perfil.getCorreoContacto());
+        dto.setCelular(perfil.getCelular());
+        dto.setProvincia(perfil.getProvincia());
+        dto.setDistrito(perfil.getDistrito());
+        dto.setLinkedinUrl(perfil.getLinkedinUrl());
+        dto.setPerfilProfesional(perfil.getPerfilProfesional());
+        dto.setInteresesProfesionales(perfil.getInteresesProfesionales());
+        dto.setObjetivosLaborales(perfil.getObjetivosLaborales());
+
+        // Reutilizar la misma logica de obtenerCV para llenar:
+        // experiencias
+        // formaciones
+        // habilidades
+        // idiomas
+        // herramientas
+
+        // Experiencias
+        dto.setExperiencias(
+                experienciaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())
+                        .stream().map(e -> {
+                            ExperienciaLaboralDTO d = new ExperienciaLaboralDTO();
+                            d.setId(e.getIdExperiencia());
+                            d.setEmpresa(e.getEmpresa());
+                            d.setCargo(e.getCargo());
+                            d.setFechaInicio(e.getFechaInicio());
+                            d.setFechaFin(e.getFechaFin());
+                            d.setFuncionesRealizadas(e.getFuncionesRealizadas());
+                            d.setLogrosResultados(e.getLogrosResultados());
+                            return d;
+                        }).collect(Collectors.toList())
+        );
+
+        // Formaciones
+        dto.setFormaciones(
+                formacionRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())
+                        .stream().map(f -> {
+                            FormacionAcademicaDTO d = new FormacionAcademicaDTO();
+                            d.setId(f.getIdFormacion());
+                            d.setInstitucion(f.getInstitucion());
+                            d.setCarrera(f.getCarrera());
+                            d.setFechaInicio(f.getFechaInicio());
+                            d.setFechaFin(f.getFechaFin());
+                            d.setCursosRelevantes(f.getCursosRelevantes());
+                            return d;
+                        }).collect(Collectors.toList())
+        );
+
+        // Habilidades
+        dto.setHabilidades(
+                perfilHabilidadRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())
+                        .stream().map(ph -> {
+                            HabilidadDTO d = new HabilidadDTO();
+                            d.setId(ph.getHabilidad().getIdHabilidad());
+                            d.setNombre(ph.getHabilidad().getNombreHabilidad());
+                            d.setTipo(ph.getHabilidad().getTipoHabilidad().name());
+                            d.setNivel(ph.getNivel().name());
+                            return d;
+                        }).collect(Collectors.toList())
+        );
+
+        // Idiomas
+        dto.setIdiomas(
+                perfilIdiomaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())
+                        .stream().map(pi -> {
+                            IdiomaDTO d = new IdiomaDTO();
+                            d.setId(pi.getIdioma().getIdIdioma());
+                            d.setNombre(pi.getIdioma().getNombreIdioma());
+                            d.setNivel(pi.getNivel().name());
+                            return d;
+                        }).collect(Collectors.toList())
+        );
+
+        // Herramientas
+        dto.setHerramientas(
+                perfilHerramientaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())
+                        .stream().map(ph -> {
+                            HerramientaDTO d = new HerramientaDTO();
+                            d.setId(ph.getHerramientaDigital().getIdHerramienta());
+                            d.setNombre(ph.getHerramientaDigital().getNombreHerramienta());
+                            d.setNivel(ph.getNivel().name());
+                            return d;
+                        }).collect(Collectors.toList())
+        );
+
+        return dto;
+    }
 
     @Override
     public CVExtractadoDTO obtenerCV(String correoUsuario) {
