@@ -5,22 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/controller/AdminDISCQuestionController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/dto/admin/disc/OpcionPreguntaDISCRequestDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/dto/admin/disc/OpcionPreguntaDISCResponseDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/dto/admin/disc/PreguntaDISCRequestDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/dto/admin/disc/PreguntaDISCResponseDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/ConfiguracionDISC.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/OpcionPreguntaDISC.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/PreguntaDISC.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/TipoPreguntaDISC.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/enums/CategoriaDISC.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/ConfiguracionDISCRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/OpcionPreguntaDISCRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/PreguntaDISCRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/TipoPreguntaDISCRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/AdminDISCQuestionService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/impl/AdminDISCQuestionServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -66,7 +50,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/hu-adm-03-psychometric-test",
+    "git-widget-placeholder": "cam-sil/feature/hu-adm-03-psychometric-test",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/yedsi/Documents/PathFinder/Proyecto-5-PathFinder",
     "list.type.of.created.stylesheet": "CSS",
@@ -104,7 +88,7 @@
       <option name="presentableId" value="Default" />
       <updated>1778084242675</updated>
       <workItem from="1778084244691" duration="17859000" />
-      <workItem from="1780249324282" duration="15513000" />
+      <workItem from="1780249324282" duration="17861000" />
     </task>
     <servers />
   </component>
