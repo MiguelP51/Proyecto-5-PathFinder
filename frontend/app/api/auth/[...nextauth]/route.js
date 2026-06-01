@@ -33,8 +33,11 @@ export const authOptions = {
   callbacks: {
     async signIn({ user }) {
       try {
+        const backendUrl = process.env.BACKEND_URL || "http://localhost:8080";
+        console.log("[NextAuth] Intentando login con backend:", backendUrl);
+        
         // Llama al backend con los datos de Google
-        const res = await fetch(`${process.env.BACKEND_URL}/api/auth/login`, {
+        const res = await fetch(`${backendUrl}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -44,22 +47,35 @@ export const authOptions = {
           }),
         });
 
-        if (!res.ok) return false;
+        console.log("[NextAuth] Respuesta del backend:", res.status, res.statusText);
+        
+        if (!res.ok) {
+          console.error("[NextAuth] Backend retornó error:", res.status);
+          return false;
+        }
 
-        const json = await res.json(); // { success, message, data: { idUsuario, correo, ... } }
-        const data = json.data;
+        const json = await res.json();
+        console.log("[NextAuth] Datos recibidos:", json);
+        
+        const data = json.data || json;
+        
+        if (!data || !data.idUsuario) {
+          console.error("[NextAuth] Datos inválidos o incompletos:", data);
+          return false;
+        }
 
         // Guardamos los datos del usuario para usarlos en jwt()
         user.idUsuario = data.idUsuario;
-        user.rol = data.rol;
+        user.rol = data.rol || "usuario"; // Default a usuario si no viene rol
         user.nuevoUsuario = data.nuevoUsuario;
         user.requiereCompletarPerfil = data.requiereCompletarPerfil;
         user.avatarUrl = data.avatarUrl;
         user.backendJwt = data.backendJwt;
 
+        console.log("[NextAuth] Login exitoso para:", user.email, "con rol:", user.rol);
         return true;
       } catch (err) {
-        console.error("Error en signIn callback:", err);
+        console.error("[NextAuth] Error en signIn callback:", err);
         return false;
       }
     },
@@ -91,9 +107,19 @@ export const authOptions = {
     },
 
     async redirect({ url, baseUrl }) {
+      // Si la URL es de callbackUrl (del login), usar la página de redireccionamiento por rol
+      if (url === `${baseUrl}/home` || url === `${baseUrl}/`) {
+        return `${baseUrl}/role-redirect`;
+      }
+      
+      // Si la URL empieza con /, es una ruta relativa
       if (url.startsWith("/")) return `${baseUrl}${url}`;
+      
+      // Si la URL es del mismo dominio, permitir
       if (url.startsWith(baseUrl)) return url;
-      return `${baseUrl}/home`;
+      
+      // Por defecto, redirigir a la página de redireccionamiento por rol
+      return `${baseUrl}/role-redirect`;
     },
   },
 };

@@ -91,7 +91,7 @@ export default async function SimulationIntroPage() {
 
           <div className="mt-8 flex justify-center">
             <Link
-              href="/profile"
+              href="/user/profile"
               className="inline-flex h-12 min-w-56 items-center justify-center rounded-[8px] bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-8 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
             >
               Comenzar proceso
