@@ -5,11 +5,27 @@ import Image from "next/image";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LogOut } from "lucide-react";
+import { useUserRole } from "@/hooks/use-role";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { data: session } = useSession();
+  const userRole = useUserRole();
+
+  // Determinar la ruta del perfil según el rol
+  const getProfileUrl = () => {
+    const role = userRole?.toLowerCase();
+  
+    if (role === "admin") {
+      return "";
+    }
+    
+    // Si existe un rol, usa su nombre exacto en la URL; si no, usa el fallback
+    return role ? `/${role}/profile` : "/profile";
+  };
+
+  const profileUrl = getProfileUrl();
 
   return (
     <>
@@ -88,35 +104,63 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                {/* USER */}
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-2 shadow-sm"
-                >
+                {/* USER - Solo mostrar si no es admin */}
+                {profileUrl ? (
+                  <Link
+                    href={profileUrl}
+                    className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-2 shadow-sm"
+                  >
 
-                  {session.user?.image ? (
-                    <img
-                      src={session.user.image}
-                      alt="avatar"
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#A855F7] font-bold text-white">
-                      {session.user?.name?.charAt(0)}
+                    {session.user?.image ? (
+                      <img
+                        src={session.user.image}
+                        alt="avatar"
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#A855F7] font-bold text-white">
+                        {session.user?.name?.charAt(0)}
+                      </div>
+                    )}
+
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-[#0E3E66]">
+                        {session.user?.name}
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        {session.user?.email}
+                      </p>
                     </div>
-                  )}
 
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-[#0E3E66]">
-                      {session.user?.name}
-                    </p>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-2 shadow-sm">
 
-                    <p className="text-xs text-slate-500">
-                      {session.user?.email}
-                    </p>
+                    {session.user?.image ? (
+                      <img
+                        src={session.user.image}
+                        alt="avatar"
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#A855F7] font-bold text-white">
+                        {session.user?.name?.charAt(0)}
+                      </div>
+                    )}
+
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-[#0E3E66]">
+                        {session.user?.name}
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        {session.user?.email}
+                      </p>
+                    </div>
+
                   </div>
-
-                </Link>
+                )}
 
                 {/* LOGOUT */}
                 <button
@@ -203,19 +247,23 @@ export default function Navbar() {
 
           {session && (
             <>
-              <Link
-                href="/profile"
-                className="rounded-xl px-4 py-3 transition hover:bg-slate-100"
-              >
-                Mi Perfil
-              </Link>
+              {profileUrl && (
+                <Link
+                  href={profileUrl}
+                  className="rounded-xl px-4 py-3 transition hover:bg-slate-100"
+                >
+                  Mi Perfil
+                </Link>
+              )}
 
-              <Link
-                href="/app/simulation-intro"
-                className="rounded-xl px-4 py-3 transition hover:bg-slate-100"
-              >
-                Simulación
-              </Link>
+              {userRole?.toLowerCase() === "user" && (
+                <Link
+                  href="/user/app/simulation-intro"
+                  className="rounded-xl px-4 py-3 transition hover:bg-slate-100"
+                >
+                  Simulación
+                </Link>
+              )}
 
               <Link
                 href="/areas"

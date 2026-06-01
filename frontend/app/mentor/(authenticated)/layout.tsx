@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 
-import AuthenticatedTopBar from "@/components/AuthenticatedTopBar";
-import AuthenticatedSidebar from "@/components/AuthenticatedSidebar";
+import MentorTopBar from "@/components/role-based/MentorTopBar";
+import MentorSidebar from "@/components/role-based/MentorSidebar";
 
-export default function AuthenticatedLayout({
+export default function MentorLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -16,11 +16,11 @@ export default function AuthenticatedLayout({
   return (
     <div className="min-h-screen bg-slate-50">
 
-      <AuthenticatedTopBar
+      <MentorTopBar
         onMenuClick={() => setSidebarOpen(true)}
       />
 
-      <AuthenticatedSidebar
+      <MentorSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

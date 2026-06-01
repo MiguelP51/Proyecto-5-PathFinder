@@ -12,7 +12,7 @@ export default async function HomePage() {
   // Si no tiene CV/perfil guardado, va a completar perfil primero
   const requiereCompletarPerfil = (session.user as { requiereCompletarPerfil?: boolean }).requiereCompletarPerfil;
   if (requiereCompletarPerfil) {
-    redirect("/profile");
+    redirect("/user/profile");
   }
 
   redirect("/?session=active");
