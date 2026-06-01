@@ -146,7 +146,7 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
                     Fecha de Inicio
                   </Label>
                   <Input
-                    type="month"
+                    type="date"
                     value={edu.startDate}
                     onChange={(e) => updateEducation(edu.id, "startDate", e.target.value)}
                     className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
@@ -159,7 +159,7 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
                     Fecha de Fin
                   </Label>
                   <Input
-                    type="month"
+                    type="date"
                     value={edu.endDate}
                     onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)}
                     className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"

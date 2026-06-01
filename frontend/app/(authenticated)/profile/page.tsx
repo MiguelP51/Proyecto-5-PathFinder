@@ -17,7 +17,7 @@ import {
   type SkillItem,
 } from "@/components/profile-setup/skills-languages-tools-section";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 // ─── Tipos que devuelve el backend ───────────────────────────────────────────
@@ -37,15 +37,15 @@ interface CVExtractadoDTO {
     cargo?: string;
     fechaInicio?: string;
     fechaFin?: string;
-    descripcion?: string;
-    logros?: string;
+    funcionesRealizadas?: string;
+    logrosResultados?: string;
   }>;
   formaciones?: Array<{
     institucion?: string;
     carrera?: string;
     fechaInicio?: string;
     fechaFin?: string;
-    cursosRelevantes?: string[];
+    cursosRelevantes?: string[] | string;
   }>;
   habilidades?: Array<{ nombre?: string; tipo?: string; nivel?: string }>;
   idiomas?: Array<{ nombre?: string; nivel?: string }>;
@@ -80,18 +80,22 @@ function mapDtoToState(dto: CVExtractadoDTO) {
       id: String(i + 1),
       institution: f.institucion || "",
       career: f.carrera || "",
-      startDate: f.fechaInicio || "",
-      endDate: f.fechaFin || "",
-      relevantCourses: f.cursosRelevantes || [],
+      startDate: f.fechaInicio  || "",
+      endDate: f.fechaFin  || "",
+      relevantCourses: Array.isArray(f.cursosRelevantes)
+        ? f.cursosRelevantes
+        : (typeof f.cursosRelevantes === "string" && f.cursosRelevantes.trim().length > 0)
+        ? f.cursosRelevantes.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
     })),
     experiences: (dto.experiencias || []).map((e, i) => ({
       id: String(i + 1),
       company: e.empresa || "",
       position: e.cargo || "",
-      startDate: e.fechaInicio || "",
-      endDate: e.fechaFin || "",
-      functions: e.descripcion || "",
-      achievements: e.logros || "",
+      startDate: e.fechaInicio  || "",
+      endDate: e.fechaFin  || "",
+      functions: e.funcionesRealizadas || "",
+      achievements: e.logrosResultados || "",
     })),
     skills: (dto.habilidades || []).map((h) => ({
       name: h.nombre || "",
@@ -127,15 +131,16 @@ function mapStateToDtoForSave(
       carrera: e.career,
       fechaInicio: e.startDate,
       fechaFin: e.endDate,
-      cursosRelevantes: e.relevantCourses,
+      // Enviar cursosRelevantes como string separado por comas al backend
+      cursosRelevantes: (e.relevantCourses || []).join(","),
     })),
     experiencias: experiences.map((e) => ({
       empresa: e.company,
       cargo: e.position,
       fechaInicio: e.startDate,
       fechaFin: e.endDate,
-      descripcion: e.functions,
-      logros: e.achievements,
+      funcionesRealizadas: e.functions,
+      logrosResultados: e.achievements,
     })),
     habilidades: skills.map((s) => ({ nombre: s.name, nivel: s.level })),
     idiomas: languages.map((l) => ({ nombre: l.name, nivel: l.level })),
@@ -150,6 +155,7 @@ export default function ProfileSetupPage() {
   const router = useRouter();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingCV, setIsProcessingCV] = useState(false);
   const [cvUploaded, setCvUploaded] = useState(false);
   const [cvFileName, setCvFileName] = useState("");
@@ -189,20 +195,25 @@ export default function ProfileSetupPage() {
       // Cargar CV guardado si existe
       const backendJwt = (session as { backendJwt?: string }).backendJwt;
       apiFetch<CVExtractadoDTO>("/api/cv/me", {}, backendJwt)
-        .then((dto) => {
-          const mapped = mapDtoToState(dto);
-          if (mapped.personalData.fullName) {
-            setPersonalData((prev) => ({ ...prev, ...mapped.personalData }));
-          }
-          if (mapped.educations.length > 0) setEducations(mapped.educations);
-          if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
-          if (mapped.skills.length > 0) setSkills(mapped.skills);
-          if (mapped.languages.length > 0) setLanguages(mapped.languages);
-          if (mapped.tools.length > 0) setTools(mapped.tools);
-        })
-        .catch(() => {
+          .then((dto) => {
+            const mapped = mapDtoToState(dto);
+            if (mapped.personalData.fullName) {
+              setPersonalData((prev) => ({ ...prev, ...mapped.personalData }));
+            }
+            if (mapped.educations.length > 0) setEducations(mapped.educations);
+            if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
+            if (mapped.skills.length > 0) setSkills(mapped.skills);
+            if (mapped.languages.length > 0) setLanguages(mapped.languages);
+            if (mapped.tools.length > 0) setTools(mapped.tools);
+          })
+          .catch(() => {
           // Sin CV guardado aún, no pasa nada
-        });
+          })
+          .finally(() => {
+            setIsLoadingData(false);
+          });
+    } else if (status === "unauthenticated") {
+      setIsLoadingData(false);
     }
   }, [status, session]);
 
@@ -298,6 +309,17 @@ export default function ProfileSetupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-[#0E3E66]" />
+          <p className="text-lg font-medium text-slate-600">Cargando tu perfil...</p>
+        </div>
       </div>
     );
   }
