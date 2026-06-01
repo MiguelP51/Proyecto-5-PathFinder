@@ -139,7 +139,7 @@ function SkillSelector({
           <SelectTrigger className="w-[200px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
             <SelectValue placeholder={`Seleccionar ${title.toLowerCase()}`} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             {availableOptions.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
@@ -155,7 +155,7 @@ function SkillSelector({
           <SelectTrigger className="w-[140px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
             <SelectValue placeholder="Nivel" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             {levels.map((level) => (
               <SelectItem key={level} value={level}>
                 {level}
@@ -191,7 +191,7 @@ function SkillSelector({
               <SelectTrigger className="h-5 w-auto border-0 bg-transparent p-0 text-xs font-semibold shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {levels.map((level) => (
                   <SelectItem key={level} value={level}>
                     {level}

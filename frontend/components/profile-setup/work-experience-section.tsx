@@ -144,7 +144,7 @@ export function WorkExperienceSection({
                     Fecha de Inicio
                   </Label>
                   <Input
-                    type="month"
+                    type="date"
                     value={exp.startDate}
                     onChange={(e) =>
                       updateExperience(exp.id, "startDate", e.target.value)
@@ -159,7 +159,7 @@ export function WorkExperienceSection({
                     Fecha de Fin
                   </Label>
                   <Input
-                    type="month"
+                    type="date"
                     value={exp.endDate}
                     onChange={(e) =>
                       updateExperience(exp.id, "endDate", e.target.value)

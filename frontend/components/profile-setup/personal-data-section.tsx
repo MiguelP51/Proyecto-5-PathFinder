@@ -141,7 +141,7 @@ export function PersonalDataSection({
             <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
               <SelectValue placeholder="Selecciona tu región" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               {regiones.map((region) => (
                 <SelectItem key={region} value={region}>
                   {region}
@@ -162,7 +162,7 @@ export function PersonalDataSection({
             <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
               <SelectValue placeholder="Selecciona tu provincia" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               {availableProvincias.map((provincia) => (
                 <SelectItem key={provincia} value={provincia}>
                   {provincia}

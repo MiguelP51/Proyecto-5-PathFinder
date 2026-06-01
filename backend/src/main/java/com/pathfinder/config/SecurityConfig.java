@@ -51,8 +51,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
-                        ).access((authentication, context) ->
-                                new AuthorizationDecision(isAdminEmail(authentication.get())))
+                        ).permitAll()
                         .requestMatchers(
                                 "/health",
                                 "/oauth2/**",
@@ -99,7 +98,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "https://pathfinder.work.gd",
-                "http://localhost:3000"
+                "http://localhost:8080",
+                "http://localhost:3000",
+                "http://localhost"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
