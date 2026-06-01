@@ -29,8 +29,11 @@ public class OpenApiConfig {
                 .addServersItem(new Server()
                         .url("https://www.pathfinder.work.gd")
                         .description("Producción"))
+//                .addServersItem(new Server()
+//                        .url("https://localhost")
+//                        .description("Local"));
                 .addServersItem(new Server()
-                        .url("https://localhost")
+                        .url("http://localhost:8080")
                         .description("Local"));
     }
 }
