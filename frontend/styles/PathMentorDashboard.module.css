@@ -1,0 +1,335 @@
+.container {
+    padding: 190px 32px 40px;
+    background: #f8fafc;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+}
+
+
+/* HEADER */
+
+.header {
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    font-size: 56px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+.header p {
+    font-size: 22px;
+    color: #64748b;
+}
+
+/* METRICS */
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+    margin-bottom: 32px;
+}
+
+.metricCard {
+    background: white;
+    border-radius: 26px;
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+}
+
+.metricCard h2 {
+    font-size: 54px;
+    margin-top: 18px;
+    margin-bottom: 12px;
+    color: #0f172a;
+}
+
+.metricCard p {
+    font-size: 22px;
+    color: #334155;
+}
+
+.metricCard span {
+    display: block;
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 16px;
+}
+
+.metricIconBlue,
+.metricIconPurple,
+.metricIconGreen,
+.metricIconYellow {
+    width: 72px;
+    height: 72px;
+
+    border-radius: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 34px;
+}
+
+.metricIconBlue {
+    background: #cffafe;
+}
+
+.metricIconPurple {
+    background: #dbeafe;
+}
+
+.metricIconGreen {
+    background: #dcfce7;
+}
+
+.metricIconYellow {
+    background: #fef9c3;
+}
+
+/* MAIN GRID */
+
+.mainGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 28px;
+}
+
+/* CARDS */
+
+.sectionCard,
+.sideCard {
+    background: white;
+    border-radius: 28px;
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+}
+
+.sectionHeader h2 {
+    font-size: 34px;
+    margin-bottom: 10px;
+}
+
+.sectionHeader p {
+    color: #64748b;
+    font-size: 18px;
+}
+
+/* BUTTONS */
+
+.outlineButton {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    padding: 14px 20px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.outlineButtonFull {
+    width: 100%;
+    margin-top: 18px;
+
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.sideButton,
+.primaryButton {
+    width: 100%;
+    height: 64px;
+
+    border-radius: 16px;
+
+    border: 1px solid #e2e8f0;
+
+    margin-top: 16px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+.sideButton {
+    background: white;
+}
+
+.primaryButton {
+    background: linear-gradient(
+            90deg,
+            #0891b2,
+            #2563eb
+    );
+
+    color: white;
+    border: none;
+}
+
+/* INTERVIEWS */
+
+.interviewCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 24px;
+
+    padding: 24px;
+
+    margin-bottom: 18px;
+}
+
+.interviewCard h3 {
+    font-size: 22px;
+    margin-bottom: 14px;
+}
+
+.interviewInfo {
+    display: flex;
+    gap: 18px;
+    color: #475569;
+    font-size: 18px;
+}
+
+.interviewStatus {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.profileButton {
+    margin-top: 18px;
+
+    width: 100%;
+    height: 56px;
+
+    border-radius: 16px;
+
+    border: 1px solid #d1d5db;
+
+    background: white;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+/* TAGS */
+
+.virtualTag,
+.presentialTag,
+.reviewedTag,
+.pendingTag {
+    padding: 10px 18px;
+
+    border-radius: 999px;
+
+    font-size: 15px;
+}
+
+.virtualTag {
+    background: #7c3aed;
+    color: white;
+}
+
+.presentialTag {
+    background: #d946ef;
+    color: white;
+}
+
+.reviewedTag {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pendingTag {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+/* FEEDBACK */
+
+.feedbackCard {
+    background: #fff7ed;
+
+    border: 1px solid #fdba74;
+
+    border-radius: 20px;
+
+    padding: 20px;
+
+    margin-top: 18px;
+}
+
+.feedbackCard h3 {
+    margin-bottom: 10px;
+}
+
+.feedbackCard p {
+    color: #475569;
+    margin-bottom: 10px;
+}
+
+.feedbackCard span {
+    color: #ea580c;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1200px) {
+
+    .metricsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mainGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .container {
+        padding: 110px 18px 30px;
+    }
+
+    .metricsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .header h1 {
+        font-size: 36px;
+    }
+
+    .interviewCard {
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .interviewStatus {
+        align-items: flex-start;
+    }
+
+    .sectionHeader {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
