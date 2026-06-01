@@ -10,21 +10,41 @@ export default function RoleRedirect() {
   const router = useRouter();
 
   useEffect(() => {
+    // Esperar a que termine de cargar
+    if (status === 'loading') return;
+
+    // Si no hay sesión, volver al login
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+      return;
+    }
+
+    // Si está autenticado y tiene rol
     if (status === 'authenticated' && session?.user?.rol) {
       const userRole = session.user.rol.toLowerCase();
+
       console.log('[RoleRedirect] Usuario con rol:', userRole);
+
       const homeUrl = getRoleHomePath(userRole);
+
       console.log('[RoleRedirect] Redirigiendo a:', homeUrl);
-      router.push(homeUrl);
+
+      router.replace(homeUrl);
     }
   }, [status, session, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#0E3E66]">Redirigiendo...</h1>
-        <p className="text-slate-600 mt-2">Un momento mientras te llevamos a tu destino.</p>
+        <h1 className="text-2xl font-bold text-[#0E3E66]">
+          Redirigiendo...
+        </h1>
+
+        <p className="text-slate-600 mt-2">
+          Un momento mientras te llevamos a tu destino.
+        </p>
       </div>
     </div>
   );
 }
+
