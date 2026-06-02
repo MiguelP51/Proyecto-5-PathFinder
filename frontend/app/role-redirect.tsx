@@ -13,6 +13,7 @@ export default function RoleRedirect() {
     // Solo redirigir si estamos autenticados y tenemos un rol
     if (status === 'authenticated' && session?.user?.rol) {
       const userRole = session.user.rol.toLowerCase();
+
       console.log('[RoleRedirect] Usuario con rol:', userRole);
       
       // Validar que el rol sea válido
@@ -24,6 +25,7 @@ export default function RoleRedirect() {
       }
 
       const homeUrl = getRoleHomePath(userRole);
+
       console.log('[RoleRedirect] Redirigiendo a:', homeUrl);
       router.push(homeUrl);
     } else if (status === 'unauthenticated') {
@@ -43,3 +45,4 @@ export default function RoleRedirect() {
     </div>
   );
 }
+
