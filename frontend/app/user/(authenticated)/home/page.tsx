@@ -21,7 +21,7 @@ export default async function HomePage() {
 
   // USER: si no tiene CV/perfil guardado, va a completar perfil primero
   if (requiereCompletarPerfil) {
-    redirect("/profile");
+    redirect("/user/profile");
   }
 
   redirect("/?session=active");

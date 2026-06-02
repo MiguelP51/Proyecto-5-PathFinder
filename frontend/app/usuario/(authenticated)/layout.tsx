@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-import AuthenticatedTopBar from "@/components/AuthenticatedTopBar";
-import AuthenticatedSidebar from "@/components/AuthenticatedSidebar";
+import UserTopBar from "@/components/role-based/UserTopBar";
+import UserSidebar from "@/components/role-based/UserSidebar";
 
 export default function AuthenticatedLayout({
   children,
@@ -16,11 +16,11 @@ export default function AuthenticatedLayout({
   return (
     <div className="min-h-screen bg-slate-50">
 
-      <AuthenticatedTopBar
+      <UserTopBar
         onMenuClick={() => setSidebarOpen(true)}
       />
 
-      <AuthenticatedSidebar
+      <UserSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
