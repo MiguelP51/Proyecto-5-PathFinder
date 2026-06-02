@@ -6,10 +6,12 @@ export function ProfileHeader({
   onSave,
   onSkip,
   isSaving,
+  hideSkip,
 }: {
   onSave: () => void;
   onSkip: () => void;
   isSaving?: boolean;
+  hideSkip?: boolean;
 }) {
   return (
     <header className="sticky top-16 z-20 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -24,13 +26,15 @@ export function ProfileHeader({
         {/* Acciones */}
         <div className="flex items-center gap-3">
 
-          <Button
-            variant="ghost"
-            onClick={onSkip}
-            className="text-slate-600 hover:text-slate-800"
-          >
-            Omitir
-          </Button>
+          {!hideSkip && (
+            <Button
+              variant="ghost"
+              onClick={onSkip}
+              className="text-slate-600 hover:text-slate-800"
+            >
+              Omitir
+            </Button>
+          )}
 
           <Button
             onClick={onSave}

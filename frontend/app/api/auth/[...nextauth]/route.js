@@ -9,19 +9,19 @@ export const authOptions = {
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     state: {
       name: `next-auth.state`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
   },
   providers: [

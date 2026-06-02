@@ -9,8 +9,17 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  // Si no tiene CV/perfil guardado, va a completar perfil primero
+  const rol = (session.user as { rol?: string }).rol;
   const requiereCompletarPerfil = (session.user as { requiereCompletarPerfil?: boolean }).requiereCompletarPerfil;
+
+  if (rol === "MENTOR") {
+    if (requiereCompletarPerfil) {
+      redirect("/profile");
+    }
+    redirect("/dashboard");
+  }
+
+  // USER: si no tiene CV/perfil guardado, va a completar perfil primero
   if (requiereCompletarPerfil) {
     redirect("/profile");
   }

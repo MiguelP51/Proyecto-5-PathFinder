@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import MentorProfileForm from "@/components/mentor/mentor-profile-form";
 
 // ─── Tipos que devuelve el backend ───────────────────────────────────────────
 
@@ -185,6 +186,12 @@ export default function ProfileSetupPage() {
   // Al cargar la página, intentamos traer el CV guardado del usuario
   useEffect(() => {
     if (status === "authenticated" && session?.user?.email) {
+      // MENTOR usa su propio formulario, no necesita cargar CV de estudiante
+      if (session?.user?.rol === "MENTOR") {
+        setIsLoadingData(false);
+        return;
+      }
+
       setPersonalData((prev) => ({
         ...prev,
         fullName: session.user?.name || prev.fullName,
@@ -276,7 +283,8 @@ export default function ProfileSetupPage() {
         body: JSON.stringify(dto),
       }, (session as { backendJwt?: string } | null)?.backendJwt);
 
-      router.push("/?session=active");
+      const redirectUrl = session?.user?.rol === "MENTOR" ? "/dashboard" : "/?session=active";
+      router.push(redirectUrl);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error guardando el perfil"
@@ -287,7 +295,8 @@ export default function ProfileSetupPage() {
   };
 
   const handleSkip = () => {
-    router.push("/?session=active");
+    const redirectUrl = session?.user?.rol === "MENTOR" ? "/dashboard" : "/?session=active";
+    router.push(redirectUrl);
   };
 
   // Progreso
@@ -322,6 +331,10 @@ export default function ProfileSetupPage() {
         </div>
       </div>
     );
+  }
+
+  if (session?.user?.rol === "MENTOR") {
+    return <MentorProfileForm />;
   }
 
   return (

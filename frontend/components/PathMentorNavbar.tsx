@@ -3,11 +3,13 @@
 import styles from '../styles/PathMentorNavbar.module.css';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function PathMentorNavbar() {
 
     const pathname = usePathname();
     const router = useRouter();
+    const { data: session } = useSession();
 
     return (
         <header className={styles.navbar}>
@@ -71,6 +73,18 @@ export default function PathMentorNavbar() {
                          Mis Métricas
                     </button>
 
+                    {/* PERFIL */}
+                    <button
+                        onClick={() => router.push('/profile')}
+                        className={
+                            pathname.includes('profile')
+                                ? styles.activeLink
+                                : styles.link
+                        }
+                    >
+                         Mi Perfil
+                    </button>
+
                 </nav>
             </div>
 
@@ -85,11 +99,15 @@ export default function PathMentorNavbar() {
                 <div className={styles.userSection}>
 
                     <div className={styles.avatar}>
-                        👨🏽‍💼
+                        {session?.user?.image ? (
+                            <img src={session.user.image} alt="avatar" className="h-full w-full rounded-full object-cover" />
+                        ) : (
+                            "👨🏽‍💼"
+                        )}
                     </div>
 
                     <div>
-                        <h3>María González</h3>
+                        <h3>{session?.user?.name || "PathMentor"}</h3>
                         <p>Mentor</p>
                     </div>
 
