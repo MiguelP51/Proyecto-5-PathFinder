@@ -1,20 +1,32 @@
 .container {
-    padding: 190px 32px 40px;
+    margin-left: 320px;
+    margin-top: 92px;
+
+    padding: 48px;
+
+    min-height: calc(100vh - 92px);
+
     background: #f8fafc;
-    min-height: 100vh;
+
     font-family: 'Montserrat', sans-serif;
+
+    transition: all 0.3s ease;
 }
+
+/* HEADER */
 
 .header h1 {
     font-size: 52px;
     font-weight: 800;
     color: #0f172a;
+
     margin-bottom: 10px;
 }
 
 .header p {
     font-size: 20px;
     color: #64748b;
+
     margin-bottom: 35px;
 }
 
@@ -52,18 +64,22 @@
 
 .syncContent h2 {
     font-size: 34px;
+
     margin-bottom: 10px;
 }
 
 .syncContent p {
     color: #475569;
+
     font-size: 18px;
+
     line-height: 1.6;
 }
 
 .syncButtons {
     display: flex;
     gap: 16px;
+
     margin-top: 22px;
 }
 
@@ -94,7 +110,9 @@
 
 .mainGrid {
     display: grid;
+
     grid-template-columns: 2fr 1fr;
+
     gap: 28px;
 }
 
@@ -116,11 +134,13 @@
 .sideCard h2,
 .linkCard h2 {
     font-size: 32px;
+
     margin-bottom: 10px;
 }
 
 .cardHeader p {
     color: #64748b;
+
     margin-bottom: 35px;
 }
 
@@ -132,7 +152,9 @@
 
 .daysGrid {
     display: grid;
+
     grid-template-columns: repeat(4, 1fr);
+
     gap: 22px;
 }
 
@@ -183,6 +205,7 @@
 .blocksContainer {
     display: flex;
     flex-direction: column;
+
     gap: 18px;
 }
 
@@ -217,6 +240,7 @@
     border-radius: 999px;
 
     font-size: 14px;
+
     color: white;
 }
 
@@ -230,11 +254,13 @@
 
 .bothTag {
     background: #e2e8f0;
+
     color: #334155;
 }
 
 .deleteButton {
     border: none;
+
     background: transparent;
 
     font-size: 24px;
@@ -280,6 +306,7 @@
 
 .selectGroup label {
     margin-bottom: 12px;
+
     font-size: 18px;
 }
 
@@ -314,7 +341,9 @@
 
 .linkCard p {
     color: #475569;
+
     line-height: 1.7;
+
     font-size: 17px;
 }
 
@@ -334,6 +363,9 @@
 @media (max-width: 768px) {
 
     .container {
+        margin-left: 0;
+        margin-top: 92px;
+
         padding: 20px;
     }
 
@@ -348,6 +380,7 @@
     .timeBlock {
         flex-direction: column;
         align-items: flex-start;
+
         gap: 14px;
     }
 

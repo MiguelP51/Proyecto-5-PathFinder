@@ -6,12 +6,23 @@
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Navbar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/app/test-login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/test-login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorAvailable.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorAvailable.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorDashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorDashboard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorNavbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorNavbar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/styles/Availability.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/Availability.module.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/styles/PathMentorDashboard.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/PathMentorDashboard.module.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/styles/PathMentorNavbar.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/PathMentorNavbar.module.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/AXEL/Documents/GitHub/Proyecto-5-PathFinder" value="3DMFskLSdsj3cFOMUOUZBxoHEGH" />
+    </persistenceIdMap>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -30,12 +41,12 @@
     &quot;assignee&quot;: &quot;aleramosr&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/MiguelP51/Proyecto-5-PathFinder.git&quot;,
-    &quot;accountId&quot;: &quot;304bc6e9-5aa5-4a6a-8bda-963159b97e62&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/MiguelP51/Proyecto-5-PathFinder.git",
+    "accountId": "b092e45b-9f51-4350-a4cd-5187b60a7157"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 3
@@ -45,25 +56,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "cam-sil/feature/hu-adm-03-psychometric-test",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/yedsi/Documents/PathFinder/Proyecto-5-PathFinder",
-    "list.type.of.created.stylesheet": "CSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/Pathmentor-profile&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/yedsi/Documents/PathFinder/Proyecto-5-PathFinder&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\AXEL\\Documents\\GitHub\\Proyecto-5-PathFinder\\frontend\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\components" />
@@ -87,8 +98,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.26094.121" />
-        <option value="bundled-js-predefined-d6986cc7102b-b26f3e71634d-JavaScript-IU-251.26094.121" />
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.29188.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.29188.11" />
       </set>
     </attachedChunks>
   </component>
@@ -102,6 +113,7 @@
       <workItem from="1778084244691" duration="17859000" />
       <workItem from="1780249324282" duration="17861000" />
       <workItem from="1780345829981" duration="3367000" />
+      <workItem from="1780437569726" duration="2673000" />
     </task>
     <servers />
   </component>
@@ -113,7 +125,6 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/frontend/app/(auth)/simulation/SimulationPage.tsx</url>
-          <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

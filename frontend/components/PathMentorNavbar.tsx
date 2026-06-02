@@ -1,29 +1,75 @@
 'use client';
 
 import styles from '../styles/PathMentorNavbar.module.css';
-import { usePathname } from 'next/navigation';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function PathMentorNavbar() {
 
     const pathname = usePathname();
     const router = useRouter();
-    const { data: session } = useSession();
+
+    const [collapsed, setCollapsed] = useState(false);
+
+    /* LOAD STATE */
+    useEffect(() => {
+
+        const savedState = localStorage.getItem('mentor-sidebar');
+
+        if (savedState === 'true') {
+            setCollapsed(true);
+        }
+
+    }, []);
+
+    /* SAVE STATE */
+    useEffect(() => {
+
+        localStorage.setItem(
+            'mentor-sidebar',
+            String(collapsed)
+        );
+
+    }, [collapsed]);
 
     return (
-        <header className={styles.navbar}>
 
-            {/* LEFT */}
-            <div className={styles.leftSection}>
+        <aside
+            className={
+                collapsed
+                    ? styles.sidebarCollapsed
+                    : styles.sidebar
+            }
+        >
+
+            {/* HEADER */}
+            <div className={styles.sidebarHeader}>
 
                 <div className={styles.logoContainer}>
-                    <div className={styles.logoCircle}>P</div>
 
-                    <h1 className={styles.logoText}>
-                        PATH<span>MENTOR</span>
-                    </h1>
+                    <div className={styles.logoCircle}>
+                        P
+                    </div>
+
+                    {!collapsed && (
+                        <h1 className={styles.logoText}>
+                            PATH<span>MENTOR</span>
+                        </h1>
+                    )}
+
                 </div>
+
+            </div>
+
+            {/* NAV */}
+            <div className={styles.topSection}>
+
+                {!collapsed && (
+                    <p className={styles.panelTitle}>
+                        PANEL MENTOR
+                    </p>
+                )}
 
                 <nav className={styles.navLinks}>
 
@@ -36,18 +82,22 @@ export default function PathMentorNavbar() {
                                 : styles.link
                         }
                     >
-                        Dashboard
+                        <span>📊</span>
+
+                        {!collapsed && (
+                            <span>Dashboard</span>
+                        )}
                     </button>
 
                     {/* ENTREVISTAS */}
-                    <button
-                        className={
-                            pathname.includes('entrevistas')
-                                ? styles.activeLink
-                                : styles.link
-                        }
-                    >
-                         Mis Entrevistas
+                    <button className={styles.link}>
+
+                        <span>📅</span>
+
+                        {!collapsed && (
+                            <span>Mis Entrevistas</span>
+                        )}
+
                     </button>
 
                     {/* DISPONIBILIDAD */}
@@ -59,62 +109,79 @@ export default function PathMentorNavbar() {
                                 : styles.link
                         }
                     >
-                         Disponibilidad
+
+                        <span>🕒</span>
+
+                        {!collapsed && (
+                            <span>Disponibilidad</span>
+                        )}
+
                     </button>
 
-                    {/* METRICAS */}
-                    <button
-                        className={
-                            pathname.includes('metricas')
-                                ? styles.activeLink
-                                : styles.link
-                        }
-                    >
-                         Mis Métricas
+                    {/* FEEDBACK */}
+                    <button className={styles.link}>
+
+                        <span>💬</span>
+
+                        {!collapsed && (
+                            <span>Feedback</span>
+                        )}
+
+                    </button>
+
+                    {/* MÉTRICAS */}
+                    <button className={styles.link}>
+
+                        <span>📈</span>
+
+                        {!collapsed && (
+                            <span>Mis Métricas</span>
+                        )}
+
                     </button>
 
                     {/* PERFIL */}
-                    <button
-                        onClick={() => router.push('/profile')}
-                        className={
-                            pathname.includes('profile')
-                                ? styles.activeLink
-                                : styles.link
-                        }
-                    >
-                         Mi Perfil
+                    <button className={styles.link}>
+
+                        <span>👤</span>
+
+                        {!collapsed && (
+                            <span>Mi Perfil</span>
+                        )}
+
+                    </button>
+
+                    {/* CONFIG */}
+                    <button className={styles.link}>
+
+                        <span>⚙️</span>
+
+                        {!collapsed && (
+                            <span>Configuración</span>
+                        )}
+
                     </button>
 
                 </nav>
-            </div>
-
-            {/* RIGHT */}
-            <div className={styles.rightSection}>
-
-                <div className={styles.notification}>
-                    🔔
-                    <span className={styles.badge}>3</span>
-                </div>
-
-                <div className={styles.userSection}>
-
-                    <div className={styles.avatar}>
-                        {session?.user?.image ? (
-                            <img src={session.user.image} alt="avatar" className="h-full w-full rounded-full object-cover" />
-                        ) : (
-                            "👨🏽‍💼"
-                        )}
-                    </div>
-
-                    <div>
-                        <h3>{session?.user?.name || "PathMentor"}</h3>
-                        <p>Mentor</p>
-                    </div>
-
-                </div>
 
             </div>
 
-        </header>
+            {/* FOOTER */}
+            <div className={styles.bottomSection}>
+
+                <button
+                    className={styles.collapseButton}
+                    onClick={() =>
+                        setCollapsed(!collapsed)
+                    }
+                >
+
+                    {collapsed ? '→' : '← Contraer'}
+
+                </button>
+
+            </div>
+
+        </aside>
     );
 }
