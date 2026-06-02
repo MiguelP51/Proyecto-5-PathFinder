@@ -15,10 +15,7 @@
 //   GET /api/estudiante/exploracion/siguiente-accion
 //   GET /api/estudiante/exploracion/entrevistas-proximas
 
-import { useState } from "react";
-import Link from "next/link";
 import Footer from "@/components/Footer";
-import UserSidebar from "@/components/role-based/UserSidebar";
 import {
   TrendingUp,
   Award,
@@ -29,7 +26,6 @@ import {
   ArrowRight,
   Search,
   Calendar,
-  Menu,
 } from "lucide-react";
 
 // ─── Datos mock ───────────────────────────────────────────────────────────────
@@ -173,46 +169,10 @@ const entrevistasProximas = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ExploracionDashboardPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-[#081333]">
-      {/* ══ SIDEBAR — componente existente del equipo ══════════════════════ */}
-      <UserSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        nivel={usuario.nivel}
-        xpActual={usuario.xpActual}
-        xpSiguienteNivel={usuario.xpSiguienteNivel}
-      />
-
-      {/* ══ CONTENIDO PRINCIPAL ══════════════════════════════════════════════ */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-6 py-3">
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-slate-500 hover:text-[#7447D7]"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          )}
-          <div className="ml-auto flex items-center gap-3">
-            <button className="relative text-slate-500 hover:text-[#7447D7]">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                3
-              </span>
-            </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-xs font-bold text-white">
-              {usuario.nombre.charAt(0)}
-            </div>
-          </div>
-        </header>
-
-        {/* Scroll area */}
-        <main className="flex-1 overflow-y-auto px-6 py-8">
+    <>
+      <main className="bg-slate-50 px-6 py-8 text-[#081333]">
+        <div className="mx-auto max-w-7xl">
           {/* Bienvenida */}
           <div className="mb-6">
             <h1 className="text-2xl font-extrabold md:text-3xl">
@@ -524,10 +484,10 @@ export default function ExploracionDashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      </main>
 
-          <Footer />
-        </main>
-      </div>
-    </div>
+      <Footer />
+    </>
   );
 }
