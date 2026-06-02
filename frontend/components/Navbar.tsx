@@ -82,7 +82,7 @@ export default function Navbar() {
               Contacto
             </Link>
 
-            <Link href="/app/simulation-intro">
+            <Link href="/simulation">
               Simulación
             </Link>
 

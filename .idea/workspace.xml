@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Navbar.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,7 +60,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "C:\\Users\\Alexandra Ramos\\Documents\\Docus imp\\PUCP\\Ciclo 26.1\\DP2\\Proyecto-5-PathFinder\\frontend\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -71,6 +72,17 @@
       <recent name="C:\Users\yedsi\Documents\PathFinder\Proyecto-5-PathFinder\backend\src\main\java\com\pathfinder\service" />
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\public\areas" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -89,11 +101,23 @@
       <updated>1778084242675</updated>
       <workItem from="1778084244691" duration="17859000" />
       <workItem from="1780249324282" duration="17861000" />
+      <workItem from="1780345829981" duration="3367000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/frontend/app/(auth)/simulation/SimulationPage.tsx</url>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>
