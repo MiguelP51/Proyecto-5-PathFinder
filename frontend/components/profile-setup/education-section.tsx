@@ -13,16 +13,19 @@ export interface Education {
   career: string;
   startDate: string;
   endDate: string;
+  isCurrentlyStudying?: boolean;
   relevantCourses: string[];
 }
 
 interface EducationSectionProps {
   educations: Education[];
   onChange: (educations: Education[]) => void;
+  disabled?: boolean;
 }
 
-export function EducationSection({ educations, onChange }: EducationSectionProps) {
+export function EducationSection({ educations, onChange, disabled = false }: EducationSectionProps) {
   const [newCourse, setNewCourse] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addEducation = () => {
     const newEducation: Education = {
@@ -31,6 +34,7 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
       career: "",
       startDate: "",
       endDate: "",
+      isCurrentlyStudying: false,
       relevantCourses: [],
     };
     onChange([...educations, newEducation]);
@@ -40,12 +44,53 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
     onChange(educations.filter((edu) => edu.id !== id));
   };
 
-  const updateEducation = (id: string, field: keyof Education, value: string | string[]) => {
+  const updateEducation = (id: string, field: keyof Education, value: string | string[] | boolean) => {
     onChange(
       educations.map((edu) =>
         edu.id === id ? { ...edu, [field]: value } : edu
       )
     );
+  };
+
+  const validateEducation = (
+    id: string,
+    field: keyof Education,
+    value: string
+  ) => {
+    const education = educations.find((e) => e.id === id);
+
+    if (!education) return;
+
+    const newErrors = { ...errors };
+
+    if (field === "institution" && value.trim().length < 3) {
+      newErrors[`${id}-institution`] =
+        "La institución debe tener al menos 3 caracteres";
+    } else {
+      delete newErrors[`${id}-institution`];
+    }
+
+    if (field === "career" && value.trim().length < 3) {
+      newErrors[`${id}-career`] =
+        "La carrera debe tener al menos 3 caracteres";
+    } else {
+      delete newErrors[`${id}-career`];
+    }
+
+    if (field === "endDate") {
+      if (
+        education.startDate &&
+        value &&
+        new Date(value) < new Date(education.startDate)
+      ) {
+        newErrors[`${id}-endDate`] =
+          "La fecha fin no puede ser menor a la fecha inicio";
+      } else {
+        delete newErrors[`${id}-endDate`];
+      }
+    }
+
+    setErrors(newErrors);
   };
 
   const addCourse = (eduId: string) => {
@@ -76,29 +121,33 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
           </div>
           <h2 className="text-xl font-semibold text-[#0E3E66]">Formación Académica</h2>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addEducation}
-          className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar
-        </Button>
+        {!disabled && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addEducation}
+            className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar
+          </Button>
+        )}
       </div>
 
       {educations.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
           <GraduationCap className="mx-auto h-12 w-12 text-slate-300" />
           <p className="mt-4 text-slate-500">No has agregado formación académica</p>
-          <Button
-            variant="outline"
-            onClick={addEducation}
-            className="mt-4 border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar formación
-          </Button>
+          {!disabled && (
+            <Button
+              variant="outline"
+              onClick={addEducation}
+              className="mt-4 border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Agregar formación
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -110,30 +159,43 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
               <div className="absolute -left-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#393B74] to-[#643781] text-sm font-semibold text-white">
                 {index + 1}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeEducation(edu.id)}
-                className="absolute right-2 top-2 h-8 w-8 text-slate-400 hover:text-red-500"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!disabled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeEducation(edu.id)}
+                  className="absolute right-2 top-2 h-8 w-8 text-slate-400 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-slate-700">Institución</Label>
                   <Input
                     value={edu.institution}
-                    onChange={(e) => updateEducation(edu.id, "institution", e.target.value)}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      updateEducation(edu.id, "institution", e.target.value);
+                      validateEducation(edu.id, "institution", e.target.value);
+                    }}
                     placeholder="Universidad / Instituto"
                     className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
                   />
+
+                  {errors[`${edu.id}-institution`] && (
+                    <p className="text-sm text-red-500">
+                      {errors[`${edu.id}-institution`]}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-slate-700">Carrera</Label>
                   <Input
                     value={edu.career}
+                    disabled={disabled}
                     onChange={(e) => updateEducation(edu.id, "career", e.target.value)}
                     placeholder="Nombre de la carrera"
                     className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
@@ -148,6 +210,7 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
                   <Input
                     type="date"
                     value={edu.startDate}
+                    disabled={disabled}
                     onChange={(e) => updateEducation(edu.id, "startDate", e.target.value)}
                     className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
                   />
@@ -158,12 +221,46 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
                     <Calendar className="h-4 w-4 text-slate-400" />
                     Fecha de Fin
                   </Label>
+
                   <Input
                     type="date"
-                    value={edu.endDate}
-                    onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)}
-                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+                    value={edu.endDate || ""}
+                    disabled={disabled || edu.isCurrentlyStudying}
+                    onChange={(e) => {
+                      updateEducation(edu.id, "endDate", e.target.value);
+                      validateEducation(edu.id, "endDate", e.target.value);
+                    }}
+                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20 disabled:bg-slate-100"
                   />
+
+                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={edu.isCurrentlyStudying || false}
+                      disabled={disabled}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        onChange(
+                          educations.map((item) =>
+                            item.id === edu.id
+                              ? {
+                                  ...item,
+                                  isCurrentlyStudying: isChecked,
+                                  endDate: isChecked ? "" : item.endDate,
+                                }
+                              : item
+                          )
+                        );
+                      }}
+                    />
+                    Actualmente estudio aquí
+                  </label>
+
+                  {errors[`${edu.id}-endDate`] && (
+                    <p className="text-sm text-red-500">
+                      {errors[`${edu.id}-endDate`]}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -178,38 +275,42 @@ export function EducationSection({ educations, onChange }: EducationSectionProps
                       className="bg-[#643781]/10 text-[#643781] hover:bg-[#643781]/20"
                     >
                       {course}
-                      <button
-                        onClick={() => removeCourse(edu.id, i)}
-                        className="ml-2 hover:text-red-500"
-                      >
-                        ×
-                      </button>
+                      {!disabled && (
+                        <button
+                          onClick={() => removeCourse(edu.id, i)}
+                          className="ml-2 hover:text-red-500"
+                        >
+                          ×
+                        </button>
+                      )}
                     </Badge>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={newCourse[edu.id] || ""}
-                    onChange={(e) =>
-                      setNewCourse((prev) => ({ ...prev, [edu.id]: e.target.value }))
-                    }
-                    placeholder="Agregar curso relevante"
-                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addCourse(edu.id);
+                {!disabled && (
+                  <div className="flex gap-2">
+                    <Input
+                      value={newCourse[edu.id] || ""}
+                      onChange={(e) =>
+                        setNewCourse((prev) => ({ ...prev, [edu.id]: e.target.value }))
                       }
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => addCourse(edu.id)}
-                    className="border-[#643781] text-[#643781] hover:bg-[#643781]/5"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+                      placeholder="Agregar curso relevante"
+                      className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCourse(edu.id);
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => addCourse(edu.id)}
+                      className="border-[#643781] text-[#643781] hover:bg-[#643781]/5"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

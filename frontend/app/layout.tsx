@@ -3,6 +3,7 @@ import { Montserrat } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
+import { Toaster } from "sonner";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <Providers>
           <main>{children}</main>
+          <Toaster position="top-center" richColors />
         </Providers>
       </body>
     </html>

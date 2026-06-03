@@ -16,4 +16,11 @@ public interface PerfilEstudianteService {
     );
 
     EstadoEstudianteResponse confirmarPerfil(String correo);
+
+    void actualizarProgresoEstudiante(
+            String correo,
+            com.pathfinder.model.enums.NombreEtapa etapa,
+            com.pathfinder.model.enums.EstadoEtapa estado,
+            boolean setFecha
+    );
 }

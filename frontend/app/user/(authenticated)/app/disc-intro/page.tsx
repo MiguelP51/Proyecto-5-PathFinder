@@ -62,6 +62,36 @@ export default async function DiscIntroPage() {
     redirect("/login");
   }
 
+  let perfilConfirmado = false;
+  let testCompletado = false;
+
+  try {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8080";
+    const res = await fetch(`${backendUrl}/api/users/me/status`, {
+      headers: {
+        Authorization: `Bearer ${(session as any).backendJwt}`,
+      },
+      next: { revalidate: 0 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const statusData = json.data || json;
+      perfilConfirmado = statusData?.perfilConfirmado || false;
+      const testStatus = statusData?.etapas?.TEST_DISC;
+      testCompletado = testStatus === "COMPLETADA";
+    }
+  } catch (err) {
+    console.error("Error verificando estado del estudiante en disc-intro:", err);
+  }
+
+  if (!perfilConfirmado) {
+    redirect("/user/profile?error=need_confirm");
+  }
+
+  if (testCompletado) {
+    redirect("/user/app/disc-results");
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fbf7ff] via-white to-[#effffd] text-[#081333]">
   
@@ -149,7 +179,7 @@ export default async function DiscIntroPage() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <Link
-            href="/simulation"
+            href="/user/app/disc-test"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-[8px] bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-6 text-sm font-bold text-white transition hover:opacity-90"
           >
             <Brain className="h-4 w-4" />
