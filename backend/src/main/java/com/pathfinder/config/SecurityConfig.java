@@ -61,6 +61,7 @@ public class SecurityConfig {
                                 "/api/cv/extract",
                                 "/api/profile/**"
                         ).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/mentor/**").hasAnyRole("MENTOR", "ADMIN")
                         .anyRequest().authenticated()
