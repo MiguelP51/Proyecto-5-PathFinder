@@ -6,6 +6,7 @@ import com.pathfinder.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class DashboardController {
     // GET /api/estudiante/dashboard/resumen
     // Devuelve: nombre, avatar, XP, nivel, habilidades
     @GetMapping("/resumen")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<DashboardResumenDTO>> obtenerResumen(
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -40,6 +42,7 @@ public class DashboardController {
     // POST /api/estudiante/dashboard/exploracion/iniciar
     // Registra que el estudiante inició la exploración por primera vez
     @PostMapping("/exploracion/iniciar")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> iniciarExploracion(
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
