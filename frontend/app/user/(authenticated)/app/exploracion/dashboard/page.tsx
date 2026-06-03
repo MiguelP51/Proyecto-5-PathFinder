@@ -15,7 +15,10 @@
 //   GET /api/estudiante/exploracion/siguiente-accion
 //   GET /api/estudiante/exploracion/entrevistas-proximas
 
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import Footer from "@/components/Footer";
+import { apiFetch } from "@/lib/api";
 import {
   TrendingUp,
   Award,
@@ -28,9 +31,24 @@ import {
   Calendar,
 } from "lucide-react";
 
+interface DashboardResumenResponse {
+  nombre: string;
+  avatar?: string;
+  correo: string;
+  xpTotal: number;
+  nivel: number;
+  xpSiguienteNivel: number;
+  exploracionIniciada: boolean;
+  habilidades: Array<{
+    nombre: string;
+    tipo: string;
+    nivel: number;
+  }>;
+}
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
-const usuario = {
+const usuarioMock = {
   nombre: "María González",
   email: "maria.gonzalez@example.com",
   nivel: 5,
@@ -111,7 +129,7 @@ const challenges = [
   },
 ];
 
-const habilidades = [
+const habilidadesMock = [
   { nombre: "Gestión de Proyectos", nivel: 3, progreso: 3, total: 5 },
   { nombre: "Análisis de Datos", nivel: 2, progreso: 2, total: 5 },
   { nombre: "Comunicación Efectiva", nivel: 4, progreso: 4, total: 5 },
@@ -169,6 +187,95 @@ const entrevistasProximas = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ExploracionDashboardPage() {
+  const { data: session, status } = useSession();
+  const [dashboard, setDashboard] = useState<DashboardResumenResponse | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (status === "loading") {
+      return;
+    }
+
+    if (status === "unauthenticated") {
+      setError("No se pudo cargar el dashboard porque no hay sesión activa.");
+      setIsLoading(false);
+      return;
+    }
+
+    const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+    let cancelled = false;
+
+    setIsLoading(true);
+    setError("");
+
+    apiFetch<DashboardResumenResponse>(
+      "/api/estudiante/dashboard/resumen",
+      {},
+      backendJwt,
+    )
+      .then((data) => {
+        if (!cancelled) {
+          setDashboard(data);
+        }
+      })
+      .catch((fetchError) => {
+        if (!cancelled) {
+          setError(
+            fetchError instanceof Error
+              ? fetchError.message
+              : "No se pudo cargar el dashboard.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, status]);
+
+  const usuario = {
+    nombre: dashboard?.nombre ?? usuarioMock.nombre,
+    email: dashboard?.correo ?? usuarioMock.email,
+    nivel: dashboard?.nivel ?? usuarioMock.nivel,
+    xpActual: dashboard?.xpTotal ?? usuarioMock.xpActual,
+    xpSiguienteNivel:
+      dashboard?.xpSiguienteNivel ?? usuarioMock.xpSiguienteNivel,
+  };
+
+  const habilidades = dashboard?.habilidades ?? [];
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-[#081333]">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#7447D7]" />
+          <p className="text-sm font-semibold text-slate-600">
+            Cargando dashboard...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-[#081333]">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-lg font-bold text-red-600">Error al cargar</p>
+          <p className="mt-2 text-sm text-slate-600">{error}</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
       <main className="bg-slate-50 px-6 py-8 text-[#081333]">
@@ -197,11 +304,17 @@ export default function ExploracionDashboardPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-bold ${badgeColor}`}
                       >
-                        {badge}
+                        {label === "Experiencia total"
+                          ? `Nivel ${usuario.nivel}`
+                          : badge}
                       </span>
                     )}
                   </div>
-                  <p className="mt-3 text-2xl font-extrabold">{valor}</p>
+                  <p className="mt-3 text-2xl font-extrabold">
+                    {label === "Experiencia total"
+                      ? `${usuario.xpActual} XP`
+                      : valor}
+                  </p>
                   <p className="text-sm text-slate-500">{label}</p>
                 </div>
               ),
@@ -219,7 +332,7 @@ export default function ExploracionDashboardPage() {
                   Siguiente acción recomendada
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#7447D7]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#7447D7]">
                     <BookOpen className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
@@ -264,7 +377,7 @@ export default function ExploracionDashboardPage() {
                           </p>
                         </div>
                         <span
-                          className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${sp.estadoColor}`}
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${sp.estadoColor}`}
                         >
                           {sp.estado}
                         </span>
@@ -276,7 +389,7 @@ export default function ExploracionDashboardPage() {
                         </div>
                         <div className="h-2 w-full rounded-full bg-slate-100">
                           <div
-                            className="h-2 rounded-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6]"
+                            className="h-2 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
                             style={{ width: `${sp.progreso}%` }}
                           />
                         </div>
@@ -311,7 +424,7 @@ export default function ExploracionDashboardPage() {
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-semibold">{ch.titulo}</p>
                         <span
-                          className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ch.dificultadColor}`}
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ch.dificultadColor}`}
                         >
                           {ch.dificultad}
                         </span>
@@ -356,7 +469,7 @@ export default function ExploracionDashboardPage() {
                     </p>
                   </div>
                 </div>
-                <button className="flex-shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]">
+                <button className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]">
                   Explorar
                 </button>
               </div>
@@ -376,7 +489,7 @@ export default function ExploracionDashboardPage() {
                 </div>
                 <div className="mt-2 h-2.5 w-full rounded-full bg-slate-100">
                   <div
-                    className="h-2.5 rounded-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6]"
+                    className="h-2.5 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
                     style={{
                       width: `${(usuario.xpActual / usuario.xpSiguienteNivel) * 100}%`,
                     }}
@@ -391,18 +504,18 @@ export default function ExploracionDashboardPage() {
                   {habilidades.map((h) => (
                     <div key={h.nombre}>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{h.nombre}</span>
+                        <div>
+                          <span className="font-medium">{h.nombre}</span>
+                          <p className="text-xs text-slate-400">{h.tipo}</p>
+                        </div>
                         <span className="text-xs font-semibold text-[#7447D7]">
-                          Nivel {h.nivel}{" "}
-                          <span className="text-slate-400">
-                            {h.progreso}/{h.total}
-                          </span>
+                          Nivel {h.nivel}
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100">
                         <div
                           className="h-1.5 rounded-full bg-[#7447D7]"
-                          style={{ width: `${(h.progreso / h.total) * 100}%` }}
+                          style={{ width: `${Math.min(h.nivel * 20, 100)}%` }}
                         />
                       </div>
                     </div>
