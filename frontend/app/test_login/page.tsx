@@ -2,6 +2,6 @@
 
 import PathMentorDashboard from '@/components/PathMentorDashboard';
 
-export default function TestLoginPage() {
+export default function TestLoginPageWithUnderscore() {
     return <PathMentorDashboard />;
 }

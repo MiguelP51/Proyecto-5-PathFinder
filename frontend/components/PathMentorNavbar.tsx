@@ -90,14 +90,19 @@ export default function PathMentorNavbar() {
                     </button>
 
                     {/* ENTREVISTAS */}
-                    <button className={styles.link}>
-
+                    <button
+                        onClick={() => router.push('/interviews')}
+                        className={
+                            pathname.includes('interviews')
+                                ? styles.activeLink
+                                : styles.link
+                        }
+                    >
                         <span>📅</span>
 
                         {!collapsed && (
                             <span>Mis Entrevistas</span>
                         )}
-
                     </button>
 
                     {/* DISPONIBILIDAD */}
@@ -119,18 +124,30 @@ export default function PathMentorNavbar() {
                     </button>
 
                     {/* FEEDBACK */}
-                    <button className={styles.link}>
-
+                    <button
+                        onClick={() => router.push('/feedbacks')}
+                        className={
+                            pathname.includes('feedbacks')
+                                ? styles.activeLink
+                                : styles.link
+                        }
+                    >
                         <span>💬</span>
 
                         {!collapsed && (
                             <span>Feedback</span>
                         )}
-
                     </button>
 
                     {/* MÉTRICAS */}
-                    <button className={styles.link}>
+                    <button
+                        onClick={() => router.push('/metrics')}
+                        className={
+                            pathname.includes('metrics')
+                                ? styles.activeLink
+                                : styles.link
+                        }
+                    >
 
                         <span>📈</span>
 
@@ -141,7 +158,14 @@ export default function PathMentorNavbar() {
                     </button>
 
                     {/* PERFIL */}
-                    <button className={styles.link}>
+                    <button
+                        onClick={() => router.push('/profile')}
+                        className={
+                            pathname.includes('profile')
+                                ? styles.activeLink
+                                : styles.link
+                        }
+                    >
 
                         <span>👤</span>
 

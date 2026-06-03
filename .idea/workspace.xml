@@ -6,13 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/test-login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/test-login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorAvailable.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorAvailable.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorDashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorDashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/PathMentorNavbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/PathMentorNavbar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/styles/Availability.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/Availability.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/styles/PathMentorDashboard.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/PathMentorDashboard.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/styles/PathMentorNavbar.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/styles/PathMentorNavbar.module.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,12 +34,12 @@
     &quot;assignee&quot;: &quot;aleramosr&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/MiguelP51/Proyecto-5-PathFinder.git",
-    "accountId": "b092e45b-9f51-4350-a4cd-5187b60a7157"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/MiguelP51/Proyecto-5-PathFinder.git&quot;,
+    &quot;accountId&quot;: &quot;b092e45b-9f51-4350-a4cd-5187b60a7157&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 3
@@ -113,7 +106,8 @@
       <workItem from="1778084244691" duration="17859000" />
       <workItem from="1780249324282" duration="17861000" />
       <workItem from="1780345829981" duration="3367000" />
-      <workItem from="1780437569726" duration="2673000" />
+      <workItem from="1780437569726" duration="3580000" />
+      <workItem from="1780502312449" duration="19000" />
     </task>
     <servers />
   </component>

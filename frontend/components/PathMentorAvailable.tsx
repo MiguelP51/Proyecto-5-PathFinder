@@ -8,6 +8,12 @@ import { useState } from 'react';
 
 
 
+const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const TIME_SLOTS = [
+  '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+  '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
+];
+
 export default function AvailabilityPage() {
 
   const [blocks, setBlocks] = useState([
@@ -36,6 +42,13 @@ export default function AvailabilityPage() {
       type: 'presencial'
     }
   ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState('Lunes');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
+  const [selectedType, setSelectedType] = useState('virtual');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
 
     return (
 
@@ -201,7 +214,17 @@ export default function AvailabilityPage() {
                                     Bloques de Tiempo
                                 </h3>
 
-                                <button className={styles.addButton}>
+                                <button 
+                                    className={styles.addButton}
+                                    onClick={() => {
+                                        setSelectedDay('Lunes');
+                                        setStartTime('09:00');
+                                        setEndTime('10:00');
+                                        setSelectedType('virtual');
+                                        setIsTypeDropdownOpen(false);
+                                        setIsModalOpen(true);
+                                    }}
+                                >
                                     + Agregar Bloque
                                 </button>
 
@@ -347,6 +370,148 @@ export default function AvailabilityPage() {
 
             </div>
 
+            {isModalOpen && (
+                <div 
+                    className={styles.modalOverlay}
+                    onClick={() => setIsModalOpen(false)}
+                >
+                    <div 
+                        className={styles.modalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button 
+                            className={styles.modalCloseButton}
+                            onClick={() => setIsModalOpen(false)}
+                        >
+                            &times;
+                        </button>
+                        
+                        <h2 className={styles.modalTitle}>
+                            Agregar Bloque de Disponibilidad
+                        </h2>
+                        <p className={styles.modalDescription}>
+                            Define un nuevo bloque de tiempo en el que estarás disponible para entrevistas
+                        </p>
+                        
+                        <div className={styles.modalForm}>
+                            <div className={styles.formGroup}>
+                                <label>Día</label>
+                                <select 
+                                    className={styles.modalSelect}
+                                    value={selectedDay}
+                                    onChange={(e) => setSelectedDay(e.target.value)}
+                                >
+                                    {DAYS_OF_WEEK.map((d) => (
+                                        <option key={d} value={d}>{d}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
+                                    <label>Hora de inicio</label>
+                                    <select 
+                                        className={styles.modalSelect}
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                    >
+                                        {TIME_SLOTS.map((t) => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                
+                                <div className={styles.formGroup}>
+                                    <label>Hora de fin</label>
+                                    <select 
+                                        className={styles.modalSelect}
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                    >
+                                        {TIME_SLOTS.map((t) => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className={styles.formGroup}>
+                                <label>Tipo de entrevista</label>
+                                <div className={styles.customSelectContainer}>
+                                    <div 
+                                        className={`${styles.customSelectTrigger} ${isTypeDropdownOpen ? styles.customSelectTriggerActive : ''}`}
+                                        onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                                    >
+                                        <span>
+                                            {selectedType === 'virtual' ? 'Virtual' : selectedType === 'presencial' ? 'Presencial' : 'Ambos'}
+                                        </span>
+                                        <span className={`${styles.customSelectArrow} ${isTypeDropdownOpen ? styles.customSelectArrowOpen : ''}`}>
+                                            ▼
+                                        </span>
+                                    </div>
+                                    
+                                    {isTypeDropdownOpen && (
+                                        <div className={styles.customDropdownOptions}>
+                                            {[
+                                                { value: 'virtual', label: 'Virtual' },
+                                                { value: 'presencial', label: 'Presencial' },
+                                                { value: 'Ambos', label: 'Ambos' }
+                                            ].map((opt) => (
+                                                <div 
+                                                    key={opt.value}
+                                                    className={`${styles.customOption} ${selectedType === opt.value ? styles.customOptionSelected : ''}`}
+                                                    onClick={() => {
+                                                        setSelectedType(opt.value);
+                                                        setIsTypeDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    <span>{opt.label}</span>
+                                                    {selectedType === opt.value && (
+                                                        <svg className={styles.checkmarkIcon} viewBox="0 0 24 24">
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className={styles.modalActions}>
+                                <button 
+                                    className={styles.btnCancel}
+                                    onClick={() => setIsModalOpen(false)}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    className={styles.btnSubmit}
+                                    onClick={() => {
+                                        // Simple validation
+                                        if (startTime >= endTime) {
+                                            alert("La hora de inicio debe ser anterior a la hora de fin.");
+                                            return;
+                                        }
+                                        
+                                        const newBlock = {
+                                            id: Date.now(),
+                                            day: selectedDay,
+                                            time: `${startTime} - ${endTime}`,
+                                            type: selectedType
+                                        };
+                                        
+                                        setBlocks([...blocks, newBlock]);
+                                        setIsModalOpen(false);
+                                    }}
+                                >
+                                    + Agregar Bloque
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
 
     );
