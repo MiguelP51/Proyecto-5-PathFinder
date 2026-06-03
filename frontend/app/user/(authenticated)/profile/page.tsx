@@ -236,6 +236,7 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState("");
   const [hasSavedProfile, setHasSavedProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+  const [isProfileConfirmed, setIsProfileConfirmed] = useState(false);
 
   // Photo
   const [photoUrl, setPhotoUrl] = useState("");
@@ -285,6 +286,9 @@ export default function ProfileSetupPage() {
               }));
               setHasSavedProfile(true);
               setIsEditing(false);
+            }
+            if (dto.confirmado) {
+              setIsProfileConfirmed(true);
             }
             if (mapped.educations.length > 0) setEducations(mapped.educations);
             if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
@@ -642,8 +646,8 @@ export default function ProfileSetupPage() {
         method: "POST",
       }, backendJwt);
 
-      // Redirigir al inicio del proceso de simulación
-      router.push("/user/app/simulation-intro");
+      setIsProfileConfirmed(true);
+      router.push("/user/home");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error confirmando el perfil"
@@ -784,7 +788,7 @@ export default function ProfileSetupPage() {
       <ProfileHeader
         onSave={handleSave}
         onSkip={handleSkip}
-        onConfirm={handleConfirm}
+        onConfirm={isProfileConfirmed ? undefined : handleConfirm}
         isSaving={isSaving}
         isConfirming={isConfirming}
         canConfirm={completionPercentage === 100}
