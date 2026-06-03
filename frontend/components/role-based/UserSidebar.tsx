@@ -153,6 +153,14 @@ export default function UserSidebar({
               className={linkClass("/user/home")}
               onClick={onClose}
             >
+              <Home className="h-5 w-5" />
+              <span>Home</span>
+            </Link>
+            <Link
+              href="/user/app/exploracion/dashboard"
+              className={linkClass("/user/app/exploracion/dashboard")}
+              onClick={onClose}
+            >
               <LayoutDashboard className="h-5 w-5" />
               <span>Dashboard</span>
             </Link>
