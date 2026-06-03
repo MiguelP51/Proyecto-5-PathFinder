@@ -82,6 +82,14 @@ export default function UserTopBar({
             Sesión activa
           </span>
 
+          {/* PROFILE LINK */}
+          <Link
+            href="/user/profile"
+            className="hidden text-sm font-semibold text-slate-600 hover:text-[#7447D7] transition sm:inline-block mr-2"
+          >
+            Profile
+          </Link>
+
           {/* USER */}
           <div className="flex min-w-0 items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
 

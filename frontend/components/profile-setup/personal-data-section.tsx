@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Mail, Phone, MapPin } from "lucide-react";
+import { User, Mail, Phone, MapPin, Link2 } from "lucide-react";
 
 interface PersonalData {
   fullName: string;
@@ -18,45 +19,51 @@ interface PersonalData {
   region: string;
   provincia: string;
   distrito: string;
+  linkedinUrl?: string;
 }
 
 interface PersonalDataSectionProps {
   data: PersonalData;
   onChange: (data: PersonalData) => void;
+  disabled?: boolean;
 }
-
-const regiones = [
-  "Lima",
-  "Arequipa",
-  "La Libertad",
-  "Piura",
-  "Cusco",
-  "Lambayeque",
-  "Junín",
-  "Ancash",
-  "Callao",
-  "Ica",
-];
-
-const provincias: Record<string, string[]> = {
-  Lima: ["Lima", "Barranca", "Cajatambo", "Canta", "Cañete", "Huaral", "Huarochirí", "Huaura", "Oyón", "Yauyos"],
-  Arequipa: ["Arequipa", "Camaná", "Caravelí", "Castilla", "Caylloma", "Condesuyos", "Islay", "La Unión"],
-  "La Libertad": ["Trujillo", "Ascope", "Bolívar", "Chepén", "Gran Chimú", "Julcán", "Otuzco", "Pacasmayo"],
-  Piura: ["Piura", "Ayabaca", "Huancabamba", "Morropón", "Paita", "Sechura", "Sullana", "Talara"],
-  Cusco: ["Cusco", "Acomayo", "Anta", "Calca", "Canas", "Canchis", "Chumbivilcas", "Espinar"],
-  Lambayeque: ["Chiclayo", "Ferreñafe", "Lambayeque"],
-  Junín: ["Huancayo", "Chanchamayo", "Chupaca", "Concepción", "Jauja", "Junín", "Satipo", "Tarma", "Yauli"],
-  Ancash: ["Huaraz", "Aija", "Antonio Raymondi", "Asunción", "Bolognesi", "Carhuaz", "Carlos Fermín Fitzcarrald"],
-  Callao: ["Callao"],
-  Ica: ["Ica", "Chincha", "Nazca", "Palpa", "Pisco"],
-};
 
 export function PersonalDataSection({
   data,
   onChange,
+  disabled = false,
 }: PersonalDataSectionProps) {
+  const [ubigeoData, setUbigeoData] = useState<Record<string, Record<string, string[]>>>({});
+
+  // Cargar ubigeo.json al montar el componente
+  useEffect(() => {
+    fetch("/assets/ubigeo.json")
+      .then((res) => res.json())
+      .then((json) => {
+        setUbigeoData(json);
+      })
+      .catch((err) => console.error("Error loading ubigeo.json:", err));
+  }, []);
+
+  // Si se carga la data del perfil y viene con provincia pero sin región (ya que la región no se guarda en BD),
+  // se busca la región que contiene a esa provincia para pre-seleccionar los combos.
+  useEffect(() => {
+    if (Object.keys(ubigeoData).length > 0 && !data.region && data.provincia) {
+      for (const reg in ubigeoData) {
+        if (ubigeoData[reg][data.provincia]) {
+          onChange({ ...data, region: reg });
+          break;
+        }
+      }
+    }
+  }, [ubigeoData, data.provincia, data.region, data, onChange]);
+
   const handleChange = (field: keyof PersonalData, value: string) => {
-    const newData = { ...data, [field]: value };
+    let cleanValue = value;
+    if (field === "phone") {
+      cleanValue = value.replace(/[^0-9]/g, "");
+    }
+    const newData = { ...data, [field]: cleanValue };
     
     // Reset dependent fields
     if (field === "region") {
@@ -70,7 +77,13 @@ export function PersonalDataSection({
     onChange(newData);
   };
 
-  const availableProvincias = data.region ? provincias[data.region] || [] : [];
+  const regionesList = Object.keys(ubigeoData).sort();
+  const provinciasList = data.region && ubigeoData[data.region]
+    ? Object.keys(ubigeoData[data.region]).sort()
+    : [];
+  const distritosList = data.region && data.provincia && ubigeoData[data.region]?.[data.provincia]
+    ? ubigeoData[data.region][data.provincia]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -94,6 +107,7 @@ export function PersonalDataSection({
             onChange={(e) => handleChange("fullName", e.target.value)}
             placeholder="Tu nombre completo"
             className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+            disabled={disabled}
           />
         </div>
 
@@ -126,8 +140,25 @@ export function PersonalDataSection({
             type="tel"
             value={data.phone}
             onChange={(e) => handleChange("phone", e.target.value)}
-            placeholder="+51 999 999 999"
+            placeholder="999888777 (9 dígitos, empieza con 9)"
             className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+            disabled={disabled}
+          />
+        </div>
+
+        {/* LinkedIn URL */}
+        <div className="space-y-2">
+          <Label htmlFor="linkedinUrl" className="flex items-center gap-2 text-slate-700">
+            <Link2 className="h-4 w-4 text-slate-400" />
+            Perfil de LinkedIn (Opcional)
+          </Label>
+          <Input
+            id="linkedinUrl"
+            value={data.linkedinUrl || ""}
+            onChange={(e) => handleChange("linkedinUrl", e.target.value)}
+            placeholder="https://www.linkedin.com/in/usuario"
+            className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+            disabled={disabled}
           />
         </div>
 
@@ -137,12 +168,12 @@ export function PersonalDataSection({
             <MapPin className="h-4 w-4 text-slate-400" />
             Región
           </Label>
-          <Select value={data.region} onValueChange={(value) => handleChange("region", value)}>
+          <Select value={data.region} onValueChange={(value) => handleChange("region", value)} disabled={disabled}>
             <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
               <SelectValue placeholder="Selecciona tu región" />
             </SelectTrigger>
-            <SelectContent className="bg-white">
-              {regiones.map((region) => (
+            <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
+              {regionesList.map((region) => (
                 <SelectItem key={region} value={region}>
                   {region}
                 </SelectItem>
@@ -157,13 +188,13 @@ export function PersonalDataSection({
           <Select 
             value={data.provincia} 
             onValueChange={(value) => handleChange("provincia", value)}
-            disabled={!data.region}
+            disabled={disabled || !data.region}
           >
             <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
               <SelectValue placeholder="Selecciona tu provincia" />
             </SelectTrigger>
-            <SelectContent className="bg-white">
-              {availableProvincias.map((provincia) => (
+            <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
+              {provinciasList.map((provincia) => (
                 <SelectItem key={provincia} value={provincia}>
                   {provincia}
                 </SelectItem>
@@ -175,13 +206,22 @@ export function PersonalDataSection({
         {/* Distrito */}
         <div className="space-y-2">
           <Label className="text-slate-700">Distrito</Label>
-          <Input
-            value={data.distrito}
-            onChange={(e) => handleChange("distrito", e.target.value)}
-            placeholder="Ingresa tu distrito"
-            disabled={!data.provincia}
-            className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
-          />
+          <Select 
+            value={data.distrito} 
+            onValueChange={(value) => handleChange("distrito", value)}
+            disabled={disabled || !data.provincia}
+          >
+            <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
+              <SelectValue placeholder="Selecciona tu distrito" />
+            </SelectTrigger>
+            <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
+              {distritosList.map((distrito) => (
+                <SelectItem key={distrito} value={distrito}>
+                  {distrito}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
