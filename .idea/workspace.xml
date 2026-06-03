@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Navbar.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,6 +40,9 @@
   &quot;associatedIndex&quot;: 3
 }</component>
   <component name="ProjectId" id="3DMFskLSdsj3cFOMUOUZBxoHEGH" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -51,7 +53,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "cam-sil/feature/hu-adm-03-psychometric-test",
+    "git-widget-placeholder": "Feature/cam-sil",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/yedsi/Documents/PathFinder/Proyecto-5-PathFinder",
     "list.type.of.created.stylesheet": "CSS",
@@ -69,6 +71,7 @@
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\components" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\yedsi\Documents\PathFinder\Proyecto-5-PathFinder\backend\src\main\java\com\pathfinder\dto\admin" />
       <recent name="C:\Users\yedsi\Documents\PathFinder\Proyecto-5-PathFinder\backend\src\main\java\com\pathfinder\service" />
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\public\areas" />
     </key>
@@ -102,6 +105,7 @@
       <workItem from="1778084244691" duration="17859000" />
       <workItem from="1780249324282" duration="17861000" />
       <workItem from="1780345829981" duration="3367000" />
+      <workItem from="1780458066762" duration="8942000" />
     </task>
     <servers />
   </component>
@@ -113,7 +117,6 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/frontend/app/(auth)/simulation/SimulationPage.tsx</url>
-          <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
