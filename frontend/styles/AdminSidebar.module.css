@@ -1,0 +1,9 @@
+/* Ocultar scroll en todos los navegadores pero permitir scroll */
+.scrollbarHidden {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.scrollbarHidden::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
