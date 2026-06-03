@@ -42,15 +42,17 @@ public class AdminAreaServiceImpl implements AdminAreaService {
     public AreaResponseDTO crearArea(AreaRequestDTO request) {
         validarArea(request);
 
-        if (areaRepository.existsByNombreAreaIgnoreCaseAndActivoTrue(request.getNombreArea().trim())) {
+        String nombreArea = request.getNombreArea().trim();
+
+        if (areaRepository.existsByNombreAreaIgnoreCaseAndActivoTrue(nombreArea)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un área activa con ese nombre");
         }
 
         Area area = new Area();
-        area.setNombreArea(request.getNombreArea().trim());
-        area.setDescripcionGeneral(request.getDescripcionGeneral());
-        area.setImagenUrl(request.getImagenUrl());
-        area.setIconoUrl(request.getIconoUrl());
+        area.setNombreArea(nombreArea);
+        area.setDescripcionGeneral(request.getDescripcionGeneral().trim());
+        area.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
+        area.setIconoUrl(normalizarTextoOpcional(request.getIconoUrl()));
         area.setActivo(true);
 
         return toAreaResponse(areaRepository.save(area));
@@ -61,10 +63,11 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         validarArea(request);
 
         Area area = buscarAreaActiva(idArea);
+
         area.setNombreArea(request.getNombreArea().trim());
-        area.setDescripcionGeneral(request.getDescripcionGeneral());
-        area.setImagenUrl(request.getImagenUrl());
-        area.setIconoUrl(request.getIconoUrl());
+        area.setDescripcionGeneral(request.getDescripcionGeneral().trim());
+        area.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
+        area.setIconoUrl(normalizarTextoOpcional(request.getIconoUrl()));
 
         return toAreaResponse(areaRepository.save(area));
     }
@@ -76,7 +79,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         }
 
         Area area = areaRepository.findById(idArea)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró el área solicitada"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró el área solicitada"
+                ));
 
         area.setActivo(activo);
 
@@ -98,20 +104,24 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         validarSubarea(request);
 
         Area area = buscarAreaActiva(idArea);
+        String nombreSubarea = request.getNombreSubarea().trim();
 
         if (subareaRepository.existsByAreaIdAreaAndNombreSubareaIgnoreCaseAndActivoTrue(
                 idArea,
-                request.getNombreSubarea().trim()
+                nombreSubarea
         )) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe una subárea activa con ese nombre en el área seleccionada");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Ya existe una subárea activa con ese nombre en el área seleccionada"
+            );
         }
 
         Subarea subarea = new Subarea();
         subarea.setArea(area);
-        subarea.setNombreSubarea(request.getNombreSubarea().trim());
-        subarea.setDescripcionGeneral(request.getDescripcionGeneral());
-        subarea.setImagenUrl(request.getImagenUrl());
-        subarea.setIconoUrl(request.getIconoUrl());
+        subarea.setNombreSubarea(nombreSubarea);
+        subarea.setDescripcionGeneral(request.getDescripcionGeneral().trim());
+        subarea.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
+        subarea.setIconoUrl(normalizarTextoOpcional(request.getIconoUrl()));
         subarea.setActivo(true);
 
         return toSubareaResponse(subareaRepository.save(subarea));
@@ -122,10 +132,11 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         validarSubarea(request);
 
         Subarea subarea = buscarSubareaActiva(idSubarea);
+
         subarea.setNombreSubarea(request.getNombreSubarea().trim());
-        subarea.setDescripcionGeneral(request.getDescripcionGeneral());
-        subarea.setImagenUrl(request.getImagenUrl());
-        subarea.setIconoUrl(request.getIconoUrl());
+        subarea.setDescripcionGeneral(request.getDescripcionGeneral().trim());
+        subarea.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
+        subarea.setIconoUrl(normalizarTextoOpcional(request.getIconoUrl()));
 
         return toSubareaResponse(subareaRepository.save(subarea));
     }
@@ -137,7 +148,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         }
 
         Subarea subarea = subareaRepository.findById(idSubarea)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró la subárea solicitada"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró la subárea solicitada"
+                ));
 
         subarea.setActivo(activo);
 
@@ -147,13 +161,19 @@ public class AdminAreaServiceImpl implements AdminAreaService {
     private Area buscarAreaActiva(Integer idArea) {
         return areaRepository.findById(idArea)
                 .filter(area -> Boolean.TRUE.equals(area.getActivo()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró el área solicitada"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró el área solicitada"
+                ));
     }
 
     private Subarea buscarSubareaActiva(Integer idSubarea) {
         return subareaRepository.findById(idSubarea)
                 .filter(subarea -> Boolean.TRUE.equals(subarea.getActivo()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró la subárea solicitada"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró la subárea solicitada"
+                ));
     }
 
     private void validarArea(AreaRequestDTO request) {
@@ -163,6 +183,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
 
         if (request.getNombreArea() == null || request.getNombreArea().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del área es obligatorio");
+        }
+
+        if (request.getDescripcionGeneral() == null || request.getDescripcionGeneral().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La descripción del área es obligatoria");
         }
     }
 
@@ -174,6 +198,18 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         if (request.getNombreSubarea() == null || request.getNombreSubarea().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre de la subárea es obligatorio");
         }
+
+        if (request.getDescripcionGeneral() == null || request.getDescripcionGeneral().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La descripción de la subárea es obligatoria");
+        }
+    }
+
+    private String normalizarTextoOpcional(String valor) {
+        if (valor == null || valor.trim().isEmpty()) {
+            return null;
+        }
+
+        return valor.trim();
     }
 
     private AreaResponseDTO toAreaResponse(Area area) {
@@ -182,7 +218,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
                 : area.getSubareas()
                 .stream()
                 .filter(subarea -> Boolean.TRUE.equals(subarea.getActivo()))
-                .sorted(Comparator.comparing(Subarea::getNombreSubarea, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .sorted(Comparator.comparing(
+                        Subarea::getNombreSubarea,
+                        Comparator.nullsLast(String::compareToIgnoreCase)
+                ))
                 .map(this::toSubareaResponse)
                 .toList();
 
