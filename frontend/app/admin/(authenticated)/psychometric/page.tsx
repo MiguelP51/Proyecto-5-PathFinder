@@ -1,5 +1,6 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import {
 } from '../../../../components/ui/select';
 
 const PsychometricConfigPage = () =>  {
+    const { data: session, status } = useSession();
     const [showQuestionDialog, setShowQuestionDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showViewDialog, setShowViewDialog] = useState(false);
@@ -43,271 +45,45 @@ const PsychometricConfigPage = () =>  {
     const [configuringType, setConfiguringType] = useState<any>(null);
     const [selectedQuestionType, setSelectedQuestionType] = useState('forced_choice');
 
-    const mockQuestions = [
-        {
-            id: 1,
-            question: '¿Cómo prefieres trabajar en equipo?',
-            dimension: 'D',
-            type: 'forced_choice',
-            options: [
-                'Me gusta liderar y tomar decisiones rápidas',
-                'Disfruto motivar e inspirar a otros',
-                'Prefiero colaborar y mantener armonía',
-                'Me enfoco en analizar datos y procesos',
-            ],
-            active: true,
+    const [questions, setQuestions] = useState<any[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState<string | null>(null);
+
+useEffect(() => {
+  const fetchQuestions = async () => {
+    try {
+      const res = await fetch('/api/admin/disc/questions', {
+        headers: {
+          'Authorization': `Bearer ${session?.backendJwt}`, // <- reemplaza con tu JWT
         },
-        {
-            id: 2,
-            question: '¿Qué te motiva más en el trabajo?',
-            dimension: 'I',
-            type: 'forced_choice',
-            options: [
-                'Lograr resultados y superar metas',
-                'Innovar y probar nuevas ideas',
-                'Mantener buenas relaciones con el equipo',
-                'Hacer las cosas correctamente y con precisión',
-            ],
-            active: true,
-        },
-        {
-            id: 3,
-            question: 'Ordena estas características según qué tan bien te describen (1 = más te describe, 4 = menos te describe):',
-            dimension: 'S',
-            type: 'ranking',
-            options: [
-                'Actuar rápido y buscar soluciones inmediatas',
-                'Ver el lado positivo y buscar oportunidades',
-                'Consultar con otros y llegar a un consenso',
-                'Analizar todas las opciones antes de decidir',
-            ],
-            active: true,
-        },
-        {
-            id: 4,
-            question: 'Tu equipo debe entregar un proyecto en 2 días pero surgió un problema técnico. ¿Qué harías?',
-            dimension: 'C',
-            type: 'situational',
-            options: [
-                'Tomo el control, reparto tareas y busco soluciones inmediatas',
-                'Motivo al equipo a mantener la calma y buscar ideas creativas',
-                'Propongo reunir al equipo para evaluar opciones juntos',
-                'Analizo el problema detalladamente antes de actuar',
-            ],
-            active: true,
-        },
-        {
-            id: 5,
-            question: 'Selecciona la imagen que mejor representa tu estilo de liderazgo:',
-            dimension: 'D',
-            type: 'image',
-            options: [
-                'Dirigir la conversación hacia resultados',
-                'Mantener un ambiente positivo y participativo',
-                'Escuchar más que hablar',
-                'Enfocarte en la precisión de la información',
-            ],
-            active: true,
-        },
-        {
-            id: 6,
-            question: 'Me siento cómodo tomando riesgos calculados',
-            dimension: 'I',
-            type: 'likert',
-            options: [
-                'Totalmente en desacuerdo',
-                'En desacuerdo',
-                'Neutral',
-                'De acuerdo',
-                'Totalmente de acuerdo',
-            ],
-            active: true,
-        },
-        {
-            id: 7,
-            question: 'Tu estilo de comunicación es:',
-            dimension: 'D',
-            type: 'single_choice',
-            options: [
-                'Directo y al punto',
-                'Expresivo y entusiasta',
-                'Amable y considerado',
-                'Preciso y detallado',
-            ],
-            active: true,
-        },
-        {
-            id: 8,
-            question: 'Bloque A - En situaciones de trabajo: ¿Qué valoras más en un proyecto?',
-            dimension: 'C',
-            type: 'stepped',
-            options: [
-                'Lograr resultados rápidos',
-                'Innovación y creatividad',
-                'Trabajo en equipo armonioso',
-                'Calidad y precisión',
-            ],
-            active: true,
-        },
-        {
-            id: 9,
-            question: 'Ante un conflicto laboral, tu primera reacción es:',
-            dimension: 'S',
-            type: 'forced_choice',
-            options: [
-                'Enfrentarlo directamente',
-                'Buscar el lado positivo',
-                'Tratar de mediar y resolver',
-                'Analizar objetivamente las causas',
-            ],
-            active: true,
-        },
-        {
-            id: 10,
-            question: 'Ordena cómo tomas decisiones (1 = primer paso, 4 = último paso):',
-            dimension: 'C',
-            type: 'ranking',
-            options: [
-                'Confío en mi instinto inicial',
-                'Considero el impacto en otros',
-                'Consulto con el equipo',
-                'Analizo todos los datos disponibles',
-            ],
-            active: true,
-        },
-        {
-            id: 11,
-            question: 'Un cliente importante está insatisfecho con el servicio. ¿Cómo manejas la situación?',
-            dimension: 'I',
-            type: 'situational',
-            options: [
-                'Tomo acción inmediata para resolver el problema',
-                'Uso mi carisma para calmar al cliente y reconstruir la relación',
-                'Escucho pacientemente y busco una solución colaborativa',
-                'Reviso los detalles para identificar qué falló exactamente',
-            ],
-            active: true,
-        },
-        {
-            id: 12,
-            question: 'Elige la imagen que representa cómo prefieres trabajar:',
-            dimension: 'S',
-            type: 'image',
-            options: [
-                'Trabajando solo con metas claras',
-                'En equipo con interacción constante',
-                'En un ambiente estable y predecible',
-                'Con procesos bien definidos',
-            ],
-            active: true,
-        },
-        {
-            id: 13,
-            question: 'Prefiero seguir procedimientos establecidos en lugar de improvisar',
-            dimension: 'D',
-            type: 'likert',
-            options: [
-                'Totalmente en desacuerdo',
-                'En desacuerdo',
-                'Neutral',
-                'De acuerdo',
-                'Totalmente de acuerdo',
-            ],
-            active: true,
-        },
-        {
-            id: 14,
-            question: 'Bajo presión, tu respuesta natural es:',
-            dimension: 'D',
-            type: 'single_choice',
-            options: [
-                'Enfocarte en soluciones rápidas y decidir con firmeza',
-                'Mantener la energía positiva del equipo',
-                'Buscar apoyo y trabajar en consenso',
-                'Analizar metódicamente antes de actuar',
-            ],
-            active: true,
-        },
-        {
-            id: 15,
-            question: 'Bloque B - En relaciones interpersonales: ¿Qué te describe mejor?',
-            dimension: 'I',
-            type: 'stepped',
-            options: [
-                'Competitivo y orientado a resultados',
-                'Sociable y optimista',
-                'Paciente y confiable',
-                'Preciso y sistemático',
-            ],
-            active: true,
-        },
-        {
-            id: 16,
-            question: 'Al iniciar un proyecto nuevo, necesitas:',
-            dimension: 'C',
-            type: 'forced_choice',
-            options: [
-                'Empezar de inmediato y ajustar sobre la marcha',
-                'Entusiasmarme con las posibilidades',
-                'Entender bien el contexto y las expectativas',
-                'Tener un plan detallado antes de comenzar',
-            ],
-            active: true,
-        },
-        {
-            id: 17,
-            question: 'Ordena tu preferencia de ritmo de trabajo (1 = más preferido, 4 = menos preferido):',
-            dimension: 'S',
-            type: 'ranking',
-            options: [
-                'Rápido con sentido de urgencia',
-                'Dinámico con variedad',
-                'Constante y metódico',
-                'Cuidadoso y deliberado',
-            ],
-            active: true,
-        },
-        {
-            id: 18,
-            question: 'Un compañero necesita ayuda urgente pero tienes tus propias tareas pendientes. ¿Qué haces?',
-            dimension: 'I',
-            type: 'situational',
-            options: [
-                'Evalúo rápidamente si puedo ayudar sin afectar mis metas',
-                'Por supuesto que ayudo, el trabajo en equipo es primero',
-                'Busco un balance para ayudar sin descuidar mis responsabilidades',
-                'Primero termino lo que estoy haciendo según lo planeado',
-            ],
-            active: true,
-        },
-        {
-            id: 19,
-            question: 'Me adapto fácilmente a cambios inesperados en el trabajo',
-            dimension: 'D',
-            type: 'likert',
-            options: [
-                'Totalmente en desacuerdo',
-                'En desacuerdo',
-                'Neutral',
-                'De acuerdo',
-                'Totalmente de acuerdo',
-            ],
-            active: true,
-        },
-        {
-            id: 20,
-            question: 'Bloque C - Ante desafíos: Tu mayor preocupación en el trabajo es:',
-            dimension: 'C',
-            type: 'stepped',
-            options: [
-                'No lograr los resultados esperados',
-                'Perder el entusiasmo del equipo',
-                'Cambios bruscos o conflictos',
-                'Cometer errores o imprecisiones',
-            ],
-            active: true,
-        },
-    ];
+      });
+      if (!res.ok) throw new Error('Error fetching questions');
+      const data = await res.json();
+
+      const mapped = data.map((q: any) => ({
+        id: q.idPreguntaDisc,
+        question: q.enunciado,
+        dimension: q.categoriaDisc,
+        order: q.orden,
+        imageUrl: q.imagenUrl,
+        required: q.obligatoria,
+        type: q.codigoTipoPregunta.toLowerCase(),
+        options: q.opciones.map((o: any) => o.textoOpcion),
+        active: q.activo,
+        optionsQty: q.cantidadOpciones,
+
+      }));
+
+      setQuestions(mapped);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchQuestions();
+}, []);
 
     const dimensionConfig = {
         D: { name: 'Dominancia', color: 'bg-red-100 text-red-700' },
@@ -461,7 +237,7 @@ const PsychometricConfigPage = () =>  {
                                 <Brain className="w-6 h-6 text-purple-600" />
                             </div>
                             <div>
-                                <div className="text-2xl font-bold">{mockQuestions.length}</div>
+                                <div className="text-2xl font-bold">{questions.length}</div>
                                 <div className="text-sm text-gray-600">Total Preguntas</div>
                             </div>
                         </div>
@@ -475,7 +251,7 @@ const PsychometricConfigPage = () =>  {
                             </div>
                             <div>
                                 <div className="text-2xl font-bold">
-                                    {mockQuestions.filter((q) => q.active).length}
+                                    {questions.filter((q) => q.active).length}
                                 </div>
                                 <div className="text-sm text-gray-600">Preguntas Activas</div>
                             </div>
@@ -513,7 +289,7 @@ const PsychometricConfigPage = () =>  {
                                 <Badge className={dim.color}>{key}</Badge>
                                 <h3 className="font-semibold mt-2">{dim.name}</h3>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    {mockQuestions.filter((q) => q.dimension === key).length} preguntas
+                                    {questions.filter((q) => q.dimension === key).length} preguntas
                                 </p>
                             </div>
                         ))}
@@ -542,7 +318,7 @@ const PsychometricConfigPage = () =>  {
                                     </div>
                                     <p className="text-sm text-gray-600">{type.description}</p>
                                     <Badge variant="outline" className="mt-2">
-                                        {mockQuestions.filter((q) => q.type === type.value).length} preguntas usando este tipo
+                                        {questions.filter((q) => q.type === type.value).length} preguntas usando este tipo
                                     </Badge>
                                 </div>
                                 <Button
@@ -579,7 +355,7 @@ const PsychometricConfigPage = () =>  {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockQuestions.map((question) => {
+                                {questions.map((question) => {
                                     const dim = dimensionConfig[question.dimension as keyof typeof dimensionConfig];
                                     return (
                                         <TableRow key={question.id}>
