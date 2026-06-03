@@ -40,6 +40,9 @@
   &quot;associatedIndex&quot;: 3
 }</component>
   <component name="ProjectId" id="3DMFskLSdsj3cFOMUOUZBxoHEGH" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -68,6 +71,7 @@
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\components" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\yedsi\Documents\PathFinder\Proyecto-5-PathFinder\backend\src\main\java\com\pathfinder\dto\admin" />
       <recent name="C:\Users\yedsi\Documents\PathFinder\Proyecto-5-PathFinder\backend\src\main\java\com\pathfinder\service" />
       <recent name="C:\Users\Alexandra Ramos\Documents\Docus imp\PUCP\Ciclo 26.1\DP2\Proyecto-5-PathFinder\frontend\public\areas" />
     </key>
@@ -101,7 +105,7 @@
       <workItem from="1778084244691" duration="17859000" />
       <workItem from="1780249324282" duration="17861000" />
       <workItem from="1780345829981" duration="3367000" />
-      <workItem from="1780458066762" duration="5687000" />
+      <workItem from="1780458066762" duration="7276000" />
     </task>
     <servers />
   </component>
