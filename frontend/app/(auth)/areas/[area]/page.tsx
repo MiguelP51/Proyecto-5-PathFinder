@@ -240,7 +240,7 @@ export default async function AreaDetailPage({
 
             {/* Botón */}
             <a
-              href="#subareas"
+              href={`/areas/${areaSlug}/subareas`}
               className="inline-flex items-center rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
               style={{
                 background: `linear-gradient(135deg, ${area.colorFrom}, ${area.colorTo})`,
