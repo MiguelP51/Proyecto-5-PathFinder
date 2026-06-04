@@ -188,7 +188,7 @@ useEffect(() => {
             }
         },
         {
-            value: 'single_choice',
+            value: 'seleccion',
             label: 'Opción Múltiple Única',
             description: 'Selección de Perfil Dominante - El usuario elige la opción que más lo representa',
             enabled: true,
