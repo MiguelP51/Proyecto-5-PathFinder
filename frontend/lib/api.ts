@@ -20,6 +20,10 @@ export async function apiFetch<T = unknown>(
   options: RequestInit = {},
   token?: string | null
 ): Promise<T> {
+  const isServer = typeof window === "undefined";
+  const baseUrl = isServer
+    ? (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080")
+    : (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080");
   const headers: Record<string, string> = {
     ...(options.body instanceof FormData
       ? {} // No pongas Content-Type en multipart, el browser lo hace solo
@@ -31,7 +35,7 @@ export async function apiFetch<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
   });

@@ -128,6 +128,26 @@ export default function SimulationDetailsPage() {
     );
   }
 
+  // Parse feedback if it is JSON
+  let parsedFeedback = {
+    fortalezas: "",
+    areasMejora: "",
+    comentarios: entrevista?.feedbackComentarios || ""
+  };
+
+  if (entrevista?.feedbackComentarios) {
+    try {
+      const parsed = JSON.parse(entrevista.feedbackComentarios);
+      if (parsed && typeof parsed === "object") {
+        parsedFeedback.fortalezas = parsed.fortalezas || "";
+        parsedFeedback.areasMejora = parsed.areasMejora || "";
+        parsedFeedback.comentarios = parsed.comentarios || "";
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/20 text-slate-900 pb-16 font-sans">
       <main className="mx-auto w-full max-w-4xl px-4 py-8 md:py-10">
@@ -292,19 +312,50 @@ export default function SimulationDetailsPage() {
 
                 {/* Si está completada, mostrar los comentarios de feedback */}
                 {entrevista.estado === "Completada" && (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
                       <MessageSquare className="h-5 w-5 text-[#7447D7]" />
-                      Retroalimentación General
+                      Retroalimentación de la Simulación
                     </h3>
-                    <div className="rounded-xl bg-slate-50 p-5 border border-slate-100 relative">
-                      <span className="absolute -top-3 left-4 px-2 py-0.5 text-[10px] font-black uppercase bg-purple-100 text-[#7447D7] rounded-md tracking-wider">
-                        Comentarios del Mentor
-                      </span>
-                      <p className="text-sm text-slate-700 leading-relaxed italic whitespace-pre-line mt-1">
-                        "{entrevista.feedbackComentarios || "El mentor no dejó comentarios adicionales en su evaluación."}"
-                      </p>
-                    </div>
+                    
+                    {parsedFeedback.fortalezas && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                          💪 Fortalezas Clave
+                        </span>
+                        <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            {parsedFeedback.fortalezas}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedFeedback.areasMejora && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+                          📈 Áreas de Mejora
+                        </span>
+                        <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            {parsedFeedback.areasMejora}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedFeedback.comentarios && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
+                          💬 Observaciones y Recomendaciones
+                        </span>
+                        <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            "{parsedFeedback.comentarios}"
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

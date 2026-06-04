@@ -13,6 +13,7 @@ import {
   UserCheck,
   ArrowRight,
   Sparkles,
+  Award,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,6 +37,7 @@ export default function StudentDashboard() {
   const router = useRouter();
 
   const [studentStatus, setStudentStatus] = useState<EstadoEstudianteResponse | null>(null);
+  const [activeInterview, setActiveInterview] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -60,6 +62,18 @@ export default function StudentDashboard() {
         session?.backendJwt
       );
       setStudentStatus(data);
+
+      // Cargar entrevista activa si está en etapa de agendamiento o posterior
+      try {
+        const interviewData = await apiFetch<any>(
+          "/api/entrevistas/estudiante",
+          {},
+          session?.backendJwt
+        );
+        setActiveInterview(interviewData);
+      } catch (err) {
+        console.log("No se pudo cargar la entrevista activa del estudiante:", err);
+      }
     } catch (err) {
       console.error("Error cargando estado del estudiante:", err);
       setError(
@@ -136,6 +150,102 @@ export default function StudentDashboard() {
             </div>
           </div>
         </section>
+
+        {/* Anuncios de Entrevista */}
+        {activeInterview && activeInterview.estado === "Programada" && !activeInterview.virtualLink && (
+          <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 animate-pulse">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 block">ANUNCIO: ENTREVISTA AGENDADA</span>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  Tienes una entrevista programada con <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span>.
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Fecha: <span className="font-semibold">{activeInterview.fecha}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span> ({activeInterview.tipo === "virtual" ? "Virtual" : "Presencial"}).
+                </p>
+                <p className="text-xs font-semibold text-amber-600 mt-2 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                  El mentor confirmará el enlace de la reunión virtual próximamente.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/user/app/simulation-details"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-white border border-slate-200 hover:border-amber-300 text-xs font-bold text-slate-700 hover:text-amber-800 px-5 transition flex-shrink-0 cursor-pointer"
+            >
+              Ver detalles
+            </Link>
+          </div>
+        )}
+
+        {activeInterview && activeInterview.estado === "Programada" && activeInterview.virtualLink && (
+          <div className="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 animate-pulse">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 block">ANUNCIO: ENLACE LISTO</span>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  ¡El enlace de tu entrevista con <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ya está disponible!
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Fecha: <span className="font-semibold">{activeInterview.fecha}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span>.
+                </p>
+                <p className="text-xs font-semibold text-emerald-700 mt-2">
+                  Haz clic en el botón de la derecha para unirte directamente a la simulación.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <a
+                href={activeInterview.virtualLink.startsWith("http") ? activeInterview.virtualLink : `https://${activeInterview.virtualLink}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-95 text-white text-xs font-bold px-5 transition shadow-sm shadow-emerald-100 cursor-pointer"
+              >
+                Unirse a la Reunión
+              </a>
+              <Link
+                href="/user/app/simulation-details"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-xs font-bold text-slate-700 px-4 transition cursor-pointer"
+              >
+                Ver detalles
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {activeInterview && activeInterview.estado === "Completada" && (
+          <div className="mb-8 rounded-3xl border border-purple-200 bg-purple-50/40 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-[#7447D7]">
+                <Award className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block">ANUNCIO: EVALUACIÓN DISPONIBLE</span>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  ¡Tu mentor <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ha publicado la retroalimentación de tu entrevista!
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Resultado recomendado: <span className="font-bold text-purple-700 uppercase">{activeInterview.resultado}</span>
+                </p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Revisa el detalle de tus calificaciones y competencias haciendo clic a la derecha.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/user/app/simulation-details"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white text-xs font-bold px-5 transition shadow-md shadow-purple-100 flex-shrink-0 cursor-pointer"
+            >
+              Ver Feedback
+            </Link>
+          </div>
+        )}
 
         {/* Progreso General */}
         <section className="mb-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">

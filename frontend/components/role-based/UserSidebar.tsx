@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 import {
   Layers,
   ChevronLeft,
@@ -20,6 +22,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Lock,
 } from "lucide-react";
 
 interface Props {
@@ -30,6 +33,47 @@ interface Props {
 export default function UserSidebar({ open, onClose }: Props) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [statusData, setStatusData] = useState<any>(null);
+
+  useEffect(() => {
+    if (session?.backendJwt) {
+      apiFetch<any>("/api/users/me/status", {}, session.backendJwt)
+        .then(setStatusData)
+        .catch((err) => console.error("Error fetching status in sidebar:", err));
+    }
+  }, [session]);
+
+  const isProfileConfirmed = statusData?.perfilConfirmado || false;
+  const isDiscCompleted = statusData?.etapas?.TEST_DISC === "COMPLETADA";
+
+  const renderLink = (
+    href: string,
+    label: string,
+    icon: React.ReactNode,
+    isLocked: boolean
+  ) => {
+    if (isLocked) {
+      return (
+        <div
+          className="flex items-center justify-between rounded-xl p-3 text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed bg-slate-50/50"
+          title="Completa los pasos previos para desbloquear esta sección"
+        >
+          <div className="flex items-center gap-3">
+            {icon}
+            <span>{label}</span>
+          </div>
+          <Lock className="h-4 w-4 text-slate-400" />
+        </div>
+      );
+    }
+
+    return (
+      <Link href={href} className={linkClass(href)} onClick={onClose}>
+        {icon}
+        <span>{label}</span>
+      </Link>
+    );
+  };
 
   const image =
     session?.user?.image ||
@@ -138,26 +182,18 @@ export default function UserSidebar({ open, onClose }: Props) {
             <p className="px-3 text-[11px] font-black tracking-wider text-slate-400 uppercase">
               Mi espacio
             </p>
-            <Link href="/user/home" className={linkClass("/user/home")} onClick={onClose}>
-              <LayoutDashboard className="h-5 w-5" />
-              <span>Dashboard</span>
-            </Link>
-            <Link href="/user/explore" className={linkClass("/user/explore")} onClick={onClose}>
-              <Compass className="h-5 w-5" />
-              <span>Explorar</span>
-            </Link>
-            <Link href="/user/skillpaths" className={linkClass("/user/skillpaths")} onClick={onClose}>
-              <BookOpen className="h-5 w-5" />
-              <span>SkillPaths</span>
-            </Link>
-            <Link href="/user/challenges" className={linkClass("/user/challenges")} onClick={onClose}>
-              <Trophy className="h-5 w-5" />
-              <span>Challenges</span>
-            </Link>
-            <Link href="/user/interviews" className={linkClass("/user/interviews")} onClick={onClose}>
-              <Calendar className="h-5 w-5" />
-              <span>Entrevistas</span>
-            </Link>
+            {renderLink("/user/home", "Dashboard", <LayoutDashboard className="h-5 w-5" />, false)}
+            {renderLink("/user/explore", "Explorar", <Compass className="h-5 w-5" />, !isProfileConfirmed)}
+            {renderLink("/user/skillpaths", "SkillPaths", <BookOpen className="h-5 w-5" />, !isProfileConfirmed)}
+            {renderLink("/user/challenges", "Challenges", <Trophy className="h-5 w-5" />, !isProfileConfirmed)}
+            {renderLink(
+              statusData?.etapas?.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
+                ? "/user/app/simulation-details"
+                : "/user/app/simulation-intro",
+              "Entrevistas",
+              <Calendar className="h-5 w-5" />,
+              !isProfileConfirmed || !isDiscCompleted
+            )}
           </div>
 
           {/* Section: EXPLORAR */}

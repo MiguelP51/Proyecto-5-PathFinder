@@ -297,6 +297,10 @@ export default function ProfileSetupPage() {
             if (dto.confirmado) {
               setIsProfileConfirmed(true);
             }
+            if (dto.cvUploaded) {
+              setCvUploaded(true);
+              setCvFileName(dto.cvNombreArchivo || "CV.pdf");
+            }
             if (mapped.educations.length > 0) setEducations(mapped.educations);
             if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
             if (mapped.skills.length > 0) setSkills(mapped.skills);

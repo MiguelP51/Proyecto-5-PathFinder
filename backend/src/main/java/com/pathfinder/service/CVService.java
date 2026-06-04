@@ -23,4 +23,8 @@ public interface CVService {
     CVExtractadoDTO obtenerCV(String correoUsuario);
 
     CVExtractadoDTO obtenerCVPorUsuarioId(Integer idUsuario);
+
+    byte[] obtenerArchivoCVPdf(String correoUsuario) throws Exception;
+
+    String obtenerNombreArchivoCVPdf(String correoUsuario);
 }

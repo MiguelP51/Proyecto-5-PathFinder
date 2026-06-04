@@ -232,6 +232,31 @@ export default function PathMentorInterviews() {
     }
   };
 
+  const downloadCV = async (email: string, studentName: string) => {
+    if (!session?.backendJwt) return;
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const response = await fetch(`${backendUrl}/api/cv/download/${email}`, {
+        headers: {
+          'Authorization': `Bearer ${session.backendJwt}`
+        }
+      });
+      if (!response.ok) throw new Error("No se pudo descargar el archivo");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CV_${studentName.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error al descargar CV:", err);
+      alert("Error al descargar el archivo en formato PDF");
+    }
+  };
+
   // Calculate Metrics Card Values Dynamically
   const totalCount = interviews.length;
   const programmedCount = interviews.filter((item) => item.status === 'Programada').length;
@@ -572,14 +597,23 @@ export default function PathMentorInterviews() {
                  <div className={styles.detailCardText}>
                    {selectedDetailInterview.cvAvailable ? 'CV disponible' : 'CV no registrado'}
                  </div>
-                 <button 
-                   className={styles.btnCardAction} 
-                   disabled={!selectedDetailInterview.cvAvailable}
-                   onClick={() => setShowCVDetails(!showCVDetails)}
-                 >
-                   {showCVDetails ? 'Ocultar CV' : 'Ver CV Completo'}
-                 </button>
-               </div>
+                  <button 
+                    className={styles.btnCardAction} 
+                    disabled={!selectedDetailInterview.cvAvailable}
+                    onClick={() => setShowCVDetails(!showCVDetails)}
+                  >
+                    {showCVDetails ? 'Ocultar CV' : 'Ver CV Completo'}
+                  </button>
+                  {selectedDetailInterview.cvAvailable && (
+                    <button 
+                      className={styles.btnCardAction}
+                      style={{ marginTop: '8px', backgroundColor: '#0E3E66', color: 'white' }}
+                      onClick={() => downloadCV(selectedDetailInterview.studentEmail, selectedDetailInterview.studentName)}
+                    >
+                      Descargar CV (PDF)
+                    </button>
+                  )}
+                </div>
  
                <div className={styles.detailCard}>
                  <h3 className={styles.sectionHeader}>
