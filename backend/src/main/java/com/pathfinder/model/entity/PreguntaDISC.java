@@ -39,6 +39,6 @@ public class PreguntaDISC extends AuditoriaBase {
     @Column(name = "obligatoria")
     private Boolean obligatoria = true;
 
-    @OneToMany(mappedBy = "preguntaDisc", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "preguntaDisc", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<OpcionPreguntaDISC> opciones = new ArrayList<>();
 }

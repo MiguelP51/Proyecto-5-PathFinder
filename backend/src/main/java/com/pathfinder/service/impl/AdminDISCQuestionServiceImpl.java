@@ -54,7 +54,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
         pregunta.setCategoriaDisc(request.getCategoriaDisc());
         pregunta.setTipoPreguntaDisc(tipoPregunta);
         pregunta.setOrdenPregunta(request.getOrdenPregunta());
-        pregunta.setImagenUrl(request.getImagenUrl());
+        pregunta.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
         pregunta.setObligatoria(request.getObligatoria() != null ? request.getObligatoria() : true);
         pregunta.setActivo(true);
 
@@ -75,10 +75,10 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
         pregunta.setCategoriaDisc(request.getCategoriaDisc());
         pregunta.setTipoPreguntaDisc(tipoPregunta);
         pregunta.setOrdenPregunta(request.getOrdenPregunta());
-        pregunta.setImagenUrl(request.getImagenUrl());
+        pregunta.setImagenUrl(normalizarTextoOpcional(request.getImagenUrl()));
         pregunta.setObligatoria(request.getObligatoria() != null ? request.getObligatoria() : true);
 
-        pregunta.getOpciones().clear();
+        desactivarOpcionesActuales(pregunta);
         agregarOpciones(pregunta, request.getOpciones());
 
         PreguntaDISC actualizada = preguntaDISCRepository.save(pregunta);
@@ -137,6 +137,10 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
         }
 
         for (OpcionPreguntaDISCRequestDTO opcion : request.getOpciones()) {
+            if (opcion == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Las opciones no pueden ser nulas");
+            }
+
             if (opcion.getTextoOpcion() == null || opcion.getTextoOpcion().trim().isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Todas las opciones deben tener texto");
             }
@@ -145,6 +149,14 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Todas las opciones deben tener orden");
             }
         }
+    }
+
+    private void desactivarOpcionesActuales(PreguntaDISC pregunta) {
+        if (pregunta.getOpciones() == null) {
+            return;
+        }
+
+        pregunta.getOpciones().forEach(opcion -> opcion.setActivo(false));
     }
 
     private void agregarOpciones(PreguntaDISC pregunta, List<OpcionPreguntaDISCRequestDTO> opcionesRequest) {
@@ -157,7 +169,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
             opcion.setPreguntaDisc(pregunta);
             opcion.setTextoOpcion(opcionRequest.getTextoOpcion().trim());
             opcion.setValorRespuesta(opcionRequest.getValorRespuesta());
-            opcion.setImagenUrl(opcionRequest.getImagenUrl());
+            opcion.setImagenUrl(normalizarTextoOpcional(opcionRequest.getImagenUrl()));
             opcion.setOrdenOpcion(opcionRequest.getOrdenOpcion());
             opcion.setActivo(true);
 
@@ -165,12 +177,23 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
         });
     }
 
+    private String normalizarTextoOpcional(String valor) {
+        if (valor == null || valor.trim().isEmpty()) {
+            return null;
+        }
+
+        return valor.trim();
+    }
+
     private PreguntaDISCResponseDTO toResponse(PreguntaDISC pregunta) {
         List<OpcionPreguntaDISCResponseDTO> opciones = pregunta.getOpciones() == null
                 ? List.of()
                 : pregunta.getOpciones().stream()
                 .filter(opcion -> Boolean.TRUE.equals(opcion.getActivo()))
-                .sorted(Comparator.comparing(OpcionPreguntaDISC::getOrdenOpcion, Comparator.nullsLast(Integer::compareTo)))
+                .sorted(Comparator.comparing(
+                        OpcionPreguntaDISC::getOrdenOpcion,
+                        Comparator.nullsLast(Integer::compareTo)
+                ))
                 .map(this::toOpcionResponse)
                 .toList();
 

@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -53,7 +51,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Feature/cam-sil",
+    "git-widget-placeholder": "Feature/cam-sil-final",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/yedsi/Documents/PathFinder/Proyecto-5-PathFinder",
     "list.type.of.created.stylesheet": "CSS",
