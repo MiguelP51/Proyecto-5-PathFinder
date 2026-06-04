@@ -26,6 +26,8 @@ interface EstadoEstudianteResponse {
     REVISION_PERFIL: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
     CONFIRMACION_PERFIL: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
     TEST_DISC: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
+    AGENDAMIENTO_ENTREVISTA?: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
+    EVALUACION_ENTREVISTA?: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
   };
 }
 
@@ -107,9 +109,10 @@ export default function StudentDashboard() {
 
   // Calcular porcentaje total
   let progressPercent = 0;
-  if (step1Completed) progressPercent += 33;
-  if (step2Completed) progressPercent += 34;
-  if (step2Completed) progressPercent += 33; // Temporalmente seteado a completado una vez que se desbloquee la entrevista
+  if (studentStatus.perfilConfirmado) progressPercent += 25;
+  if (studentStatus.etapas.TEST_DISC === "COMPLETADA") progressPercent += 25;
+  if (studentStatus.etapas.AGENDAMIENTO_ENTREVISTA === "COMPLETADA") progressPercent += 25;
+  if (studentStatus.etapas.EVALUACION_ENTREVISTA === "COMPLETADA") progressPercent += 25;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/10 text-slate-900 pb-16 font-sans">
@@ -304,10 +307,22 @@ export default function StudentDashboard() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <h3 className="text-lg font-bold text-slate-800">Paso 3: Entrevista con PathMentor</h3>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
-                      step3Active ? "bg-purple-100 text-[#7447D7]" : "bg-slate-200 text-slate-600"
+                      studentStatus.etapas.EVALUACION_ENTREVISTA === "COMPLETADA"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : studentStatus.etapas.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
+                        ? "bg-blue-100 text-blue-800"
+                        : step3Active
+                        ? "bg-purple-100 text-[#7447D7]"
+                        : "bg-slate-200 text-slate-600"
                     }`}>
                       {!step3Active && <Lock className="h-3 w-3" />}
-                      {step3Active ? "Disponible" : "Bloqueado"}
+                      {studentStatus.etapas.EVALUACION_ENTREVISTA === "COMPLETADA"
+                        ? "Completado"
+                        : studentStatus.etapas.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
+                        ? "Agendada"
+                        : step3Active
+                        ? "Disponible"
+                        : "Bloqueado"}
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed text-slate-600 max-w-2xl">
@@ -318,10 +333,18 @@ export default function StudentDashboard() {
               <div className="flex-shrink-0 flex items-center justify-end">
                 {step3Active ? (
                   <Link
-                    href="/user/app/simulation-intro"
+                    href={
+                      studentStatus.etapas.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
+                        ? "/user/app/simulation-details"
+                        : "/user/app/simulation-intro"
+                    }
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-6 text-sm font-bold text-white transition hover:opacity-90 shadow-md shadow-purple-200/50"
                   >
-                    Agendar entrevista
+                    {studentStatus.etapas.EVALUACION_ENTREVISTA === "COMPLETADA"
+                      ? "Ver Feedback"
+                      : studentStatus.etapas.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
+                      ? "Ver Cita"
+                      : "Agendar entrevista"}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : (

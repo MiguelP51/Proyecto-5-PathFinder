@@ -145,6 +145,14 @@ public class DISCTestServiceImpl implements DISCTestService {
         return buildResultadoResponse(resultado);
     }
 
+    @Override
+    public ResultadoDISCResponseDTO obtenerResultadoPorUsuarioId(Integer idUsuario) {
+        ResultadoDISC resultado = resultadoDISCRepository.findFirstByUsuario_IdUsuarioOrderByFechaFinalizacionDesc(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontraron resultados del test DISC para este usuario"));
+
+        return buildResultadoResponse(resultado);
+    }
+
     private Usuario obtenerUsuario(String correo) {
         return usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado: " + correo));

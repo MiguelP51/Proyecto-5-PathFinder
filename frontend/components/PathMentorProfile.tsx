@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import PathMentorNavbar from './PathMentorNavbar';
-import PathMentorTopbar from './PathMentorTopbar';
 import styles from '../styles/PathMentorProfile.module.css';
 
 // SVG Icons
@@ -154,12 +152,6 @@ export default function PathMentorProfile() {
 
   return (
     <div className={styles.page}>
-      {/* SIDEBAR */}
-      <PathMentorNavbar />
-
-      {/* TOPBAR */}
-      <PathMentorTopbar />
-
       {/* CONTENT */}
       <main className={styles.container}>
         {/* HEADER */}

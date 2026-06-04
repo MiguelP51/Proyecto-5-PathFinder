@@ -13,4 +13,6 @@ public interface DISCTestService {
     ResultadoDISCResponseDTO guardarRespuestas(String correo, List<RespuestaDISCRequestDTO> respuestas);
 
     ResultadoDISCResponseDTO obtenerResultado(String correo);
+
+    ResultadoDISCResponseDTO obtenerResultadoPorUsuarioId(Integer idUsuario);
 }

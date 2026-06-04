@@ -14,6 +14,7 @@ export function ProfileHeader({
   isEditing = true,
   onToggleEdit,
   hasSavedProfile = false,
+  hideSkip = false,
 }: {
   onSave: () => void;
   onSkip: () => void;
@@ -26,6 +27,7 @@ export function ProfileHeader({
   isEditing?: boolean;
   onToggleEdit?: () => void;
   hasSavedProfile?: boolean;
+  hideSkip?: boolean;
 }) {
   return (
     <header className="sticky top-16 z-20 w-full border-b border-slate-200 bg-white/95 backdrop-blur py-3 transition-all duration-300">
@@ -70,14 +72,16 @@ export function ProfileHeader({
               )
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={onSkip}
-                  className="text-slate-600 hover:text-slate-800 text-sm font-semibold"
-                  disabled={isSaving || isConfirming}
-                >
-                  Omitir
-                </Button>
+                {!hideSkip && (
+                  <Button
+                    variant="ghost"
+                    onClick={onSkip}
+                    className="text-slate-600 hover:text-slate-800 text-sm font-semibold"
+                    disabled={isSaving || isConfirming}
+                  >
+                    Omitir
+                  </Button>
+                )}
                 <Button
                   onClick={onSave}
                   disabled={isSaving || isConfirming}

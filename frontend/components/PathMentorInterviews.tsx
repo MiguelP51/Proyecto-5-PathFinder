@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import PathMentorNavbar from './PathMentorNavbar';
-import PathMentorTopbar from './PathMentorTopbar';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { apiFetch } from '@/lib/api';
 import styles from '../styles/PathMentorInterviews.module.css';
 
 interface Interview {
   id: number;
+  idEstudiante?: number;
   studentName: string;
   studentEmail: string;
   date: string;
@@ -46,6 +47,7 @@ const SearchIcon = () => (
     strokeWidth="2.5" 
     strokeLinecap="round" 
     strokeLinejoin="round"
+    className={styles.searchIcon}
   >
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -146,221 +148,9 @@ const ChartIcon = () => (
 );
 
 export default function PathMentorInterviews() {
-  // Mock data representing 24 total interviews (8 programadas, 16 completadas, 3 this week)
-  const [interviews, setInterviews] = useState<Interview[]>([
-    {
-      id: 1,
-      studentName: 'María González',
-      studentEmail: 'maria.gonzalez@email.com',
-      date: '2026-06-03',
-      time: '10:00',
-      status: 'Programada',
-      link: 'https://meet.google.com/abc-defg-hij',
-      discResult: 'Dominancia: Alta, Influencia: Alta',
-      cvAvailable: true
-    },
-    {
-      id: 2,
-      studentName: 'Carlos Pérez',
-      studentEmail: 'carlos.perez@email.com',
-      date: '2026-06-05',
-      time: '15:00',
-      status: 'Programada',
-      link: 'https://meet.google.com/carlos-perez',
-      discResult: 'Estabilidad: Alta, Conciencia: Media',
-      cvAvailable: true
-    },
-    {
-      id: 3,
-      studentName: 'Ana Martínez',
-      studentEmail: 'ana.martinez@email.com',
-      date: '2026-05-28',
-      time: '11:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/tuv-wxyz-123',
-      discResult: 'Conciencia: Alta, Dominancia: Baja',
-      cvAvailable: true
-    },
-    {
-      id: 4,
-      studentName: 'Luis Torres',
-      studentEmail: 'luis.torres@email.com',
-      date: '2026-05-25',
-      time: '14:00',
-      status: 'Completada',
-      discResult: 'Influencia: Alta, Dominancia: Media',
-      cvAvailable: true
-    },
-    {
-      id: 5,
-      studentName: 'Sofia Ramírez',
-      studentEmail: 'sofia.ramirez@email.com',
-      date: '2026-06-03',
-      time: '16:00',
-      status: 'Programada',
-      link: 'https://meet.google.com/sofia-ramirez'
-    },
-    {
-      id: 6,
-      studentName: 'Diego Torres',
-      studentEmail: 'diego.torres@email.com',
-      date: '2026-06-08',
-      time: '09:00',
-      status: 'Programada',
-      link: 'https://meet.google.com/diego-torres'
-    },
-    {
-      id: 7,
-      studentName: 'Laura Gómez',
-      studentEmail: 'laura.gomez@email.com',
-      date: '2026-06-09',
-      time: '11:00',
-      status: 'Programada'
-    },
-    {
-      id: 8,
-      studentName: 'Javier Diaz',
-      studentEmail: 'javier.diaz@email.com',
-      date: '2026-06-10',
-      time: '14:00',
-      status: 'Programada'
-    },
-    {
-      id: 9,
-      studentName: 'Valentina Silva',
-      studentEmail: 'valentina.silva@email.com',
-      date: '2026-06-11',
-      time: '10:00',
-      status: 'Programada'
-    },
-    {
-      id: 10,
-      studentName: 'Mateo Ruiz',
-      studentEmail: 'mateo.ruiz@email.com',
-      date: '2026-06-12',
-      time: '13:00',
-      status: 'Programada'
-    },
-    {
-      id: 11,
-      studentName: 'Camila Herrera',
-      studentEmail: 'camila.herrera@email.com',
-      date: '2026-05-24',
-      time: '16:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/camila-herrera'
-    },
-    {
-      id: 12,
-      studentName: 'Nicolás Castro',
-      studentEmail: 'nicolas.castro@email.com',
-      date: '2026-05-22',
-      time: '10:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/nicolas-castro'
-    },
-    {
-      id: 13,
-      studentName: 'Isabella Mendoza',
-      studentEmail: 'isabella.mendoza@email.com',
-      date: '2026-05-20',
-      time: '12:00',
-      status: 'Completada'
-    },
-    {
-      id: 14,
-      studentName: 'Lucas Acosta',
-      studentEmail: 'lucas.acosta@email.com',
-      date: '2026-05-19',
-      time: '15:00',
-      status: 'Completada'
-    },
-    {
-      id: 15,
-      studentName: 'Emma Peña',
-      studentEmail: 'emma.pena@email.com',
-      date: '2026-05-18',
-      time: '09:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/emma-pena'
-    },
-    {
-      id: 16,
-      studentName: 'Bruno Ortega',
-      studentEmail: 'bruno.ortega@email.com',
-      date: '2026-05-15',
-      time: '11:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/bruno-ortega'
-    },
-    {
-      id: 17,
-      studentName: 'Martina Flores',
-      studentEmail: 'martina.flores@email.com',
-      date: '2026-05-14',
-      time: '13:00',
-      status: 'Completada'
-    },
-    {
-      id: 18,
-      studentName: 'Benjamín Vega',
-      studentEmail: 'benjamin.vega@email.com',
-      date: '2026-05-12',
-      time: '16:00',
-      status: 'Completada'
-    },
-    {
-      id: 19,
-      studentName: 'Lucía Romero',
-      studentEmail: 'lucia.romero@email.com',
-      date: '2026-05-11',
-      time: '10:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/lucia-romero'
-    },
-    {
-      id: 20,
-      studentName: 'Joaquín Molina',
-      studentEmail: 'joaquin.molina@email.com',
-      date: '2026-05-08',
-      time: '14:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/joaquin-molina'
-    },
-    {
-      id: 21,
-      studentName: 'Elena Delgado',
-      studentEmail: 'elena.delgado@email.com',
-      date: '2026-05-07',
-      time: '11:00',
-      status: 'Completada'
-    },
-    {
-      id: 22,
-      studentName: 'Samuel Rojas',
-      studentEmail: 'samuel.rojas@email.com',
-      date: '2026-05-06',
-      time: '15:00',
-      status: 'Completada'
-    },
-    {
-      id: 23,
-      studentName: 'Victoria Cruz',
-      studentEmail: 'victoria.cruz@email.com',
-      date: '2026-05-05',
-      time: '09:00',
-      status: 'Completada',
-      link: 'https://meet.google.com/victoria-cruz'
-    },
-    {
-      id: 24,
-      studentName: 'Daniel Fuentes',
-      studentEmail: 'daniel.fuentes@email.com',
-      date: '2026-05-04',
-      time: '13:00',
-      status: 'Completada'
-    }
-  ]);
+  const { data: session, status } = useSession();
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todas');
@@ -374,15 +164,81 @@ export default function PathMentorInterviews() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDetailInterview, setSelectedDetailInterview] = useState<Interview | null>(null);
 
+  // Student Profile detail view states
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState<any | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [showCVDetails, setShowCVDetails] = useState(false);
+
+  // Student DISC detail view states
+  const [selectedStudentDISC, setSelectedStudentDISC] = useState<any | null>(null);
+  const [loadingDISC, setLoadingDISC] = useState(false);
+  const [showDISCDetails, setShowDISCDetails] = useState(false);
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.backendJwt) {
+      loadInterviews();
+    }
+  }, [status, session]);
+
+  const loadInterviews = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch<any[]>("/api/entrevistas/mentor", {}, session?.backendJwt);
+      const mapped = data.map(item => ({
+        id: item.idEntrevista,
+        idEstudiante: item.idEstudiante,
+        studentName: item.estudianteNombre,
+        studentEmail: item.estudianteEmail,
+        date: item.fecha,
+        time: item.hora,
+        status: item.estado,
+        link: item.virtualLink,
+        discResult: item.discNombrePerfil,
+        cvAvailable: item.cvAvailable
+      }));
+      setInterviews(mapped);
+    } catch (err) {
+      console.error("Error cargando entrevistas:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStudentProfile = async (email: string) => {
+    if (!session?.backendJwt) return;
+    try {
+      setLoadingProfile(true);
+      setSelectedStudentProfile(null);
+      const data = await apiFetch<any>(`/api/profile/student/${email}`, {}, session?.backendJwt);
+      setSelectedStudentProfile(data);
+    } catch (err) {
+      console.error("Error cargando perfil del estudiante:", err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const loadStudentDISC = async (id: number) => {
+    if (!session?.backendJwt) return;
+    try {
+      setLoadingDISC(true);
+      setSelectedStudentDISC(null);
+      const data = await apiFetch<any>(`/api/disc/result/student/${id}`, {}, session?.backendJwt);
+      setSelectedStudentDISC(data);
+    } catch (err) {
+      console.error("Error cargando resultado DISC del estudiante:", err);
+    } finally {
+      setLoadingDISC(false);
+    }
+  };
+
   // Calculate Metrics Card Values Dynamically
   const totalCount = interviews.length;
   const programmedCount = interviews.filter((item) => item.status === 'Programada').length;
   const completedCount = interviews.filter((item) => item.status === 'Completada').length;
 
-  // This Week matches June 1st to June 7th 2026
   const thisWeekCount = interviews.filter((item) => {
     const dateObj = new Date(item.date);
-    // Month is 0-indexed: May is 4, June is 5
     return (
       dateObj.getFullYear() === 2026 &&
       dateObj.getMonth() === 5 &&
@@ -410,27 +266,26 @@ export default function PathMentorInterviews() {
     setIsModalOpen(true);
   };
 
-  const handleSaveLink = () => {
-    if (activeInterviewId !== null) {
-      setInterviews(
-        interviews.map((item) =>
-          item.id === activeInterviewId
-            ? { ...item, link: meetingLinkInput.trim() || undefined }
-            : item
-        )
-      );
+  const handleSaveLink = async () => {
+    if (activeInterviewId !== null && session?.backendJwt) {
+      try {
+        await apiFetch(`/api/entrevistas/${activeInterviewId}/enlace`, {
+          method: "PUT",
+          body: JSON.stringify({ virtualLink: meetingLinkInput.trim() })
+        }, session?.backendJwt);
+        
+        alert("Enlace virtual guardado y enviado al estudiante por correo.");
+        setIsModalOpen(false);
+        loadInterviews();
+      } catch (err) {
+        console.error("Error guardando enlace:", err);
+        alert("Error al guardar enlace: " + (err instanceof Error ? err.message : err));
+      }
     }
-    setIsModalOpen(false);
   };
 
   return (
     <div className={styles.page}>
-      {/* SIDEBAR */}
-      <PathMentorNavbar />
-
-      {/* TOPBAR */}
-      <PathMentorTopbar />
-
       {/* CONTENT */}
       <main className={styles.container}>
         {/* HEADER */}
@@ -572,6 +427,8 @@ export default function PathMentorInterviews() {
                              onClick={() => {
                                setSelectedDetailInterview(item);
                                setIsDetailModalOpen(true);
+                               loadStudentProfile(item.studentEmail);
+                               setShowCVDetails(false);
                              }}
                            >
                              👁 Ver Detalle
@@ -707,31 +564,162 @@ export default function PathMentorInterviews() {
               )}
             </div>
 
-            <div className={styles.cardsGrid}>
-              <div className={styles.detailCard}>
-                <h3 className={styles.sectionHeader}>
-                  <DocumentIcon /> CV del Estudiante
-                </h3>
-                <div className={styles.detailCardText}>
-                  {selectedDetailInterview.cvAvailable ? 'CV disponible' : 'CV no registrado'}
-                </div>
-                <button className={styles.btnCardAction} disabled={!selectedDetailInterview.cvAvailable}>
-                  Ver CV Completo
-                </button>
-              </div>
+             <div className={styles.cardsGrid}>
+               <div className={styles.detailCard}>
+                 <h3 className={styles.sectionHeader}>
+                   <DocumentIcon /> CV del Estudiante
+                 </h3>
+                 <div className={styles.detailCardText}>
+                   {selectedDetailInterview.cvAvailable ? 'CV disponible' : 'CV no registrado'}
+                 </div>
+                 <button 
+                   className={styles.btnCardAction} 
+                   disabled={!selectedDetailInterview.cvAvailable}
+                   onClick={() => setShowCVDetails(!showCVDetails)}
+                 >
+                   {showCVDetails ? 'Ocultar CV' : 'Ver CV Completo'}
+                 </button>
+               </div>
+ 
+               <div className={styles.detailCard}>
+                 <h3 className={styles.sectionHeader}>
+                   <ChartIcon /> Resultado DISC
+                 </h3>
+                 <div className={styles.detailCardText}>
+                   {selectedDetailInterview.discResult || 'No disponible'}
+                 </div>
+                 <button 
+                   className={styles.btnCardAction} 
+                   disabled={!selectedDetailInterview.discResult}
+                   onClick={() => {
+                     setShowDISCDetails(!showDISCDetails);
+                     if (!selectedStudentDISC && selectedDetailInterview.idEstudiante) {
+                       loadStudentDISC(selectedDetailInterview.idEstudiante);
+                     }
+                   }}
+                 >
+                   {showDISCDetails ? 'Ocultar Análisis' : 'Ver Análisis Completo'}
+                 </button>
+               </div>
+             </div>
 
-              <div className={styles.detailCard}>
-                <h3 className={styles.sectionHeader}>
-                  <ChartIcon /> Resultado DISC
-                </h3>
-                <div className={styles.detailCardText}>
-                  {selectedDetailInterview.discResult || 'No disponible'}
-                </div>
-                <button className={styles.btnCardAction} disabled={!selectedDetailInterview.discResult}>
-                  Ver Análisis Completo
-                </button>
-              </div>
-            </div>
+             {/* CV DETAILED PANEL */}
+             {showCVDetails && (
+               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', maxHeight: '350px', overflowY: 'auto' }}>
+                 {loadingProfile ? (
+                   <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando perfil del estudiante...</p>
+                 ) : selectedStudentProfile ? (
+                   <div>
+                     <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px' }}>Perfil Profesional</h3>
+                     <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Contacto:</strong> {selectedStudentProfile.celular || 'No registrado'} | {selectedStudentProfile.correoContacto || 'No registrado'}</p>
+                     <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Ubicación:</strong> {selectedStudentProfile.distrito || ''}, {selectedStudentProfile.provincia || ''}</p>
+                     {selectedStudentProfile.linkedinUrl && (
+                       <p style={{ fontSize: '13px', color: '#475569', marginBottom: '10px' }}>
+                         <strong>LinkedIn:</strong> <a href={selectedStudentProfile.linkedinUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>{selectedStudentProfile.linkedinUrl}</a>
+                       </p>
+                     )}
+                     <p style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', backgroundColor: '#ffffff', padding: '10px', borderRadius: '6px', border: '1px solid #f1f5f9', marginTop: '10px' }}>
+                       {selectedStudentProfile.perfilProfesional || 'Sin descripción profesional registrada.'}
+                     </p>
+
+                     {selectedStudentProfile.experiencias && selectedStudentProfile.experiencias.length > 0 && (
+                       <div style={{ marginTop: '15px' }}>
+                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Experiencia Laboral</h4>
+                         {selectedStudentProfile.experiencias.map((exp: any, idx: number) => (
+                           <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'between', fontWeight: 'bold', color: '#334155' }}>
+                               <span>{exp.cargo}</span>
+                               <span style={{ margin: '0 8px', color: '#94a3b8' }}>|</span>
+                               <span>{exp.empresa}</span>
+                             </div>
+                             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{exp.fechaInicio} - {exp.fechaFin || 'Presente'}</div>
+                             <p style={{ color: '#475569', margin: 0 }}>{exp.funcionesRealizadas}</p>
+                             {exp.logrosResultados && <p style={{ color: '#475569', fontSize: '12px', fontStyle: 'italic', margin: 0 }}>Logros: {exp.logrosResultados}</p>}
+                           </div>
+                         ))}
+                       </div>
+                     )}
+
+                     {selectedStudentProfile.formaciones && selectedStudentProfile.formaciones.length > 0 && (
+                       <div style={{ marginTop: '15px' }}>
+                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Educación</h4>
+                         {selectedStudentProfile.formaciones.map((edu: any, idx: number) => (
+                           <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
+                             <div style={{ fontWeight: 'bold', color: '#334155' }}>{edu.carrera}</div>
+                             <div style={{ color: '#475569' }}>{edu.institucion}</div>
+                             <div style={{ fontSize: '11px', color: '#64748b' }}>{edu.fechaInicio} - {edu.fechaFin || 'En curso'}</div>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+
+                     {selectedStudentProfile.habilidades && selectedStudentProfile.habilidades.length > 0 && (
+                       <div style={{ marginTop: '15px' }}>
+                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Habilidades</h4>
+                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                           {selectedStudentProfile.habilidades.map((hab: any, idx: number) => (
+                             <span key={idx} style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontWeight: '500' }}>
+                               {hab.nombre} ({hab.nivel})
+                             </span>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 ) : (
+                   <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el perfil del estudiante.</p>
+                 )}
+               </div>
+             )}
+
+             {/* DISC DETAILED PANEL */}
+             {showDISCDetails && (
+               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #f3e8ff', maxHeight: '350px', overflowY: 'auto' }}>
+                 {loadingDISC ? (
+                   <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando análisis DISC...</p>
+                 ) : selectedStudentDISC ? (
+                   <div>
+                     <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '5px' }}>
+                       Análisis DISC: {selectedStudentDISC.nombrePerfil} (Dominancia: {selectedStudentDISC.porcentajeD}%, Influencia: {selectedStudentDISC.porcentajeI}%, Estabilidad: {selectedStudentDISC.porcentajeS}%, Conciencia: {selectedStudentDISC.porcentajeC}%)
+                     </h3>
+                     <p style={{ fontSize: '13px', color: '#581c87', marginBottom: '15px', lineHeight: '1.5' }}>{selectedStudentDISC.descripcion}</p>
+
+                     {/* BAR CHART SIMULATION */}
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+                       {[
+                         { label: 'D - Decisión', value: selectedStudentDISC.porcentajeD, color: '#ef4444' },
+                         { label: 'I - Influencia', value: selectedStudentDISC.porcentajeI, color: '#eab308' },
+                         { label: 'S - Estabilidad', value: selectedStudentDISC.porcentajeS, color: '#22c55e' },
+                         { label: 'C - Cumplimiento', value: selectedStudentDISC.porcentajeC, color: '#3b82f6' }
+                       ].map((item, idx) => (
+                         <div key={idx} style={{ fontSize: '12px' }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563', marginBottom: '3px' }}>
+                             <span style={{ fontWeight: '500' }}>{item.label}</span>
+                             <span>{item.value}%</span>
+                           </div>
+                           <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                             <div style={{ width: `${item.value}%`, height: '100%', backgroundColor: item.color, borderRadius: '4px' }}></div>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+
+                     {selectedStudentDISC.fortalezas && selectedStudentDISC.fortalezas.length > 0 && (
+                       <div>
+                         <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '6px' }}>Fortalezas Clave</h4>
+                         <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: '#4a044e', lineHeight: '1.4' }}>
+                           {selectedStudentDISC.fortalezas.map((fort: string, idx: number) => (
+                             <li key={idx} style={{ marginBottom: '4px' }}>{fort}</li>
+                           ))}
+                         </ul>
+                       </div>
+                     )}
+                   </div>
+                 ) : (
+                   <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el análisis DISC del estudiante.</p>
+                 )}
+               </div>
+             )}
           </div>
         </div>
       )}

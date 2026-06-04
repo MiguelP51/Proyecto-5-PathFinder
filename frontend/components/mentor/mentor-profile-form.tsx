@@ -203,7 +203,7 @@ export default function MentorProfileForm() {
         (session as { backendJwt?: string } | null)?.backendJwt
       );
 
-      router.push("/dashboard");
+      router.push("/mentor/home");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error guardando el perfil"
@@ -242,7 +242,7 @@ export default function MentorProfileForm() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
       <ProfileHeader
         onSave={handleSave}
-        onSkip={() => router.push("/dashboard")}
+        onSkip={() => router.push("/mentor/home")}
         isSaving={isSaving}
         hideSkip
       />

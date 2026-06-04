@@ -713,11 +713,6 @@ export default function ProfileSetupPage() {
     }
   };
 
-  const handleSkip = () => {
-    const redirectUrl = session?.user?.rol === "MENTOR" ? "/dashboard" : "/?session=active";
-    router.push(redirectUrl);
-  };
-
   // Progreso
   const isPhoneValid = (() => {
     const cleanPhone = personalData.phone.replace(/\D/g, "");

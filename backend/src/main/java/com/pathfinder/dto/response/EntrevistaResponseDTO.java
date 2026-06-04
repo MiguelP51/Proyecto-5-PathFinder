@@ -1,0 +1,38 @@
+package com.pathfinder.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class EntrevistaResponseDTO {
+    private Integer idEntrevista;
+    private Integer idEstudiante;
+    private String estudianteNombre;
+    private String estudianteEmail;
+    private Integer idMentor;
+    private String mentorNombre;
+    private String mentorEmail;
+    private String fecha; // YYYY-MM-DD
+    private String hora; // HH:MM
+    private String tipo; // virtual / presencial
+    private String estado; // Programada / Completada / Cancelada
+    private String virtualLink;
+    
+    // De etapa de selección
+    private String discPerfilDominante;
+    private String discNombrePerfil;
+    private Boolean cvAvailable;
+    
+    // De retroalimentación (Feedback)
+    private String resultado;
+    private String feedbackComentarios;
+    private Integer competenciaComunicacion;
+    private Integer competenciaTecnica;
+    private Integer competenciaProactividad;
+    private Integer competenciaResolucion;
+}

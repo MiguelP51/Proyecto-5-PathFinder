@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import PathMentorNavbar from './PathMentorNavbar';
-import PathMentorTopbar from './PathMentorTopbar';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { apiFetch } from '@/lib/api';
 import styles from '../styles/PathMentorFeedbacks.module.css';
 
 interface Feedback {
@@ -105,255 +105,9 @@ const StarIcon = ({ filled }: StarProps) => (
 );
 
 export default function PathMentorFeedbacks() {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([
-    {
-      id: 1,
-      studentName: 'Ana Martínez',
-      studentEmail: 'ana.martinez@email.com',
-      interviewDate: '2026-05-28',
-      interviewTime: '11:00',
-      position: 'UX/UI Designer',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      scores: { general: 5, technical: 4, communication: 5, problemSolving: 3 },
-      fortalezas: 'Excelente comunicación y dominio de herramientas de diseño.',
-      areasMejora: 'Ninguna crítica importante. Continuar practicando presentaciones.',
-      comentarios: 'Muy buen desempeño global.',
-      lastUpdated: '2026-05-28'
-    },
-    {
-      id: 2,
-      studentName: 'Luis Torres',
-      studentEmail: 'luis.torres@email.com',
-      interviewDate: '2026-05-25',
-      interviewTime: '14:00',
-      position: 'Frontend Developer',
-      status: 'Publicado',
-      result: 'Requiere Mejora',
-      score: 3,
-      scores: { general: 3, technical: 3, communication: 4, problemSolving: 2 },
-      fortalezas: 'Buena actitud y habilidades básicas de CSS/HTML.',
-      areasMejora: 'Necesita mejorar en resolución de algoritmos avanzados.',
-      comentarios: 'Se le recomienda volver a postularse en 3 meses.',
-      lastUpdated: '2026-05-25'
-    },
-    {
-      id: 3,
-      studentName: 'Carlos Pérez',
-      studentEmail: 'carlos.perez@email.com',
-      interviewDate: '2026-05-30',
-      interviewTime: '15:00',
-      position: 'Backend Developer',
-      status: 'Borrador',
-      result: 'Con Observaciones',
-      score: 4,
-      scores: { general: 4, technical: 4, communication: 5, problemSolving: 3 },
-      fortalezas: 'Excelentes conocimientos de Node.js y SQL.',
-      areasMejora: 'Debe profundizar en conceptos de arquitectura limpia.',
-      comentarios: 'El candidato tiene potencial, pero requiere afinar la estructura del código.',
-      lastUpdated: '2026-05-30'
-    },
-    {
-      id: 4,
-      studentName: 'María González',
-      studentEmail: 'maria.gonzalez@email.com',
-      interviewDate: '2026-05-28',
-      interviewTime: '11:00',
-      position: 'UX/UI Designer',
-      status: 'Pendiente'
-    },
-    {
-      id: 5,
-      studentName: 'Roberto Sánchez',
-      studentEmail: 'roberto.sanchez@email.com',
-      interviewDate: '2026-05-26',
-      interviewTime: '10:00',
-      position: 'Product Manager',
-      status: 'Pendiente'
-    },
-    {
-      id: 6,
-      studentName: 'Sofia Ramírez',
-      studentEmail: 'sofia.ramirez@email.com',
-      interviewDate: '2026-05-24',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-24'
-    },
-    {
-      id: 7,
-      studentName: 'Laura Gómez',
-      studentEmail: 'laura.gomez@email.com',
-      interviewDate: '2026-05-23',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-23'
-    },
-    {
-      id: 8,
-      studentName: 'Diego Torres',
-      studentEmail: 'diego.torres@email.com',
-      interviewDate: '2026-05-22',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-22'
-    },
-    {
-      id: 9,
-      studentName: 'Valentina Silva',
-      studentEmail: 'valentina.silva@email.com',
-      interviewDate: '2026-05-20',
-      status: 'Publicado',
-      result: 'Requiere Mejora',
-      score: 3,
-      lastUpdated: '2026-05-20'
-    },
-    {
-      id: 10,
-      studentName: 'Mateo Ruiz',
-      studentEmail: 'mateo.ruiz@email.com',
-      interviewDate: '2026-05-19',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-19'
-    },
-    {
-      id: 11,
-      studentName: 'Javier Diaz',
-      studentEmail: 'javier.diaz@email.com',
-      interviewDate: '2026-05-18',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-18'
-    },
-    {
-      id: 12,
-      studentName: 'Camila Herrera',
-      studentEmail: 'camila.herrera@email.com',
-      interviewDate: '2026-05-17',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-17'
-    },
-    {
-      id: 13,
-      studentName: 'Nicolás Castro',
-      studentEmail: 'nicolas.castro@email.com',
-      interviewDate: '2026-05-15',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-15'
-    },
-    {
-      id: 14,
-      studentName: 'Isabella Mendoza',
-      studentEmail: 'isabella.mendoza@email.com',
-      interviewDate: '2026-05-14',
-      status: 'Publicado',
-      result: 'Con Observaciones',
-      score: 4,
-      lastUpdated: '2026-05-14'
-    },
-    {
-      id: 15,
-      studentName: 'Lucas Acosta',
-      studentEmail: 'lucas.acosta@email.com',
-      interviewDate: '2026-05-12',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-12'
-    },
-    {
-      id: 16,
-      studentName: 'Emma Peña',
-      studentEmail: 'emma.pena@email.com',
-      interviewDate: '2026-05-11',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-11'
-    },
-    {
-      id: 17,
-      studentName: 'Bruno Ortega',
-      studentEmail: 'bruno.ortega@email.com',
-      interviewDate: '2026-05-10',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-10'
-    },
-    {
-      id: 18,
-      studentName: 'Martina Flores',
-      studentEmail: 'martina.flores@email.com',
-      interviewDate: '2026-05-08',
-      status: 'Publicado',
-      result: 'Requiere Mejora',
-      score: 3,
-      lastUpdated: '2026-05-08'
-    },
-    {
-      id: 19,
-      studentName: 'Benjamín Vega',
-      studentEmail: 'benjamin.vega@email.com',
-      interviewDate: '2026-05-07',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 5,
-      lastUpdated: '2026-05-07'
-    },
-    {
-      id: 20,
-      studentName: 'Lucía Romero',
-      studentEmail: 'lucia.romero@email.com',
-      interviewDate: '2026-05-06',
-      status: 'Publicado',
-      result: 'Aprobado',
-      score: 4,
-      lastUpdated: '2026-05-06'
-    },
-    {
-      id: 21,
-      studentName: 'Joaquín Molina',
-      studentEmail: 'joaquin.molina@email.com',
-      interviewDate: '2026-05-05',
-      status: 'Borrador',
-      result: 'Con Observaciones',
-      score: 4,
-      lastUpdated: '2026-05-05'
-    },
-    {
-      id: 22,
-      studentName: 'Elena Delgado',
-      studentEmail: 'elena.delgado@email.com',
-      interviewDate: '2026-05-04',
-      status: 'Pendiente'
-    },
-    {
-      id: 23,
-      studentName: 'Samuel Rojas',
-      studentEmail: 'samuel.rojas@email.com',
-      interviewDate: '2026-05-03',
-      status: 'Pendiente'
-    },
-    {
-      id: 24,
-      studentName: 'Victoria Cruz',
-      studentEmail: 'victoria.cruz@email.com',
-      interviewDate: '2026-05-02',
-      status: 'Pendiente'
-    }
-  ]);
+  const { data: session, status } = useSession();
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -372,6 +126,79 @@ export default function PathMentorFeedbacks() {
   const [formFortalezas, setFormFortalezas] = useState('');
   const [formAreasMejora, setFormAreasMejora] = useState('');
   const [formComentarios, setFormComentarios] = useState('');
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.backendJwt) {
+      loadFeedbacks();
+    }
+  }, [status, session]);
+
+  const loadFeedbacks = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch<any[]>("/api/entrevistas/mentor", {}, session?.backendJwt);
+      const mapped = data.map(item => {
+        let statusVal: Feedback['status'] = item.estado === 'Completada' ? 'Publicado' : 'Pendiente';
+        let resultVal = item.resultado;
+        let fort = "";
+        let amej = "";
+        let coms = item.feedbackComentarios;
+        
+        // Parse comments if it's JSON
+        if (item.feedbackComentarios) {
+          try {
+            const parsed = JSON.parse(item.feedbackComentarios);
+            fort = parsed.fortalezas || "";
+            amej = parsed.areasMejora || "";
+            coms = parsed.comentarios || "";
+          } catch (e) {
+            // fallback plain text
+          }
+        }
+
+        // Check local storage draft
+        if (item.estado === 'Programada') {
+          const draft = localStorage.getItem(`draft_feedback_${item.idEntrevista}`);
+          if (draft) {
+            statusVal = 'Borrador';
+            try {
+              const parsedDraft = JSON.parse(draft);
+              resultVal = parsedDraft.result;
+              fort = parsedDraft.fortalezas;
+              amej = parsedDraft.areasMejora;
+              coms = parsedDraft.comentarios;
+            } catch (e) {}
+          }
+        }
+
+        return {
+          id: item.idEntrevista,
+          studentName: item.estudianteNombre,
+          studentEmail: item.estudianteEmail,
+          interviewDate: item.fecha,
+          interviewTime: item.hora,
+          status: statusVal,
+          result: resultVal,
+          score: item.competenciaProactividad,
+          scores: {
+            general: item.competenciaProactividad || 0,
+            technical: item.competenciaTecnica || 0,
+            communication: item.competenciaComunicacion || 0,
+            problemSolving: item.competenciaResolucion || 0
+          },
+          fortalezas: fort,
+          areasMejora: amej,
+          comentarios: coms,
+          lastUpdated: item.fecha
+        };
+      });
+      setFeedbacks(mapped);
+    } catch (err) {
+      console.error("Error cargando feedbacks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Compute Metrics Card Values Dynamically
   const totalCount = feedbacks.length;
@@ -422,6 +249,30 @@ export default function PathMentorFeedbacks() {
   const handleRegistrarFeedback = (item: Feedback) => {
     setSelectedFeedback(item);
     setFormMode('registrar');
+    
+    // Check if there is a draft in local storage
+    const draft = localStorage.getItem(`draft_feedback_${item.id}`);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        setFormResult(parsed.result || '');
+        setFormScoreGeneral(parsed.scoreGeneral || 0);
+        setFormScoreTechnical(parsed.scoreTechnical || 0);
+        setFormScoreCommunication(parsed.scoreCommunication || 0);
+        setFormScoreProblemSolving(parsed.scoreProblemSolving || 0);
+        setFormFortalezas(parsed.fortalezas || '');
+        setFormAreasMejora(parsed.areasMejora || '');
+        setFormComentarios(parsed.comentarios || '');
+      } catch (e) {
+        resetFormFields();
+      }
+    } else {
+      resetFormFields();
+    }
+    setActiveView('form');
+  };
+
+  const resetFormFields = () => {
     setFormResult('');
     setFormScoreGeneral(0);
     setFormScoreTechnical(0);
@@ -430,77 +281,65 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas('');
     setFormAreasMejora('');
     setFormComentarios('');
-    setActiveView('form');
   };
 
   const handleSaveDraft = () => {
     if (!selectedFeedback) return;
-    setFeedbacks((prev) =>
-      prev.map((item) => {
-        if (item.id === selectedFeedback.id) {
-          return {
-            ...item,
-            status: 'Borrador',
-            result: formResult ? (formResult as Feedback['result']) : undefined,
-            score: formScoreGeneral || undefined,
-            scores: {
-              general: formScoreGeneral,
-              technical: formScoreTechnical,
-              communication: formScoreCommunication,
-              problemSolving: formScoreProblemSolving,
-            },
-            fortalezas: formFortalezas,
-            areasMejora: formAreasMejora,
-            comentarios: formComentarios,
-            lastUpdated: new Date().toISOString().split('T')[0],
-          };
-        }
-        return item;
-      })
-    );
+    const draftData = {
+      result: formResult,
+      scoreGeneral: formScoreGeneral,
+      scoreTechnical: formScoreTechnical,
+      scoreCommunication: formScoreCommunication,
+      scoreProblemSolving: formScoreProblemSolving,
+      fortalezas: formFortalezas,
+      areasMejora: formAreasMejora,
+      comentarios: formComentarios
+    };
+    localStorage.setItem(`draft_feedback_${selectedFeedback.id}`, JSON.stringify(draftData));
+    alert("Borrador guardado localmente.");
     setActiveView('list');
+    loadFeedbacks();
   };
 
-  const handlePublish = () => {
-    if (!selectedFeedback) return;
+  const handlePublish = async () => {
+    if (!selectedFeedback || !session?.backendJwt) return;
     if (!formResult) {
       alert('Por favor selecciona un resultado antes de publicar el feedback.');
       return;
     }
-    setFeedbacks((prev) =>
-      prev.map((item) => {
-        if (item.id === selectedFeedback.id) {
-          return {
-            ...item,
-            status: 'Publicado',
-            result: formResult as Feedback['result'],
-            score: formScoreGeneral || undefined,
-            scores: {
-              general: formScoreGeneral,
-              technical: formScoreTechnical,
-              communication: formScoreCommunication,
-              problemSolving: formScoreProblemSolving,
-            },
-            fortalezas: formFortalezas,
-            areasMejora: formAreasMejora,
-            comentarios: formComentarios,
-            lastUpdated: new Date().toISOString().split('T')[0],
-          };
-        }
-        return item;
-      })
-    );
-    setActiveView('list');
+
+    try {
+      const commentsJson = JSON.stringify({
+        fortalezas: formFortalezas,
+        areasMejora: formAreasMejora,
+        comentarios: formComentarios
+      });
+
+      await apiFetch(`/api/entrevistas/${selectedFeedback.id}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({
+          resultado: formResult,
+          feedbackComentarios: commentsJson,
+          competenciaComunicacion: formScoreCommunication,
+          competenciaTecnica: formScoreTechnical,
+          competenciaProactividad: formScoreGeneral,
+          competenciaResolucion: formScoreProblemSolving
+        })
+      }, session?.backendJwt);
+
+      // Clean local draft
+      localStorage.removeItem(`draft_feedback_${selectedFeedback.id}`);
+      alert("¡Feedback publicado y notificado con éxito!");
+      setActiveView('list');
+      loadFeedbacks();
+    } catch (err) {
+      console.error("Error publicando feedback:", err);
+      alert("Error al publicar feedback: " + (err instanceof Error ? err.message : err));
+    }
   };
 
   return (
     <div className={styles.page}>
-      {/* SIDEBAR */}
-      <PathMentorNavbar />
-
-      {/* TOPBAR */}
-      <PathMentorTopbar />
-
       {/* CONTENT */}
       <main className={styles.container}>
         {activeView === 'list' ? (
