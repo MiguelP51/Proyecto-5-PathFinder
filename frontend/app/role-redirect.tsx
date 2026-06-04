@@ -37,11 +37,68 @@ export default function RoleRedirect() {
   }, [status, session, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#0E3E66]">Redirigiendo...</h1>
-        <p className="text-slate-600 mt-2">Un momento mientras validamos tu sesión y rol.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="flex flex-col items-center gap-8">
+        {/* Spinner animado */}
+        <div className="relative h-20 w-20">
+          {/* Anillo exterior */}
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-slate-200 border-t-transparent border-t-[#7447D7]" />
+          
+          {/* Anillo interior más lento */}
+          <div 
+            className="absolute inset-2 rounded-full border-4 border-transparent border-b-[#1E3A8A]"
+            style={{
+              animation: 'spin 3s linear infinite reverse',
+            }}
+          />
+          
+          {/* Centro decorativo */}
+          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-[#7447D7] to-[#1E3A8A]" />
+        </div>
+
+        {/* Texto */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7447D7] to-[#1E3A8A] bg-clip-text text-transparent">
+            Redirigiendo...
+          </h1>
+          <p className="mt-3 text-slate-600">
+            Validando tu sesión y rol
+          </p>
+        </div>
+
+        {/* Puntos animados */}
+        <div className="flex gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-2 w-2 rounded-full bg-[#7447D7]"
+              style={{
+                animation: `pulse 1.4s ease-in-out infinite`,
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 0.3;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -9,6 +9,7 @@ interface CVUploadSectionProps {
   isProcessing?: boolean;
   cvUploaded?: boolean;
   cvFileName?: string;
+  disabled?: boolean;
 }
 
 export function CVUploadSection({
@@ -16,11 +17,13 @@ export function CVUploadSection({
   isProcessing = false,
   cvUploaded = false,
   cvFileName,
+  disabled = false,
 }: CVUploadSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const file = e.target.files?.[0];
     if (file) {
       onCVUpload(file);
@@ -29,15 +32,18 @@ export function CVUploadSection({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (disabled) return;
     setIsDragging(true);
   };
 
   const handleDragLeave = () => {
+    if (disabled) return;
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (disabled) return;
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && (file.type === "application/pdf" || file.name.endsWith(".pdf"))) {
@@ -51,10 +57,12 @@ export function CVUploadSection({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`relative rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
-        isDragging
+        isDragging && !disabled
           ? "border-[#643781] bg-[#643781]/5"
           : cvUploaded
           ? "border-green-400 bg-green-50"
+          : disabled
+          ? "border-slate-200 bg-slate-50 text-slate-400"
           : "border-slate-300 bg-slate-50/50 hover:border-[#0E3E66]/50 hover:bg-slate-100/50"
       }`}
     >
@@ -62,6 +70,7 @@ export function CVUploadSection({
         ref={fileInputRef}
         type="file"
         accept=".pdf,.doc,.docx"
+        disabled={disabled}
         onChange={handleFileChange}
         className="hidden"
       />
@@ -92,18 +101,36 @@ export function CVUploadSection({
             {cvFileName && (
               <p className="text-sm text-slate-500">{cvFileName}</p>
             )}
-            <p className="mt-1 text-sm text-slate-500">
-              Los campos han sido autocompletados
+            {!disabled && (
+              <p className="mt-1 text-sm text-slate-500">
+                Los campos han sido autocompletados
+              </p>
+            )}
+          </div>
+          {!disabled && (
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Cambiar CV
+            </Button>
+          )}
+        </div>
+      ) : disabled ? (
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <FileText className="h-8 w-8 text-slate-400" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-slate-500">
+              Sin CV adjunto
+            </p>
+            <p className="text-sm text-slate-400">
+              No se ha subido ningún archivo de CV para este perfil
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-2 border-green-600 text-green-600 hover:bg-green-50"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Cambiar CV
-          </Button>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">

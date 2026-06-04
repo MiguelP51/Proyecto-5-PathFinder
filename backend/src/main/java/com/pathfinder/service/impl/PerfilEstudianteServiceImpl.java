@@ -459,6 +459,13 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
         }
     }
 
+    @Override
+    @jakarta.transaction.Transactional
+    public void actualizarProgresoEstudiante(String correo, NombreEtapa etapa, EstadoEtapa estado, boolean setFecha) {
+        Usuario usuario = obtenerUsuario(correo);
+        actualizarProgreso(usuario, etapa, estado, setFecha);
+    }
+
     private Usuario obtenerUsuario(String correo) {
         return usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new IllegalArgumentException(

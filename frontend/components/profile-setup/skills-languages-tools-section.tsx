@@ -25,6 +25,7 @@ interface SkillsLanguagesToolsSectionProps {
   onSkillsChange: (skills: SkillItem[]) => void;
   onLanguagesChange: (languages: SkillItem[]) => void;
   onToolsChange: (tools: SkillItem[]) => void;
+  disabled?: boolean;
 }
 
 const skillOptions = [
@@ -100,6 +101,7 @@ function SkillSelector({
   onAdd,
   onRemove,
   onLevelChange,
+  disabled = false,
 }: {
   title: string;
   icon: React.ElementType;
@@ -109,6 +111,7 @@ function SkillSelector({
   onAdd: (name: string, level: "Básico" | "Intermedio" | "Avanzado") => void;
   onRemove: (name: string) => void;
   onLevelChange: (name: string, level: "Básico" | "Intermedio" | "Avanzado") => void;
+  disabled?: boolean;
 }) {
   const [selectedOption, setSelectedOption] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<"Básico" | "Intermedio" | "Avanzado">("Intermedio");
@@ -134,46 +137,48 @@ function SkillSelector({
       </div>
 
       {/* Add new */}
-      <div className="flex flex-wrap gap-2">
-        <Select value={selectedOption} onValueChange={setSelectedOption}>
-          <SelectTrigger className="w-[200px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
-            <SelectValue placeholder={`Seleccionar ${title.toLowerCase()}`} />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            {availableOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {!disabled && (
+        <div className="flex flex-wrap gap-2">
+          <Select value={selectedOption} onValueChange={setSelectedOption}>
+            <SelectTrigger className="w-[200px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
+              <SelectValue placeholder={`Seleccionar ${title.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              {availableOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select 
-          value={selectedLevel} 
-          onValueChange={(v) => setSelectedLevel(v as "Básico" | "Intermedio" | "Avanzado")}
-        >
-          <SelectTrigger className="w-[140px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
-            <SelectValue placeholder="Nivel" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            {levels.map((level) => (
-              <SelectItem key={level} value={level}>
-                {level}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select 
+            value={selectedLevel} 
+            onValueChange={(v) => setSelectedLevel(v as "Básico" | "Intermedio" | "Avanzado")}
+          >
+            <SelectTrigger className="w-[140px] border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
+              <SelectValue placeholder="Nivel" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              {levels.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Button
-          variant="outline"
-          onClick={handleAdd}
-          disabled={!selectedOption}
-          className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar
-        </Button>
-      </div>
+          <Button
+            variant="outline"
+            onClick={handleAdd}
+            disabled={!selectedOption}
+            className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar
+          </Button>
+        </div>
+      )}
 
       {/* Selected items */}
       <div className="flex flex-wrap gap-2">
@@ -184,27 +189,33 @@ function SkillSelector({
             className={`flex items-center gap-2 px-3 py-1.5 ${levelColors[item.level]}`}
           >
             <span className="font-medium">{item.name}</span>
-            <Select
-              value={item.level}
-              onValueChange={(v) => onLevelChange(item.name, v as "Básico" | "Intermedio" | "Avanzado")}
-            >
-              <SelectTrigger className="h-5 w-auto border-0 bg-transparent p-0 text-xs font-semibold shadow-none focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {levels.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {level}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button
-              onClick={() => onRemove(item.name)}
-              className="ml-1 hover:text-red-500"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            {disabled ? (
+              <span className="text-xs font-semibold uppercase tracking-wider opacity-80">{item.level}</span>
+            ) : (
+              <Select
+                value={item.level}
+                onValueChange={(v) => onLevelChange(item.name, v as "Básico" | "Intermedio" | "Avanzado")}
+              >
+                <SelectTrigger className="h-5 w-auto border-0 bg-transparent p-0 text-xs font-semibold shadow-none focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {levels.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!disabled && (
+              <button
+                onClick={() => onRemove(item.name)}
+                className="ml-1 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </Badge>
         ))}
       </div>
@@ -225,6 +236,7 @@ export function SkillsLanguagesToolsSection({
   onSkillsChange,
   onLanguagesChange,
   onToolsChange,
+  disabled = false,
 }: SkillsLanguagesToolsSectionProps) {
   const handleAddSkill = (name: string, level: "Básico" | "Intermedio" | "Avanzado") => {
     onSkillsChange([...skills, { name, level }]);
@@ -283,6 +295,7 @@ export function SkillsLanguagesToolsSection({
           onAdd={handleAddSkill}
           onRemove={handleRemoveSkill}
           onLevelChange={handleSkillLevelChange}
+          disabled={disabled}
         />
 
         <div className="border-t border-slate-100" />
@@ -296,6 +309,7 @@ export function SkillsLanguagesToolsSection({
           onAdd={handleAddLanguage}
           onRemove={handleRemoveLanguage}
           onLevelChange={handleLanguageLevelChange}
+          disabled={disabled}
         />
 
         <div className="border-t border-slate-100" />
@@ -309,6 +323,7 @@ export function SkillsLanguagesToolsSection({
           onAdd={handleAddTool}
           onRemove={handleRemoveTool}
           onLevelChange={handleToolLevelChange}
+          disabled={disabled}
         />
       </div>
     </div>

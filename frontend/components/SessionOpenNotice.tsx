@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function SessionOpenNotice() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("session") !== "active") return;
 
-    window.alert("Sesión iniciada correctamente.");
+    toast.success("Sesión iniciada correctamente.");
     params.delete("session");
     const query = params.toString();
     const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;

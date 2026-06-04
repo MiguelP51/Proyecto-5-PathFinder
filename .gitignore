@@ -29,3 +29,9 @@ Thumbs.db
 certbot/
 *.pem
 *.key
+
+# ======================
+# PROJECT SPECIFIC
+# ======================
+scripts/
+db_schema/
