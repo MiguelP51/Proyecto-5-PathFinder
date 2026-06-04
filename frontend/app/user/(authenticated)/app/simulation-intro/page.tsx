@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, FileText, Target, Users } from "lucide-react";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiFetch } from "@/lib/api";
 import AuthenticatedTopBar from "@/components/AuthenticatedTopBar";
 
 const steps = [
@@ -36,6 +37,24 @@ export default async function SimulationIntroPage() {
 
   if (!session) {
     redirect("/login");
+  }
+
+  let targetUrl = "/user/profile";
+  try {
+    const statusData = await apiFetch<any>("/api/users/me/status", {}, session.backendJwt);
+    if (statusData) {
+      if (!statusData.perfilConfirmado) {
+        targetUrl = "/user/profile";
+      } else if (statusData.etapas?.TEST_DISC !== "COMPLETADA") {
+        targetUrl = "/user/app/disc-intro";
+      } else if (statusData.etapas?.AGENDAMIENTO_ENTREVISTA !== "COMPLETADA") {
+        targetUrl = "/user/app/simulation-schedule";
+      } else {
+        targetUrl = "/user/app/simulation-details";
+      }
+    }
+  } catch (err) {
+    console.error("Error loading status in server component:", err);
   }
 
   return (
@@ -91,7 +110,7 @@ export default async function SimulationIntroPage() {
 
           <div className="mt-8 flex justify-center">
             <Link
-              href="/user/app/disc-intro"
+              href={targetUrl}
               className="inline-flex h-12 min-w-56 items-center justify-center rounded-[8px] bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-8 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
             >
               Comenzar proceso

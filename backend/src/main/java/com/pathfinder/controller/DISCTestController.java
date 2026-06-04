@@ -6,6 +6,7 @@ import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.ResultadoDISCResponseDTO;
 import com.pathfinder.service.DISCTestService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/disc")
 @RequiredArgsConstructor
@@ -66,6 +68,23 @@ public class DISCTestController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error obteniendo el resultado del test DISC"));
+        }
+    }
+
+    // GET /api/disc/result/student/{id}  — obtener resultado del test para el mentor (HU-PM-05)
+    @GetMapping("/result/student/{id}")
+    public ResponseEntity<ApiResponse<ResultadoDISCResponseDTO>> getStudentResult(
+            @PathVariable Integer id) {
+        try {
+            ResultadoDISCResponseDTO resultado = discTestService.obtenerResultadoPorUsuarioId(id);
+            return ResponseEntity.ok(ApiResponse.success("Resultado del test obtenido con éxito", resultado));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(ApiResponse.error(e.getReason()));
+        } catch (Exception e) {
+            log.error("Error obteniendo resultado DISC del estudiante: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error obteniendo el resultado del test DISC del estudiante"));
         }
     }
 }
