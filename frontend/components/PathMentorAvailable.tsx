@@ -11,13 +11,45 @@ const TIME_SLOTS = [
   '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
 ];
 
+const obtenerSlotsPorBloque = (horaInicio: string, horaFin: string, dur: number, desc: number): number => {
+  const [startH, startM] = horaInicio.split(':').map(Number);
+  const [endH, endM] = horaFin.split(':').map(Number);
+  let startMin = startH * 60 + startM;
+  const endMin = endH * 60 + endM;
+  let count = 0;
+
+  while (startMin + dur <= endMin) {
+    count++;
+    startMin += dur + desc;
+  }
+  return count;
+};
+
+const detectarCruceDeBloques = (dia: string, horaInicio: string, horaFin: string, bloquesExistentes: any[]): boolean => {
+  const [newStartH, newStartM] = horaInicio.split(':').map(Number);
+  const [newEndH, newEndM] = horaFin.split(':').map(Number);
+  const newStart = newStartH * 60 + newStartM;
+  const newEnd = newEndH * 60 + newEndM;
+
+  return bloquesExistentes.some(b => {
+    if (b.day !== dia) return false;
+    const [startStr, endStr] = b.time.split(" - ");
+    const [startH, startM] = startStr.split(':').map(Number);
+    const [endH, endM] = endStr.split(':').map(Number);
+    const start = startH * 60 + startM;
+    const end = endH * 60 + endM;
+
+    return newStart < end && start < newEnd;
+  });
+};
+
 export default function AvailabilityPage() {
   const { data: session, status } = useSession();
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estados de configuración de disponibilidad
-  const [checkedDays, setCheckedDays] = useState<string[]>(['Lunes', 'Miércoles', 'Viernes']);
+  const [selectedFilterDay, setSelectedFilterDay] = useState<string>('Lunes');
   const [duracion, setDuracion] = useState<number>(60);
   const [tiempoDescanso, setTiempoDescanso] = useState<number>(15);
   const [maxEntrevistas, setMaxEntrevistas] = useState<number>(4);
@@ -43,9 +75,13 @@ export default function AvailabilityPage() {
         setDuracion(data.duracionEntrevista || 60);
         setTiempoDescanso(data.tiempoEntreEntrevistas !== undefined ? data.tiempoEntreEntrevistas : 15);
         setMaxEntrevistas(data.maxEntrevistasDia || 4);
-        setCheckedDays(data.diasDisponibles || ['Lunes', 'Miércoles', 'Viernes']);
-        
-        const mapped = (data.bloques || []).map((item: any) => ({
+         if (data.diasDisponibles && data.diasDisponibles.length > 0) {
+           setSelectedFilterDay(data.diasDisponibles[0]);
+         } else {
+           setSelectedFilterDay('Lunes');
+         }
+         
+         const mapped = (data.bloques || []).map((item: any) => ({
           id: item.idDisponibilidad,
           day: item.diaSemana,
           time: `${item.horaInicio} - ${item.horaFin}`,
@@ -66,16 +102,41 @@ export default function AvailabilityPage() {
       return;
     }
 
-    if (checkedDays.length === 0) {
-      alert("Debes seleccionar al menos un día disponible.");
+    if (blocks.length === 0) {
+      alert("Debes agregar al menos un bloque de disponibilidad.");
+      return;
+    }
+
+    // Validar bloques inválidos
+    const hasInvalid = blocks.some(b => {
+      const [hStart, hEnd] = b.time.split(" - ");
+      return obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso) === 0;
+    });
+
+    if (hasInvalid) {
+      alert("Por favor, corrige o elimina los bloques de disponibilidad marcados como inválidos antes de guardar.");
+      return;
+    }
+
+    // Validar límite diario excedido (Restricción Estricta)
+    const dailySlots: { [key: string]: number } = {};
+    blocks.forEach(b => {
+      const [hStart, hEnd] = b.time.split(" - ");
+      const slots = obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+      dailySlots[b.day] = (dailySlots[b.day] || 0) + slots;
+    });
+
+    const hasExceeded = Object.keys(dailySlots).some(day => dailySlots[day] > maxEntrevistas);
+    if (hasExceeded) {
+      alert("Por favor, ajusta tus bloques. El total de entrevistas para uno o más días supera el límite diario permitido.");
       return;
     }
 
     try {
-      // Filtrar los bloques antes de guardar para eliminar de inmediato los bloques de días desmarcados
-      const filteredBlocks = blocks.filter(b => checkedDays.includes(b.day));
+      // Auto-calcular los días habilitados a partir de los bloques configurados
+      const activeDays = Array.from(new Set(blocks.map(b => b.day)));
       
-      const dtoList = filteredBlocks.map(b => {
+      const dtoList = blocks.map(b => {
         const [hStart, hEnd] = b.time.split(" - ");
         return {
           idDisponibilidad: String(b.id).length > 10 ? null : b.id, // Si es un ID temporal de front, enviamos null
@@ -90,7 +151,7 @@ export default function AvailabilityPage() {
         duracionEntrevista: duracion,
         tiempoEntreEntrevistas: tiempoDescanso,
         maxEntrevistasDia: maxEntrevistas,
-        diasDisponibles: checkedDays,
+        diasDisponibles: activeDays,
         bloques: dtoList
       };
 
@@ -207,14 +268,8 @@ export default function AvailabilityPage() {
                                         <label key={day}>
                                             <input
                                                 type="checkbox"
-                                                checked={checkedDays.includes(day)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setCheckedDays([...checkedDays, day]);
-                                                    } else {
-                                                        setCheckedDays(checkedDays.filter(d => d !== day));
-                                                    }
-                                                }}
+                                                checked={selectedFilterDay === day}
+                                                onChange={() => setSelectedFilterDay(day)}
                                             />
                                             {day}
                                         </label>
@@ -233,7 +288,7 @@ export default function AvailabilityPage() {
                                 <button 
                                     className={styles.addButton}
                                     onClick={() => {
-                                        setSelectedDay('Lunes');
+                                        setSelectedDay(selectedFilterDay);
                                         setStartTime('09:00');
                                         setEndTime('10:00');
                                         setSelectedType('virtual');
@@ -246,63 +301,126 @@ export default function AvailabilityPage() {
 
                             </div>
 
-                            {/* BLOCKS */}
-                          <div className={styles.blocksContainer}>
+                                                 <div className={styles.blocksContainer}>
+                            {(() => {
+                              // Calcular slots totales por día para las advertencias de límite diario
+                              const dailySlotsCount: { [key: string]: number } = {};
+                              blocks.forEach(b => {
+                                const [hStart, hEnd] = b.time.split(" - ");
+                                const slots = obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                dailySlotsCount[b.day] = (dailySlotsCount[b.day] || 0) + slots;
+                              });
 
-                            {blocks.map((block) => (
+                              const filteredBlocks = blocks.filter(b => b.day === selectedFilterDay);
 
-                                <div
-                                    key={block.id}
-                                    className={styles.timeBlock}
-                                >
+                              return (
+                                <>
+                                  {filteredBlocks.length === 0 ? (
+                                    <div className={styles.emptyBlocksMsg}>
+                                      No hay bloques configurados para el {selectedFilterDay}.
+                                    </div>
+                                  ) : (
+                                    filteredBlocks.map((block) => {
+                                      const [hStart, hEnd] = block.time.split(" - ");
+                                      const slots = obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                      const isInvalid = slots === 0;
 
-            <span className={styles.day}>
-                {block.day}
-            </span>
+                                      return (
+                                        <div
+                                          key={block.id}
+                                          className={`${styles.timeBlock} ${isInvalid ? styles.invalidBlock : ''}`}
+                                        >
+                                          <span className={styles.day}>
+                                            {block.day}
+                                          </span>
 
-                                  <span className={styles.time}>
-                🕒 {block.time}
-            </span>
+                                          <span className={styles.time}>
+                                            🕒 {block.time}
+                                          </span>
+                                          <span className={isInvalid ? styles.invalidBadge : styles.slotsBadge}>
+                                            {isInvalid ? '⚠️ Inválido' : `✓ ${slots} entrevista${slots > 1 ? 's' : ''}`}
+                                          </span>
 
-                                  <span
-                                      className={
-                                        block.type === 'virtual'
-                                            ? styles.virtualTag
-                                            : block.type === 'presencial'
-                                                ? styles.presentialTag
-                                                : styles.bothTag
-                                      }
-                                  >
-                {block.type}
-            </span>
+                                          <span
+                                            className={
+                                              block.type === 'virtual'
+                                                  ? styles.virtualTag
+                                                  : block.type === 'presencial'
+                                                      ? styles.presentialTag
+                                                      : styles.bothTag
+                                            }
+                                          >
+                                            {block.type}
+                                          </span>
 
-                                  <button
-                                      className={styles.deleteButton}
-                                      onClick={() =>
-                                          setBlocks(
-                                              blocks.filter(
-                                                  (item) =>
-                                                      item.id !== block.id
-                                              )
-                                          )
-                                      }
-                                  >
-                                    🗑
-                                  </button>
+                                          <button
+                                            className={styles.deleteButton}
+                                            onClick={() =>
+                                                setBlocks(
+                                                    blocks.filter(
+                                                        (item) =>
+                                                            item.id !== block.id
+                                                    )
+                                                )
+                                            }
+                                          >
+                                            🗑
+                                          </button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
 
-                                </div>
-
-                            ))}
-
+                                  {/* Advertencias de límite diario (Restricción Estricta) */}
+                                  {dailySlotsCount[selectedFilterDay] > maxEntrevistas && (
+                                    <div className={styles.dailyLimitError}>
+                                      ❌ {selectedFilterDay}: El total de entrevistas posibles ({dailySlotsCount[selectedFilterDay]}) supera el límite de {maxEntrevistas} por día. Por favor, reduce la duración de los bloques o elimina algunos.
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
 
                             {/* SAVE */}
-                            <button 
-                                className={styles.saveButton}
-                                onClick={handleSaveAll}
-                            >
-                                💾 Guardar Disponibilidad
-                            </button>
+                            {(() => {
+                              const hasInvalidBlocks = blocks.some(b => {
+                                  const [hStart, hEnd] = b.time.split(" - ");
+                                  return obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso) === 0;
+                              });
+
+                              // Calcular slots totales por día para verificar si alguno excede el límite
+                              const dailySlots: { [key: string]: number } = {};
+                              blocks.forEach(b => {
+                                const [hStart, hEnd] = b.time.split(" - ");
+                                const slots = obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                dailySlots[b.day] = (dailySlots[b.day] || 0) + slots;
+                              });
+                              const hasExceededSlots = Object.keys(dailySlots).some(day => dailySlots[day] > maxEntrevistas);
+                              const canSave = !hasInvalidBlocks && !hasExceededSlots;
+
+                              return (
+                                <>
+                                  {hasInvalidBlocks && (
+                                    <div className={styles.globalErrorBanner}>
+                                      ⚠️ Hay bloques en conflicto con la configuración actual (duración de {duracion} min + {tiempoDescanso} min de descanso). Por favor, corrígelos o elimínalos para poder guardar.
+                                    </div>
+                                  )}
+                                  {hasExceededSlots && (
+                                    <div className={styles.globalErrorBanner}>
+                                      ⚠️ El total de entrevistas en uno o más días supera el límite diario permitido ({maxEntrevistas}). Ajusta tus bloques para poder guardar.
+                                    </div>
+                                  )}
+                                  <button 
+                                      className={`${styles.saveButton} ${!canSave ? styles.disabledSaveButton : ''}`}
+                                      onClick={handleSaveAll}
+                                      disabled={!canSave}
+                                  >
+                                      💾 Guardar Disponibilidad
+                                  </button>
+                                </>
+                              );
+                            })()}
 
                         </div>
 
@@ -514,15 +632,45 @@ export default function AvailabilityPage() {
                                 </div>
                             </div>
                             
+                            {(() => {
+                              if (startTime >= endTime) return null;
+                              const slots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
+                              if (slots === 0) {
+                                return (
+                                  <div className={styles.modalErrorMsg}>
+                                    ✗ El bloque es demasiado corto para una entrevista de {duracion} min (con {tiempoDescanso} min de descanso).
+                                  </div>
+                                );
+                              }
+                              const isOverlapping = detectarCruceDeBloques(selectedDay, startTime, endTime, blocks);
+                              if (isOverlapping) {
+                                return (
+                                  <div className={styles.modalErrorMsg}>
+                                    ✗ Este bloque de tiempo se cruza con un bloque ya configurado para el {selectedDay}.
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className={styles.modalInfoMsg}>
+                                  ✓ Este bloque permitirá agendar {slots} entrevista{slots > 1 ? 's' : ''}.
+                                </div>
+                              );
+                            })()}
+
                             <div className={styles.modalActions}>
                                 <button 
                                     className={styles.btnCancel}
                                     onClick={() => setIsModalOpen(false)}
-                                >
+                                  >
                                     Cancelar
                                 </button>
                                 <button 
                                     className={styles.btnSubmit}
+                                    disabled={
+                                        startTime >= endTime || 
+                                        obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso) === 0 ||
+                                        detectarCruceDeBloques(selectedDay, startTime, endTime, blocks)
+                                    }
                                     onClick={() => {
                                         // Simple validation
                                         if (startTime >= endTime) {
@@ -530,9 +678,8 @@ export default function AvailabilityPage() {
                                             return;
                                         }
 
-                                        // Validar que el día del bloque esté seleccionado como disponible
-                                        if (!checkedDays.includes(selectedDay)) {
-                                            alert(`El día ${selectedDay} no está marcado como disponible. Actívalo en la sección "Días disponibles" antes de agregar bloques para este día.`);
+                                        if (detectarCruceDeBloques(selectedDay, startTime, endTime, blocks)) {
+                                            alert("Este bloque de tiempo se cruza con un bloque ya existente.");
                                             return;
                                         }
                                         
