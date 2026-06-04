@@ -1,0 +1,13 @@
+/* Esto aplica globalmente a todos los inputs, textareas y selects */
+:global(input), :global(textarea), :global(select) {
+    border: 1px solid #ccc;
+    outline: none;
+    padding: 8px;
+    border-radius: 4px;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+
+:global(input:focus), :global(textarea:focus), :global(select:focus) {
+    border: 1.5px solid #66afe9;
+    box-shadow: 0 0 5px rgba(102, 175, 233, 0.5);
+}
