@@ -173,9 +173,9 @@ export default function UserSidebar({
               <span>Explorar</span>
             </Link>
             <Link
-              href="/user/skillpaths"
-              className={linkClass("/user/skillpaths")}
-              onClick={onClose}
+                href="/user/app/skillpaths"
+                className={linkClass("/user/app/skillpaths")}
+                onClick={onClose}
             >
               <BookOpen className="h-5 w-5" />
               <span>SkillPaths</span>

@@ -30,6 +30,13 @@ export interface SkillPathEvidence {
     reviewerComment?: string;
 }
 
+export interface SkillPathReward {
+    xpAwarded: number;
+    badgeName: string;
+    badgeDescription: string;
+    awardedAt?: string;
+}
+
 export interface SkillPath {
     id: string;
 
@@ -56,6 +63,7 @@ export interface SkillPath {
     isRecommended: boolean;
 
     evidence?: SkillPathEvidence;
+    reward?: SkillPathReward;
 }
 
 export interface SkillPathFilters {
