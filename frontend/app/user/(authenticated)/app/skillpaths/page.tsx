@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, BookOpen, GraduationCap, Sparkles } from "lucide-react";
 
-import { SkillPathCard } from "@/components/skillpath/SkillPathCard";
 import { getSkillPaths } from "@/lib/skillpath/service";
+import { SkillPathListClient } from "@/components/skillpath/SkillPathListClient";
 
 interface SkillPathsPageProps {
     searchParams?: Promise<{
@@ -146,24 +146,10 @@ export default async function SkillPathsPage({
                     </p>
                 </div>
 
-                {skillPaths.length > 0 ? (
-                    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                        {skillPaths.map((skillPath) => (
-                            <SkillPathCard key={skillPath.id} skillPath={skillPath} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            No hay SkillPaths disponibles
-                        </h3>
-
-                        <p className="mt-2 text-sm text-slate-600">
-                            Aún no existen recursos configurados para esta subárea. Intenta
-                            volver más tarde o revisa otra ruta de entrenamiento.
-                        </p>
-                    </div>
-                )}
+                <SkillPathListClient
+                    skillPaths={skillPaths}
+                    isSubareaView={isSubareaView}
+                />
             </section>
         </main>
     );

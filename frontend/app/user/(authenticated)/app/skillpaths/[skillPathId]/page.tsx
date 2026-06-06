@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SkillPathEvidenceSection } from "@/components/skillpath/SkillPathEvidenceSection";
+import { SkillPathRewardSummary } from "@/components/skillpath/SkillPathRewardSummary";
 import {
     ArrowLeft,
     Award,
@@ -154,6 +155,7 @@ export default async function SkillPathDetailPage({
                         />
                     </div>
                 </section>
+                <SkillPathRewardSummary skillPath={skillPath} />
 
                 <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">

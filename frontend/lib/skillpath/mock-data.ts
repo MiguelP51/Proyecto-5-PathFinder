@@ -61,7 +61,7 @@ export const mockSkillPaths: SkillPath[] = [
         durationLabel: "2 horas",
         xp: 100,
         progressPercentage: 100,
-        status: "CERTIFICADO_PENDIENTE",
+        status: "VALIDADO",
         skills: [
             { id: "skill-communication", name: "Comunicación efectiva" },
             { id: "skill-feedback", name: "Retroalimentación" },
@@ -72,8 +72,18 @@ export const mockSkillPaths: SkillPath[] = [
         evidence: {
             id: "evidence-rrhh-gestion-003",
             fileName: "certificado-comunicacion.pdf",
-            status: "PENDIENTE",
+            status: "VALIDO",
             uploadedAt: "2026-06-01",
+            reviewedAt: "2026-06-04",
+            reviewerComment:
+                "Certificado validado correctamente. El recurso fue reconocido por PathFinder.",
+        },
+        reward: {
+            xpAwarded: 100,
+            badgeName: "Comunicador Estratégico",
+            badgeDescription:
+                "Insignia obtenida por completar y validar un recurso de comunicación profesional.",
+            awardedAt: "2026-06-04",
         },
     },
     {
