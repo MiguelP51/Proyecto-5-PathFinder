@@ -57,6 +57,7 @@ export default function SimulationSchedulePage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [scheduling, setScheduling] = useState(false);
   const [error, setError] = useState("");
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   const getMinDate = () => {
     const tomorrow = new Date();
@@ -109,7 +110,13 @@ export default function SimulationSchedulePage() {
       return;
     }
     if (status === "authenticated" && session?.backendJwt) {
-      loadMentors();
+      const params = new URLSearchParams(window.location.search);
+      const mentorIdParam = params.get("mentorId");
+      if (mentorIdParam) {
+        setIsRescheduling(true);
+      }
+      
+      loadMentors(mentorIdParam);
       loadHolidays();
 
       // Default range: tomorrow until 7 days later
@@ -126,14 +133,24 @@ export default function SimulationSchedulePage() {
     }
   }, [status, session]);
 
-  const loadMentors = async () => {
+  const loadMentors = async (mentorIdParam?: string | null) => {
     try {
       setLoadingMentors(true);
       setError("");
       const data = await apiFetch<Mentor[]>("/api/disponibilidad/estudiante/mentores", {}, session?.backendJwt);
-      setMentors(data);
-      if (data.length > 0) {
-        setSelectedMentor(data[0]);
+      
+      if (mentorIdParam) {
+        const parsedId = parseInt(mentorIdParam);
+        const filtered = data.filter(m => m.idUsuario === parsedId);
+        setMentors(filtered);
+        if (filtered.length > 0) {
+          setSelectedMentor(filtered[0]);
+        }
+      } else {
+        setMentors(data);
+        if (data.length > 0) {
+          setSelectedMentor(data[0]);
+        }
       }
     } catch (err) {
       console.error("Error cargando mentores:", err);
@@ -313,6 +330,11 @@ export default function SimulationSchedulePage() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-black text-[#7447D7]">1</span>
                   Selecciona a tu PathMentor
                 </h2>
+                {isRescheduling && (
+                  <p className="text-xs text-amber-600 font-bold bg-amber-50 border border-amber-100 p-3 rounded-xl mb-4">
+                    ⚠️ Estás reagendando tu cita. Solo puedes agendar con tu mentor original.
+                  </p>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   {mentors.map((mentor) => (
                     <button

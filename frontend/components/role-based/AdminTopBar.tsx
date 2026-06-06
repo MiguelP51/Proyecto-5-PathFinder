@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface Props {
   onMenuClick: () => void;
@@ -29,6 +31,12 @@ export default function AdminTopBar({
   onMenuClick,
 }: Props) {
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const name =
     session?.user?.name ||
@@ -81,6 +89,18 @@ export default function AdminTopBar({
           <span className="hidden rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 sm:inline-flex">
             Administrador
           </span>
+
+          {/* THEME TOGGLE */}
+          {mounted && (
+            <button
+              type="button"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-red-600 hover:text-red-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-red-400 dark:hover:text-red-400 cursor-pointer"
+              aria-label="Alternar modo oscuro"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          )}
 
           {/* USER */}
           <div className="flex min-w-0 items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">

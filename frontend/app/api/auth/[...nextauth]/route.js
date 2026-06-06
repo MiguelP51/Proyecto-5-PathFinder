@@ -71,6 +71,7 @@ export const authOptions = {
         user.requiereCompletarPerfil = data.requiereCompletarPerfil;
         user.avatarUrl = data.avatarUrl;
         user.backendJwt = data.backendJwt;
+        user.name = data.nombreCompleto || user.name;
 
         console.log("[NextAuth] Login exitoso para:", user.email, "con rol:", user.rol);
         return true;
@@ -91,6 +92,7 @@ export const authOptions = {
         token.avatarUrl = user.avatarUrl;
         token.backendJwt = user.backendJwt;
         token.googleIdToken = account?.id_token;
+        token.name = user.name;
       }
       return token;
     },
@@ -103,6 +105,7 @@ export const authOptions = {
       session.user.avatarUrl = token.avatarUrl;
       session.backendJwt = token.backendJwt;
       session.googleIdToken = token.googleIdToken;
+      session.user.name = token.name;
       return session;
     },
 

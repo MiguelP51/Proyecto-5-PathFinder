@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import styles from "../../styles/PathMentorTopbar.module.css";
 
 interface Props {
@@ -10,6 +12,12 @@ interface Props {
 
 export default function MentorTopBar({ onMenuClick }: Props) {
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const name = session?.user?.name || "Mentor";
   const userImage = session?.user?.image || session?.user?.avatarUrl || "";
@@ -28,6 +36,18 @@ export default function MentorTopBar({ onMenuClick }: Props) {
 
       {/* RIGHT SECTION: Notification + Profile */}
       <div className={styles.rightSection}>
+        {/* THEME TOGGLE */}
+        {mounted && (
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-blue-600 hover:text-blue-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-400 dark:hover:text-blue-400 cursor-pointer mr-3"
+            aria-label="Alternar modo oscuro"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+        )}
+
         {/* Notification Bell */}
         <div className={styles.notification}>
           🔔

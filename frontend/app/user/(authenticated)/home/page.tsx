@@ -38,6 +38,7 @@ export default function StudentDashboard() {
 
   const [studentStatus, setStudentStatus] = useState<EstadoEstudianteResponse | null>(null);
   const [activeInterview, setActiveInterview] = useState<any | null>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -56,6 +57,14 @@ export default function StudentDashboard() {
     try {
       setLoading(true);
       setError("");
+
+      try {
+        const userRes = await apiFetch<any>("/api/users/me", {}, session?.backendJwt);
+        setUserData(userRes);
+      } catch (err) {
+        console.error("Error loading user profile name:", err);
+      }
+
       const data = await apiFetch<EstadoEstudianteResponse>(
         "/api/users/me/status",
         { next: { revalidate: 0 } } as any,
@@ -136,7 +145,7 @@ export default function StudentDashboard() {
         <section className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
-              ¡Hola, {session?.user?.name || "Estudiante"}! 👋
+              ¡Hola, {userData?.name || session?.user?.name || "Estudiante"}! 👋
             </h1>
             <p className="mt-2 text-lg text-slate-600">
               Bienvenido a tu panel de control. Aquí puedes seguir y completar tu ruta de preparación profesional.

@@ -39,6 +39,24 @@ public class EntrevistaController {
         }
     }
 
+    // POST /api/entrevistas/cancelar — Cancelar/Reagendar entrevista activa por el estudiante con motivo
+    @PostMapping("/cancelar")
+    public ResponseEntity<ApiResponse<Void>> cancelar(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody java.util.Map<String, Object> body) {
+        try {
+            String motivo = (String) body.getOrDefault("motivo", "No especificado");
+            Boolean esReagendado = (Boolean) body.getOrDefault("esReagendado", false);
+            entrevistaService.cancelarOReagendarEntrevistaEstudiante(userDetails.getUsername(), motivo, esReagendado);
+            return ResponseEntity.ok(ApiResponse.success("Entrevista procesada correctamente", null));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error cancelando/reagendando entrevista: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al procesar cancelación/reagendamiento: " + e.getMessage()));
+        }
+    }
+
     // GET /api/entrevistas/estudiante — Obtener entrevista activa del estudiante (HU-EST-15 / HU-EST-16)
     @GetMapping("/estudiante")
     public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> getEstudianteInterview(

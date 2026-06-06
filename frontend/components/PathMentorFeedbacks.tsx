@@ -138,7 +138,8 @@ export default function PathMentorFeedbacks() {
     try {
       setLoading(true);
       const data = await apiFetch<any[]>("/api/entrevistas/mentor", {}, session?.backendJwt);
-      const mapped = data.map(item => {
+      const filteredData = data.filter(item => item.estado !== 'Cancelada' && item.estado !== 'Reagendada');
+      const mapped = filteredData.map(item => {
         let statusVal: Feedback['status'] = item.estado === 'Completada' ? 'Publicado' : 'Pendiente';
         let resultVal = item.resultado;
         let fort = "";
@@ -207,10 +208,21 @@ export default function PathMentorFeedbacks() {
   const draftCount = feedbacks.filter((item) => item.status === 'Borrador').length;
   const publishedCount = feedbacks.filter((item) => item.status === 'Publicado').length;
 
+  const normalizeText = (text: string): string => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
+
   const filteredFeedbacks = feedbacks.filter((item) => {
+    const nameNormalized = normalizeText(item.studentName);
+    const emailNormalized = normalizeText(item.studentEmail);
+    const searchNormalized = normalizeText(searchTerm);
+
     const matchesSearch =
-      item.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.studentEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      nameNormalized.includes(searchNormalized) ||
+      emailNormalized.includes(searchNormalized);
 
     const matchesStatus =
       statusFilter === 'Todos' || item.status === statusFilter;

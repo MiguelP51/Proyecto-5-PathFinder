@@ -144,7 +144,7 @@
 .searchInput {
     width: 100%;
     height: 56px;
-    padding: 0 18px 0 48px;
+    padding: 0 18px 0 56px;
     border-radius: 16px;
     border: 1px solid #e2e8f0;
     background-color: #f8fafc;
@@ -266,6 +266,16 @@
 .statusCompletada {
     background: #fdf2f8;
     color: #db2777;
+}
+
+.statusCancelada {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.statusReagendada {
+    background: #fef3c7;
+    color: #d97706;
 }
 
 /* LINK / CAMERA CONTAINER */

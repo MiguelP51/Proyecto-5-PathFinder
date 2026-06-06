@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1e293b;
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --font-montserrat: 'Montserrat', sans-serif;
 }
 
 @theme inline {
@@ -12,15 +21,177 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-montserrat);
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.dark html, .dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* Anulación global de degradados de fondo claros en modo oscuro */
+.dark div.min-h-screen[class*="bg-gradient-"],
+.dark div.min-h-screen,
+.dark .min-h-screen {
+  background-image: none !important;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+.dark .border-slate-200, .dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-50\/50 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+/* Force container backgrounds */
+.dark div.bg-white,
+.dark section.bg-white,
+.dark article.bg-white,
+.dark header.bg-white,
+.dark aside.bg-white,
+.dark main.bg-white,
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark div.bg-white\/95,
+.dark header.bg-white\/95,
+.dark .bg-white\/95 {
+  background-color: rgba(30, 41, 59, 0.95) !important;
+}
+
+/* Force text colors */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #f8fafc !important;
+}
+
+/* Specific dark blue text override */
+.dark .text-slate-900,
+.dark .text-\[\#0e3e66\],
+.dark .text-\[\#0E3E66\] {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Force borders */
+.dark .border,
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+/* Gray backgrounds */
+.dark .bg-slate-50,
+.dark .bg-slate-100\/50,
+.dark .bg-slate-100,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/40,
+.dark .bg-slate-50\/30 {
+  background-color: #0f172a !important;
+}
+
+/* Acordeon / lists inputs hover inside sidebar */
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+/* CSS Modules Dark Mode Support for Mentor panels */
+.dark [class*="PathMentorNavbar_sidebar"],
+.dark [class*="PathMentorNavbar_sidebarCollapsed"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentorNavbar_sidebarHeader"] {
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentorNavbar_collapseButton"] {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="PathMentorNavbar_collapseButton"]:hover {
+  background-color: #475569 !important;
+}
+
+.dark [class*="PathMentorNavbar_link"] {
+  color: #cbd5e1 !important;
+}
+
+.dark [class*="PathMentorNavbar_link"]:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+.dark [class*="PathMentorTopbar_topbar"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentorTopbar_userText"] h3 {
+  color: #f8fafc !important;
+}
+
+.dark [class*="PathMentorTopbar_userText"] p {
+  color: #94a3b8 !important;
+}
+
+.dark [class*="PathMentorTopbar_avatarImg"] {
+  border-color: #334155 !important;
 }
