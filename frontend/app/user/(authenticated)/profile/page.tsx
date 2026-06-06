@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import MentorProfileForm from "@/components/mentor/mentor-profile-form";
+import { toast } from "sonner";
+
 
 // ─── Tipos que devuelve el backend ───────────────────────────────────────────
 
@@ -374,6 +376,41 @@ export default function ProfileSetupPage() {
       setIsProcessingCV(false);
     }
   };
+
+  const handleDownloadCV = async (download: boolean) => {
+    if (!session?.backendJwt) return;
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const response = await fetch(`${backendUrl}/api/cv/download`, {
+        headers: {
+          'Authorization': `Bearer ${session.backendJwt}`
+        }
+      });
+      if (!response.ok) throw new Error("No se pudo descargar el archivo de CV.");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      if (download) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = cvFileName || "CV.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success("CV descargado correctamente.");
+      } else {
+        window.open(url, '_blank');
+      }
+      
+      if (download) {
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      }
+    } catch (err) {
+      console.error("Error al descargar/visualizar mi CV:", err);
+      toast.error(err instanceof Error ? err.message : "Error al descargar o visualizar el CV");
+    }
+  };
+
 
   // ── Guardar CV en BD ───────────────────────────────────────────────────────
   const validateForm = (): boolean => {
@@ -813,6 +850,7 @@ export default function ProfileSetupPage() {
         isEditing={isEditing}
         onToggleEdit={() => setIsEditing(!isEditing)}
         hasSavedProfile={hasSavedProfile}
+        onBackToDashboard={() => router.push("/user/home")}
       />
 
       <main className="container mx-auto px-4 py-8 md:px-6">
@@ -869,6 +907,7 @@ export default function ProfileSetupPage() {
               cvUploaded={cvUploaded}
               cvFileName={cvFileName}
               disabled={!isEditing}
+              onDownloadCV={handleDownloadCV}
             />
 
             <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-[#0E3E66] to-[#643781] p-6 text-white shadow-sm">

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
+
 export function ProfileHeader({
   onSave,
   onSkip,
@@ -15,6 +16,7 @@ export function ProfileHeader({
   onToggleEdit,
   hasSavedProfile = false,
   hideSkip = false,
+  onBackToDashboard,
 }: {
   onSave: () => void;
   onSkip: () => void;
@@ -28,6 +30,7 @@ export function ProfileHeader({
   onToggleEdit?: () => void;
   hasSavedProfile?: boolean;
   hideSkip?: boolean;
+  onBackToDashboard?: () => void;
 }) {
   return (
     <header className="sticky top-16 z-20 w-full border-b border-slate-200 bg-white/95 backdrop-blur py-3 transition-all duration-300">
@@ -41,6 +44,17 @@ export function ProfileHeader({
 
           {/* Acciones */}
           <div className="flex items-center gap-3">
+            {onBackToDashboard && (
+              <Button
+                variant="outline"
+                onClick={onBackToDashboard}
+                className="border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-semibold"
+                disabled={isSaving || isConfirming}
+              >
+                Volver al Dashboard
+              </Button>
+            )}
+
             {hasSavedProfile ? (
               isEditing ? (
                 <>

@@ -683,3 +683,18 @@
         gap: 6px;
     }
 }
+
+.modalContentDetail {
+    width: 1200px !important;
+    max-width: 95% !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.panelsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+

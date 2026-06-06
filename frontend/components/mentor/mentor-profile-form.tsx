@@ -245,6 +245,7 @@ export default function MentorProfileForm() {
         onSkip={() => router.push("/mentor/home")}
         isSaving={isSaving}
         hideSkip
+        onBackToDashboard={() => router.push("/mentor/home")}
       />
 
       <main className="container mx-auto px-4 py-8 md:px-6">

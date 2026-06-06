@@ -12,6 +12,8 @@ import com.pathfinder.repository.DisponibilidadMentorRepository;
 import com.pathfinder.repository.ConfiguracionDisponibilidadMentorRepository;
 import com.pathfinder.repository.EntrevistaRepository;
 import com.pathfinder.repository.UsuarioRepository;
+import com.pathfinder.repository.FeriadoRepository;
+
 import com.pathfinder.service.DisponibilidadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,8 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
     private final ConfiguracionDisponibilidadMentorRepository configuracionRepository;
     private final EntrevistaRepository entrevistaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final FeriadoRepository feriadoRepository;
+
 
     @Override
     public List<DisponibilidadDTO> obtenerDisponibilidadMentor(String correoMentor) {
@@ -95,8 +99,7 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
 
     @Override
     public List<MentorDisponibilidadDTO> obtenerMentoresDisponibles() {
-        List<DisponibilidadMentor> disp = disponibilidadRepository.findByActivoTrue();
-        Set<Usuario> mentores = disp.stream().map(DisponibilidadMentor::getMentor).collect(Collectors.toSet());
+        List<Usuario> mentores = usuarioRepository.findByRolAndActivoTrue(RolUsuario.MENTOR);
 
         return mentores.stream()
                 .map(m -> MentorDisponibilidadDTO.builder()
@@ -111,8 +114,15 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
     @Override
     public List<String> obtenerSlotsDisponibles(Integer idMentor, String fechaStr) {
         LocalDate fecha = LocalDate.parse(fechaStr);
+        
+        if (feriadoRepository.existsByFechaAndActivoTrue(fecha)) {
+            log.info("La fecha {} es feriado nacional. No se generan slots de disponibilidad.", fechaStr);
+            return Collections.emptyList();
+        }
+
         DayOfWeek dayOfWeek = fecha.getDayOfWeek();
         String diaSemana = translateDayOfWeek(dayOfWeek);
+
 
         // Recuperar la configuración del mentor (o aplicar defaults)
         ConfiguracionDisponibilidadMentor config = configuracionRepository.findByMentor_IdUsuarioAndActivoTrue(idMentor)

@@ -4,6 +4,7 @@ import styles from '../styles/Availability.module.css';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TIME_SLOTS = [
@@ -98,12 +99,12 @@ export default function AvailabilityPage() {
 
   const handleSaveAll = async () => {
     if (!session?.backendJwt) {
-      alert("Debes iniciar sesión para guardar tu disponibilidad.");
+      toast.error("Debes iniciar sesión para guardar tu disponibilidad.");
       return;
     }
 
     if (blocks.length === 0) {
-      alert("Debes agregar al menos un bloque de disponibilidad.");
+      toast.warning("Debes agregar al menos un bloque de disponibilidad.");
       return;
     }
 
@@ -114,7 +115,7 @@ export default function AvailabilityPage() {
     });
 
     if (hasInvalid) {
-      alert("Por favor, corrige o elimina los bloques de disponibilidad marcados como inválidos antes de guardar.");
+      toast.warning("Por favor, corrige o elimina los bloques de disponibilidad marcados como inválidos antes de guardar.");
       return;
     }
 
@@ -128,7 +129,7 @@ export default function AvailabilityPage() {
 
     const hasExceeded = Object.keys(dailySlots).some(day => dailySlots[day] > maxEntrevistas);
     if (hasExceeded) {
-      alert("Por favor, ajusta tus bloques. El total de entrevistas para uno o más días supera el límite diario permitido.");
+      toast.warning("Por favor, ajusta tus bloques. El total de entrevistas para uno o más días supera el límite diario permitido.");
       return;
     }
 
@@ -160,11 +161,11 @@ export default function AvailabilityPage() {
         body: JSON.stringify(payload)
       }, session?.backendJwt);
 
-      alert("¡Configuración y disponibilidad guardadas con éxito!");
+      toast.success("¡Configuración y disponibilidad guardadas con éxito!");
       loadAvailability();
     } catch (err) {
       console.error("Error guardando disponibilidad:", err);
-      alert("Error al guardar disponibilidad: " + (err instanceof Error ? err.message : err));
+      toast.error("Error al guardar disponibilidad: " + (err instanceof Error ? err.message : err));
     }
   };
 
@@ -674,12 +675,12 @@ export default function AvailabilityPage() {
                                     onClick={() => {
                                         // Simple validation
                                         if (startTime >= endTime) {
-                                            alert("La hora de inicio debe ser anterior a la hora de fin.");
+                                            toast.error("La hora de inicio debe ser anterior a la hora de fin.");
                                             return;
                                         }
 
                                         if (detectarCruceDeBloques(selectedDay, startTime, endTime, blocks)) {
-                                            alert("Este bloque de tiempo se cruza con un bloque ya existente.");
+                                            toast.error("Este bloque de tiempo se cruza con un bloque ya existente.");
                                             return;
                                         }
                                         

@@ -10,6 +10,7 @@ interface CVUploadSectionProps {
   cvUploaded?: boolean;
   cvFileName?: string;
   disabled?: boolean;
+  onDownloadCV?: (download: boolean) => void;
 }
 
 export function CVUploadSection({
@@ -18,6 +19,7 @@ export function CVUploadSection({
   cvUploaded = false,
   cvFileName,
   disabled = false,
+  onDownloadCV,
 }: CVUploadSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -107,13 +109,31 @@ export function CVUploadSection({
               </p>
             )}
           </div>
+          {onDownloadCV && (
+            <div className="flex flex-wrap justify-center gap-2 mt-1">
+              <Button
+                variant="outline"
+                onClick={() => onDownloadCV(false)}
+                className="border-[#0E3E66] text-[#0E3E66] hover:bg-slate-50 text-xs py-1 h-7 font-semibold"
+              >
+                Ver CV (PDF)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onDownloadCV(true)}
+                className="border-[#0E3E66] text-[#0E3E66] hover:bg-slate-50 text-xs py-1 h-7 font-semibold"
+              >
+                Descargar CV
+              </Button>
+            </div>
+          )}
           {!disabled && (
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-2 border-green-600 text-green-600 hover:bg-green-50"
+              className="mt-1 border-green-600 text-green-600 hover:bg-green-50 text-xs py-1 h-7"
             >
-              <FileText className="mr-2 h-4 w-4" />
+              <FileText className="mr-2 h-3.5 w-3.5" />
               Cambiar CV
             </Button>
           )}

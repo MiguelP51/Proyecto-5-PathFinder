@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -16,12 +16,18 @@ import {
   ChevronRight
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Mentor {
   idUsuario: number;
   nombreCompleto: string;
   correo: string;
   avatarUrl: string;
+}
+
+interface HolidayDTO {
+  fecha: string;
+  descripcion: string;
 }
 
 export default function SimulationSchedulePage() {
@@ -31,10 +37,20 @@ export default function SimulationSchedulePage() {
   // Data states
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  
+  // Date range states
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [rangeSlots, setRangeSlots] = useState<{ [date: string]: string[] }>({});
+  
+  // Selected single slot states (populated on clicking a slot button)
   const [selectedDate, setSelectedDate] = useState("");
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [modality, setModality] = useState<"virtual" | "presencial">("virtual");
+
+  // Holiday states
+  const [holidays, setHolidays] = useState<string[]>([]);
+  const [holidayMap, setHolidayMap] = useState<{ [date: string]: string }>({});
 
   // UX states
   const [loadingMentors, setLoadingMentors] = useState(true);
@@ -42,17 +58,49 @@ export default function SimulationSchedulePage() {
   const [scheduling, setScheduling] = useState(false);
   const [error, setError] = useState("");
 
-  // Min date is tomorrow, max date is 14 days from now
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split("T")[0];
   };
 
-  const getMaxDate = () => {
-    const future = new Date();
-    future.setDate(future.getDate() + 14);
-    return future.toISOString().split("T")[0];
+  const formatSpanishDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr + "T00:00:00");
+      return date.toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const validateDates = (start: string, end: string): boolean => {
+    if (!start || !end) return true;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startD = new Date(start + "T00:00:00");
+    const endD = new Date(end + "T00:00:00");
+
+    const maxD = new Date();
+    maxD.setDate(today.getDate() + 365);
+    maxD.setHours(23, 59, 59, 999);
+
+    if (startD > maxD || endD > maxD) {
+      toast.warning("No es viable programar citas con más de un año de anticipación.");
+      return false;
+    }
+    
+    if (endD < startD) {
+      toast.warning("La fecha fin no puede ser anterior a la fecha inicio.");
+      return false;
+    }
+    
+    return true;
   };
 
   useEffect(() => {
@@ -62,6 +110,19 @@ export default function SimulationSchedulePage() {
     }
     if (status === "authenticated" && session?.backendJwt) {
       loadMentors();
+      loadHolidays();
+
+      // Default range: tomorrow until 7 days later
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const startStr = tomorrow.toISOString().split("T")[0];
+
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const endStr = nextWeek.toISOString().split("T")[0];
+
+      setStartDate(startStr);
+      setEndDate(endStr);
     }
   }, [status, session]);
 
@@ -82,28 +143,80 @@ export default function SimulationSchedulePage() {
     }
   };
 
-  useEffect(() => {
-    if (selectedMentor && selectedDate && session?.backendJwt) {
-      loadSlots(selectedMentor.idUsuario, selectedDate);
-    } else {
-      setAvailableSlots([]);
-      setSelectedSlot("");
+  const loadHolidays = async () => {
+    try {
+      const data = await apiFetch<HolidayDTO[]>("/api/feriados", {}, session?.backendJwt);
+      const dates = data.map(h => h.fecha);
+      const mapping: { [date: string]: string } = {};
+      data.forEach(h => {
+        mapping[h.fecha] = h.descripcion;
+      });
+      setHolidays(dates);
+      setHolidayMap(mapping);
+    } catch (err) {
+      console.error("Error cargando feriados:", err);
     }
-  }, [selectedMentor, selectedDate]);
+  };
 
-  const loadSlots = async (mentorId: number, dateStr: string) => {
+  useEffect(() => {
+    if (selectedMentor && startDate && endDate && session?.backendJwt) {
+      loadSlotsForRange(selectedMentor.idUsuario, startDate, endDate);
+    } else {
+      setRangeSlots({});
+    }
+  }, [selectedMentor, startDate, endDate]);
+
+  const loadSlotsForRange = async (mentorId: number, start: string, end: string) => {
+    if (!validateDates(start, end)) {
+      setRangeSlots({});
+      return;
+    }
+
     try {
       setLoadingSlots(true);
-      setSelectedSlot("");
-      const data = await apiFetch<string[]>(
-        `/api/disponibilidad/estudiante/mentores/${mentorId}/slots?fecha=${dateStr}`,
-        {},
-        session?.backendJwt
+      setError("");
+
+      const startLocalDate = new Date(start + "T00:00:00");
+      const endLocalDate = new Date(end + "T00:00:00");
+      const diffTime = Math.abs(endLocalDate.getTime() - startLocalDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      if (diffDays > 30) {
+        toast.warning("El rango de fechas no puede ser mayor a 30 días.");
+        setRangeSlots({});
+        return;
+      }
+
+      const dateList: string[] = [];
+      for (let i = 0; i < diffDays; i++) {
+        const currentDate = new Date(startLocalDate);
+        currentDate.setDate(startLocalDate.getDate() + i);
+        dateList.push(currentDate.toISOString().split("T")[0]);
+      }
+
+      const newRangeSlots: { [date: string]: string[] } = {};
+
+      await Promise.all(
+        dateList.map(async (dateStr) => {
+          try {
+            const data = await apiFetch<string[]>(
+              `/api/disponibilidad/estudiante/mentores/${mentorId}/slots?fecha=${dateStr}`,
+              {},
+              session?.backendJwt
+            );
+            if (data && data.length > 0) {
+              newRangeSlots[dateStr] = data;
+            }
+          } catch (err) {
+            console.error(`Error loading slots for ${dateStr}:`, err);
+          }
+        })
       );
-      setAvailableSlots(data);
+
+      setRangeSlots(newRangeSlots);
     } catch (err) {
-      console.error("Error cargando slots:", err);
-      setAvailableSlots([]);
+      console.error("Error loading range slots:", err);
+      setRangeSlots({});
     } finally {
       setLoadingSlots(false);
     }
@@ -111,7 +224,12 @@ export default function SimulationSchedulePage() {
 
   const handleSchedule = async () => {
     if (!selectedMentor || !selectedDate || !selectedSlot || !session?.backendJwt) {
-      alert("Por favor completa todos los campos del formulario.");
+      toast.warning("Por favor completa todos los campos del formulario.");
+      return;
+    }
+
+    if (holidays.includes(selectedDate)) {
+      toast.warning("La fecha seleccionada es feriado nacional. No se puede programar en este día.");
       return;
     }
 
@@ -128,7 +246,7 @@ export default function SimulationSchedulePage() {
         })
       }, session?.backendJwt);
 
-      alert("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
+      toast.success("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
       router.push("/user/home");
     } catch (err) {
       console.error("Error agendando entrevista:", err);
@@ -199,7 +317,11 @@ export default function SimulationSchedulePage() {
                   {mentors.map((mentor) => (
                     <button
                       key={mentor.idUsuario}
-                      onClick={() => setSelectedMentor(mentor)}
+                      onClick={() => {
+                        setSelectedMentor(mentor);
+                        setSelectedDate("");
+                        setSelectedSlot("");
+                      }}
                       className={`flex items-center gap-4 p-4 rounded-xl border text-left transition cursor-pointer ${
                         selectedMentor?.idUsuario === mentor.idUsuario
                           ? "border-[#7447D7] bg-purple-50/20 ring-1 ring-purple-100"
@@ -220,21 +342,41 @@ export default function SimulationSchedulePage() {
                 </div>
               </div>
 
-              {/* 2. Seleccionar Fecha */}
+              {/* 2. Seleccionar Rango de Fechas */}
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-black text-[#7447D7]">2</span>
-                  Elige la Fecha
+                  Rango de Fechas
                 </h2>
-                <div className="max-w-xs relative">
-                  <input
-                    type="date"
-                    min={getMinDate()}
-                    max={getMaxDate()}
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#7447D7] bg-white text-slate-800"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 block uppercase">Desde</label>
+                    <input
+                      type="date"
+                      min={getMinDate()}
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setSelectedDate("");
+                        setSelectedSlot("");
+                      }}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#7447D7] bg-white text-slate-800"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 block uppercase">Hasta</label>
+                    <input
+                      type="date"
+                      min={startDate || getMinDate()}
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setSelectedDate("");
+                        setSelectedSlot("");
+                      }}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#7447D7] bg-white text-slate-800"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -242,41 +384,68 @@ export default function SimulationSchedulePage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-md font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-black text-[#7447D7]">3</span>
-                  Selecciona la Hora
+                  Selecciona la Fecha y Hora
                 </h2>
                 <p className="text-xs text-slate-500 mb-4">
-                  * Duración estimada de la sesión: 60 minutos.
+                  * Selecciona uno de los horarios libres en el rango indicado. Duración de la sesión: 60 minutos.
                 </p>
 
-                {!selectedDate ? (
-                  <p className="text-sm text-slate-400 font-medium italic">
-                    Selecciona una fecha primero para ver los horarios disponibles.
-                  </p>
-                ) : loadingSlots ? (
-                  <div className="flex items-center gap-2 text-slate-500 text-sm">
+                {loadingSlots ? (
+                  <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
                     <Loader2 className="h-4 w-4 animate-spin text-[#7447D7]" />
-                    Cargando horarios disponibles...
+                    Cargando horarios disponibles en el rango...
                   </div>
-                ) : availableSlots.length === 0 ? (
+                ) : Object.keys(rangeSlots).length === 0 ? (
                   <p className="text-sm text-amber-600 font-medium bg-amber-50 border border-amber-100 p-3 rounded-xl">
-                    No hay horarios disponibles para esta fecha. Intenta con otro día u otro mentor.
+                    No hay horarios disponibles en este rango de fechas. Intenta con otras fechas u otro mentor.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-4 gap-3">
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`h-10 rounded-xl border text-sm font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                          selectedSlot === slot
-                            ? "bg-[#7447D7] border-[#7447D7] text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        <Clock className="h-3.5 w-3.5" />
-                        {slot}
-                      </button>
-                    ))}
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                    {Object.keys(rangeSlots).sort().map((dateStr) => {
+                      const slots = rangeSlots[dateStr];
+                      const isHolidayDate = holidays.includes(dateStr);
+                      const holidayDesc = holidayMap[dateStr];
+                      
+                      return (
+                        <div key={dateStr} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                          <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-2">
+                            📅 {formatSpanishDate(dateStr)}
+                            {isHolidayDate && (
+                              <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                                Feriado: {holidayDesc}
+                              </span>
+                            )}
+                          </h4>
+                          
+                          {isHolidayDate ? (
+                            <p className="text-xs text-red-500 italic">Día no laborable por feriado.</p>
+                          ) : (
+                            <div className="grid grid-cols-4 gap-2">
+                              {slots.map((slot) => {
+                                const isSelected = selectedDate === dateStr && selectedSlot === slot;
+                                return (
+                                  <button
+                                    key={slot}
+                                    onClick={() => {
+                                      setSelectedDate(dateStr);
+                                      setSelectedSlot(slot);
+                                    }}
+                                    className={`h-9 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                      isSelected
+                                        ? "bg-[#7447D7] border-[#7447D7] text-white"
+                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                                    }`}
+                                  >
+                                    <Clock className="h-3 w-3" />
+                                    {slot}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

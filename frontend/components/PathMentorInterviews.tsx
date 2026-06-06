@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
 import styles from '../styles/PathMentorInterviews.module.css';
+import { toast } from 'sonner';
+
 
 interface Interview {
   id: number;
@@ -232,6 +234,25 @@ export default function PathMentorInterviews() {
     }
   };
 
+  const viewCV = async (email: string) => {
+    if (!session?.backendJwt) return;
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const response = await fetch(`${backendUrl}/api/cv/download/${email}`, {
+        headers: {
+          'Authorization': `Bearer ${session.backendJwt}`
+        }
+      });
+      if (!response.ok) throw new Error("No se pudo descargar el archivo");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error("Error al visualizar CV:", err);
+      toast.error("Error al visualizar el archivo en formato PDF");
+    }
+  };
+
   const downloadCV = async (email: string, studentName: string) => {
     if (!session?.backendJwt) return;
     try {
@@ -251,11 +272,13 @@ export default function PathMentorInterviews() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      toast.success("CV descargado correctamente.");
     } catch (err) {
       console.error("Error al descargar CV:", err);
-      alert("Error al descargar el archivo en formato PDF");
+      toast.error("Error al descargar el archivo en formato PDF");
     }
   };
+
 
   // Calculate Metrics Card Values Dynamically
   const totalCount = interviews.length;
@@ -299,12 +322,12 @@ export default function PathMentorInterviews() {
           body: JSON.stringify({ virtualLink: meetingLinkInput.trim() })
         }, session?.backendJwt);
         
-        alert("Enlace virtual guardado y enviado al estudiante por correo.");
+        toast.success("Enlace virtual guardado y enviado al estudiante por correo.");
         setIsModalOpen(false);
         loadInterviews();
       } catch (err) {
         console.error("Error guardando enlace:", err);
-        alert("Error al guardar enlace: " + (err instanceof Error ? err.message : err));
+        toast.error("Error al guardar enlace: " + (err instanceof Error ? err.message : err));
       }
     }
   };
@@ -526,7 +549,7 @@ export default function PathMentorInterviews() {
       {/* DETAIL MODAL */}
       {isDetailModalOpen && selectedDetailInterview && (
         <div className={styles.modalOverlay} onClick={() => setIsDetailModalOpen(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={`${styles.modalContent} ${styles.modalContentDetail}`} onClick={(e) => e.stopPropagation()}>
             <button className={styles.modalCloseButton} onClick={() => setIsDetailModalOpen(false)}>
               &times;
             </button>
@@ -597,23 +620,38 @@ export default function PathMentorInterviews() {
                  <div className={styles.detailCardText}>
                    {selectedDetailInterview.cvAvailable ? 'CV disponible' : 'CV no registrado'}
                  </div>
-                  <button 
-                    className={styles.btnCardAction} 
-                    disabled={!selectedDetailInterview.cvAvailable}
-                    onClick={() => setShowCVDetails(!showCVDetails)}
-                  >
-                    {showCVDetails ? 'Ocultar CV' : 'Ver CV Completo'}
-                  </button>
-                  {selectedDetailInterview.cvAvailable && (
-                    <button 
-                      className={styles.btnCardAction}
-                      style={{ marginTop: '8px', backgroundColor: '#0E3E66', color: 'white' }}
-                      onClick={() => downloadCV(selectedDetailInterview.studentEmail, selectedDetailInterview.studentName)}
-                    >
-                      Descargar CV (PDF)
-                    </button>
-                  )}
-                </div>
+                 <button 
+                   className={styles.btnCardAction} 
+                   disabled={!selectedDetailInterview.cvAvailable}
+                   onClick={() => setShowCVDetails(!showCVDetails)}
+                 >
+                   {showCVDetails ? 'Ocultar CV' : 'Ver CV Completo'}
+                 </button>
+                 {selectedDetailInterview.cvAvailable && (
+                   <div className="flex gap-2 w-full">
+                     <button 
+                       className={styles.btnCardAction}
+                       style={{ marginTop: '8px', backgroundColor: '#643781', color: 'white', flex: 1 }}
+                       onClick={() => {
+                         try {
+                           viewCV(selectedDetailInterview.studentEmail);
+                         } catch (err) {
+                           toast.error("No se pudo abrir el CV");
+                         }
+                       }}
+                     >
+                       Ver PDF
+                     </button>
+                     <button 
+                       className={styles.btnCardAction}
+                       style={{ marginTop: '8px', backgroundColor: '#0E3E66', color: 'white', flex: 1 }}
+                       onClick={() => downloadCV(selectedDetailInterview.studentEmail, selectedDetailInterview.studentName)}
+                     >
+                       Descargar PDF
+                     </button>
+                   </div>
+                 )}
+               </div>
  
                <div className={styles.detailCard}>
                  <h3 className={styles.sectionHeader}>
@@ -637,120 +675,125 @@ export default function PathMentorInterviews() {
                </div>
              </div>
 
-             {/* CV DETAILED PANEL */}
-             {showCVDetails && (
-               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', maxHeight: '350px', overflowY: 'auto' }}>
-                 {loadingProfile ? (
-                   <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando perfil del estudiante...</p>
-                 ) : selectedStudentProfile ? (
-                   <div>
-                     <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px' }}>Perfil Profesional</h3>
-                     <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Contacto:</strong> {selectedStudentProfile.celular || 'No registrado'} | {selectedStudentProfile.correoContacto || 'No registrado'}</p>
-                     <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Ubicación:</strong> {selectedStudentProfile.distrito || ''}, {selectedStudentProfile.provincia || ''}</p>
-                     {selectedStudentProfile.linkedinUrl && (
-                       <p style={{ fontSize: '13px', color: '#475569', marginBottom: '10px' }}>
-                         <strong>LinkedIn:</strong> <a href={selectedStudentProfile.linkedinUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>{selectedStudentProfile.linkedinUrl}</a>
-                       </p>
-                     )}
-                     <p style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', backgroundColor: '#ffffff', padding: '10px', borderRadius: '6px', border: '1px solid #f1f5f9', marginTop: '10px' }}>
-                       {selectedStudentProfile.perfilProfesional || 'Sin descripción profesional registrada.'}
-                     </p>
-
-                     {selectedStudentProfile.experiencias && selectedStudentProfile.experiencias.length > 0 && (
-                       <div style={{ marginTop: '15px' }}>
-                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Experiencia Laboral</h4>
-                         {selectedStudentProfile.experiencias.map((exp: any, idx: number) => (
-                           <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
-                             <div style={{ display: 'flex', justifyContent: 'between', fontWeight: 'bold', color: '#334155' }}>
-                               <span>{exp.cargo}</span>
-                               <span style={{ margin: '0 8px', color: '#94a3b8' }}>|</span>
-                               <span>{exp.empresa}</span>
-                             </div>
-                             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{exp.fechaInicio} - {exp.fechaFin || 'Presente'}</div>
-                             <p style={{ color: '#475569', margin: 0 }}>{exp.funcionesRealizadas}</p>
-                             {exp.logrosResultados && <p style={{ color: '#475569', fontSize: '12px', fontStyle: 'italic', margin: 0 }}>Logros: {exp.logrosResultados}</p>}
-                           </div>
-                         ))}
-                       </div>
-                     )}
-
-                     {selectedStudentProfile.formaciones && selectedStudentProfile.formaciones.length > 0 && (
-                       <div style={{ marginTop: '15px' }}>
-                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Educación</h4>
-                         {selectedStudentProfile.formaciones.map((edu: any, idx: number) => (
-                           <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
-                             <div style={{ fontWeight: 'bold', color: '#334155' }}>{edu.carrera}</div>
-                             <div style={{ color: '#475569' }}>{edu.institucion}</div>
-                             <div style={{ fontSize: '11px', color: '#64748b' }}>{edu.fechaInicio} - {edu.fechaFin || 'En curso'}</div>
-                           </div>
-                         ))}
-                       </div>
-                     )}
-
-                     {selectedStudentProfile.habilidades && selectedStudentProfile.habilidades.length > 0 && (
-                       <div style={{ marginTop: '15px' }}>
-                         <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Habilidades</h4>
-                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                           {selectedStudentProfile.habilidades.map((hab: any, idx: number) => (
-                             <span key={idx} style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontWeight: '500' }}>
-                               {hab.nombre} ({hab.nivel})
-                             </span>
-                           ))}
-                         </div>
-                       </div>
-                     )}
-                   </div>
-                 ) : (
-                   <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el perfil del estudiante.</p>
-                 )}
-               </div>
-             )}
-
-             {/* DISC DETAILED PANEL */}
-             {showDISCDetails && (
-               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #f3e8ff', maxHeight: '350px', overflowY: 'auto' }}>
-                 {loadingDISC ? (
-                   <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando análisis DISC...</p>
-                 ) : selectedStudentDISC ? (
-                   <div>
-                     <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '5px' }}>
-                       Análisis DISC: {selectedStudentDISC.nombrePerfil} (Dominancia: {selectedStudentDISC.porcentajeD}%, Influencia: {selectedStudentDISC.porcentajeI}%, Estabilidad: {selectedStudentDISC.porcentajeS}%, Conciencia: {selectedStudentDISC.porcentajeC}%)
-                     </h3>
-                     <p style={{ fontSize: '13px', color: '#581c87', marginBottom: '15px', lineHeight: '1.5' }}>{selectedStudentDISC.descripcion}</p>
-
-                     {/* BAR CHART SIMULATION */}
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
-                       {[
-                         { label: 'D - Decisión', value: selectedStudentDISC.porcentajeD, color: '#ef4444' },
-                         { label: 'I - Influencia', value: selectedStudentDISC.porcentajeI, color: '#eab308' },
-                         { label: 'S - Estabilidad', value: selectedStudentDISC.porcentajeS, color: '#22c55e' },
-                         { label: 'C - Cumplimiento', value: selectedStudentDISC.porcentajeC, color: '#3b82f6' }
-                       ].map((item, idx) => (
-                         <div key={idx} style={{ fontSize: '12px' }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563', marginBottom: '3px' }}>
-                             <span style={{ fontWeight: '500' }}>{item.label}</span>
-                             <span>{item.value}%</span>
-                           </div>
-                           <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                             <div style={{ width: `${item.value}%`, height: '100%', backgroundColor: item.color, borderRadius: '4px' }}></div>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-
-                     {selectedStudentDISC.fortalezas && selectedStudentDISC.fortalezas.length > 0 && (
+             {/* DETAILED PANELS GRID */}
+             {(showCVDetails || showDISCDetails) && (
+               <div className={styles.panelsGrid}>
+                 {/* CV DETAILED PANEL */}
+                 {showCVDetails && (
+                   <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', maxHeight: '400px', overflowY: 'auto' }}>
+                     {loadingProfile ? (
+                       <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando perfil del estudiante...</p>
+                     ) : selectedStudentProfile ? (
                        <div>
-                         <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '6px' }}>Fortalezas Clave</h4>
-                         <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: '#4a044e', lineHeight: '1.4' }}>
-                           {selectedStudentDISC.fortalezas.map((fort: string, idx: number) => (
-                             <li key={idx} style={{ marginBottom: '4px' }}>{fort}</li>
-                           ))}
-                         </ul>
+                         <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px' }}>Perfil Profesional</h3>
+                         <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Contacto:</strong> {selectedStudentProfile.celular || 'No registrado'} | {selectedStudentProfile.correoContacto || 'No registrado'}</p>
+                         <p style={{ fontSize: '13px', color: '#475569', marginBottom: '5px' }}><strong>Ubicación:</strong> {selectedStudentProfile.distrito || ''}, {selectedStudentProfile.provincia || ''}</p>
+                         {selectedStudentProfile.linkedinUrl && (
+                           <p style={{ fontSize: '13px', color: '#475569', marginBottom: '10px' }}>
+                             <strong>LinkedIn:</strong> <a href={selectedStudentProfile.linkedinUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>{selectedStudentProfile.linkedinUrl}</a>
+                           </p>
+                         )}
+                         <p style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', backgroundColor: '#ffffff', padding: '10px', borderRadius: '6px', border: '1px solid #f1f5f9', marginTop: '10px' }}>
+                           {selectedStudentProfile.perfilProfesional || 'Sin descripción profesional registrada.'}
+                         </p>
+
+                         {selectedStudentProfile.experiencias && selectedStudentProfile.experiencias.length > 0 && (
+                           <div style={{ marginTop: '15px' }}>
+                             <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Experiencia Laboral</h4>
+                             {selectedStudentProfile.experiencias.map((exp: any, idx: number) => (
+                               <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
+                                 <div style={{ display: 'flex', justifyContent: 'between', fontWeight: 'bold', color: '#334155' }}>
+                                   <span>{exp.cargo}</span>
+                                   <span style={{ margin: '0 8px', color: '#94a3b8' }}>|</span>
+                                   <span>{exp.empresa}</span>
+                                 </div>
+                                 <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{exp.fechaInicio} - {exp.fechaFin || 'Presente'}</div>
+                                 <p style={{ color: '#475569', margin: 0 }}>{exp.funcionesRealizadas}</p>
+                                 {exp.logrosResultados && <p style={{ color: '#475569', fontSize: '12px', fontStyle: 'italic', margin: 0 }}>Logros: {exp.logrosResultados}</p>}
+                               </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {selectedStudentProfile.formaciones && selectedStudentProfile.formaciones.length > 0 && (
+                           <div style={{ marginTop: '15px' }}>
+                             <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>Educación</h4>
+                             {selectedStudentProfile.formaciones.map((edu: any, idx: number) => (
+                               <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
+                                 <div style={{ fontWeight: 'bold', color: '#334155' }}>{edu.carrera}</div>
+                                 <div style={{ color: '#475569' }}>{edu.institucion}</div>
+                                 <div style={{ fontSize: '11px', color: '#64748b' }}>{edu.fechaInicio} - {edu.fechaFin || 'En curso'}</div>
+                                </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {selectedStudentProfile.habilidades && selectedStudentProfile.habilidades.length > 0 && (
+                           <div style={{ marginTop: '15px' }}>
+                             <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Habilidades</h4>
+                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                               {selectedStudentProfile.habilidades.map((hab: any, idx: number) => (
+                                 <span key={idx} style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontWeight: '500' }}>
+                                   {hab.nombre} ({hab.nivel})
+                                 </span>
+                               ))}
+                             </div>
+                           </div>
+                         )}
                        </div>
+                     ) : (
+                       <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el perfil del estudiante.</p>
                      )}
                    </div>
-                 ) : (
-                   <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el análisis DISC del estudiante.</p>
+                 )}
+
+                 {/* DISC DETAILED PANEL */}
+                 {showDISCDetails && (
+                   <div style={{ padding: '20px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #f3e8ff', maxHeight: '400px', overflowY: 'auto' }}>
+                     {loadingDISC ? (
+                       <p style={{ textAlign: 'center', color: '#64748b' }}>Cargando análisis DISC...</p>
+                     ) : selectedStudentDISC ? (
+                       <div>
+                         <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '5px' }}>
+                           Análisis DISC: {selectedStudentDISC.nombrePerfil} (Dominancia: {selectedStudentDISC.porcentajeD}%, Influencia: {selectedStudentDISC.porcentajeI}%, Estabilidad: {selectedStudentDISC.porcentajeS}%, Conciencia: {selectedStudentDISC.porcentajeC}%)
+                         </h3>
+                         <p style={{ fontSize: '13px', color: '#581c87', marginBottom: '15px', lineHeight: '1.5' }}>{selectedStudentDISC.descripcion}</p>
+
+                         {/* BAR CHART SIMULATION */}
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+                           {[
+                             { label: 'D - Decisión', value: selectedStudentDISC.porcentajeD, color: '#ef4444' },
+                             { label: 'I - Influencia', value: selectedStudentDISC.porcentajeI, color: '#eab308' },
+                             { label: 'S - Estabilidad', value: selectedStudentDISC.porcentajeS, color: '#22c55e' },
+                             { label: 'C - Cumplimiento', value: selectedStudentDISC.porcentajeC, color: '#3b82f6' }
+                           ].map((item, idx) => (
+                             <div key={idx} style={{ fontSize: '12px' }}>
+                               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563', marginBottom: '3px' }}>
+                                 <span style={{ fontWeight: '500' }}>{item.label}</span>
+                                 <span>{item.value}%</span>
+                               </div>
+                               <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                 <div style={{ width: `${item.value}%`, height: '100%', backgroundColor: item.color, borderRadius: '4px' }}></div>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+
+                         {selectedStudentDISC.fortalezas && selectedStudentDISC.fortalezas.length > 0 && (
+                           <div>
+                             <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b21a8', marginBottom: '6px' }}>Fortalezas Clave</h4>
+                             <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: '#4a044e', lineHeight: '1.4' }}>
+                               {selectedStudentDISC.fortalezas.map((fort: string, idx: number) => (
+                                 <li key={idx} style={{ marginBottom: '4px' }}>{fort}</li>
+                               ))}
+                             </ul>
+                           </div>
+                         )}
+                       </div>
+                     ) : (
+                       <p style={{ textAlign: 'center', color: '#64748b' }}>No se pudo cargar el análisis DISC del estudiante.</p>
+                     )}
+                   </div>
                  )}
                </div>
              )}

@@ -29,6 +29,8 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     private final ResultadoDISCRepository resultadoDISCRepository;
     private final PerfilCVRepository perfilCVRepository;
     private final EmailService emailService;
+    private final FeriadoRepository feriadoRepository;
+
 
     @Override
     @Transactional
@@ -51,7 +53,13 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
         LocalDate fecha = LocalDate.parse(request.getFecha());
 
+        // Validar si la fecha es feriado
+        if (feriadoRepository.existsByFechaAndActivoTrue(fecha)) {
+            throw new IllegalStateException("La fecha seleccionada es un día feriado nacional y no laborable.");
+        }
+
         // Validar colisión de horario para el mentor
+
         boolean colision = entrevistaRepository.existsByMentor_IdUsuarioAndFechaAndHoraAndActivoTrue(mentor.getIdUsuario(), fecha, request.getHora());
         if (colision) {
             throw new IllegalStateException("El horario seleccionado ya no está disponible con este mentor");
