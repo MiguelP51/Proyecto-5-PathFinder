@@ -46,6 +46,16 @@ interface DashboardResumenResponse {
   }>;
 }
 
+interface EntrevistaProximaResponse {
+  idEntrevista: number;
+  mentorNombre: string;
+  fecha: string;
+  hora: string;
+  tipo: string;
+  estado: string;
+  virtualLink: string | null;
+}
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -136,6 +146,8 @@ const habilidadesMock = [
   { nombre: "Metodologías Ágiles", nivel: 2, progreso: 2, total: 5 },
 ];
 
+void habilidadesMock;
+
 const insignias = [
   {
     id: 1,
@@ -176,21 +188,15 @@ const notificaciones = [
   },
 ];
 
-const entrevistasProximas = [
-  {
-    id: 1,
-    nombre: "Carlos Rodríguez",
-    cargo: "Senior Project Manager",
-    fecha: "4/6/2026 - 15:00",
-  },
-];
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ExploracionDashboardPage() {
   const { data: session, status } = useSession();
   const [dashboard, setDashboard] = useState<DashboardResumenResponse | null>(
     null,
   );
+  const [entrevistasProximas, setEntrevistasProximas] = useState<
+    EntrevistaProximaResponse[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -200,16 +206,11 @@ export default function ExploracionDashboardPage() {
     }
 
     if (status === "unauthenticated") {
-      setError("No se pudo cargar el dashboard porque no hay sesión activa.");
-      setIsLoading(false);
       return;
     }
 
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
     let cancelled = false;
-
-    setIsLoading(true);
-    setError("");
 
     apiFetch<DashboardResumenResponse>(
       "/api/estudiante/dashboard/resumen",
@@ -241,6 +242,39 @@ export default function ExploracionDashboardPage() {
     };
   }, [session, status]);
 
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+    let cancelled = false;
+
+    apiFetch<EntrevistaProximaResponse | EntrevistaProximaResponse[] | null>(
+      "/api/entrevistas/estudiante",
+      {},
+      backendJwt,
+    )
+      .then((data) => {
+        if (!cancelled) {
+          const list = data ? (Array.isArray(data) ? data : [data]) : [];
+          const valid = list.filter(
+            (it): it is EntrevistaProximaResponse => !!(it && it.mentorNombre),
+          );
+          setEntrevistasProximas(valid);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEntrevistasProximas([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, status]);
+
   const usuario = {
     nombre: dashboard?.nombre ?? usuarioMock.nombre,
     email: dashboard?.correo ?? usuarioMock.email,
@@ -251,6 +285,19 @@ export default function ExploracionDashboardPage() {
   };
 
   const habilidades = dashboard?.habilidades ?? [];
+
+  if (status === "unauthenticated") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-[#081333]">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-lg font-bold text-red-600">Error al cargar</p>
+          <p className="mt-2 text-sm text-slate-600">
+            No se pudo cargar el dashboard porque no hay sesión activa.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -530,19 +577,25 @@ export default function ExploracionDashboardPage() {
                   Próximas Entrevistas
                 </h2>
                 <div className="space-y-3">
-                  {entrevistasProximas.map((e) => (
-                    <div
-                      key={e.id}
-                      className="rounded-xl border border-slate-100 p-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-[#7447D7]" />
-                        <p className="font-semibold">{e.nombre}</p>
+                  {entrevistasProximas.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      Sin entrevistas próximas
+                    </p>
+                  ) : (
+                    entrevistasProximas.map((e) => (
+                      <div
+                        key={e.idEntrevista}
+                        className="rounded-xl border border-slate-100 p-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-[#7447D7]" />
+                          <p className="font-semibold">{e.mentorNombre}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{e.fecha}</p>
+                        <p className="text-xs text-slate-500">{e.hora}</p>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">{e.cargo}</p>
-                      <p className="text-xs text-slate-500">{e.fecha}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <button className="mt-3 w-full rounded-xl border border-slate-200 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]">
                   Ver todas
