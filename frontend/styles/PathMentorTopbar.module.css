@@ -18,7 +18,7 @@
     .topbar {
         left: var(--sidebar-width, 320px);
         padding: 0 40px;
-        justify-content: flex-end; /* On desktop: everything aligned to the right */
+        justify-content: space-between; /* Space logo/burger and profile controls */
     }
 }
 
@@ -88,4 +88,21 @@
     border-radius: 50%;
     object-cover: cover;
     border: 2px solid #e2e8f0;
+}
+
+:global(.dark) .topbar {
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+}
+
+:global(.dark) .userText h3 {
+    color: #f8fafc;
+}
+
+:global(.dark) .userText p {
+    color: #94a3b8;
+}
+
+:global(.dark) .avatarImg {
+    border-color: #334155;
 }

@@ -47,6 +47,7 @@ export default function SimulationSchedulePage() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [modality, setModality] = useState<"virtual" | "presencial">("virtual");
+  const [puestoInteres, setPuestoInteres] = useState("");
 
   // Holiday states
   const [holidays, setHolidays] = useState<string[]>([]);
@@ -118,6 +119,15 @@ export default function SimulationSchedulePage() {
       
       loadMentors(mentorIdParam);
       loadHolidays();
+
+      // Fetch profile to pre-fill the practicing role
+      apiFetch<any>("/api/profile", {}, session.backendJwt)
+        .then(profile => {
+          if (profile && profile.interesesProfesionales) {
+            setPuestoInteres(profile.interesesProfesionales);
+          }
+        })
+        .catch(err => console.log("Error loading profile interests:", err));
 
       // Default range: tomorrow until 7 days later
       const tomorrow = new Date();
@@ -259,7 +269,8 @@ export default function SimulationSchedulePage() {
           idMentor: selectedMentor.idUsuario,
           fecha: selectedDate,
           hora: selectedSlot,
-          tipo: modality
+          tipo: modality,
+          puesto: puestoInteres
         })
       }, session?.backendJwt);
 
@@ -541,6 +552,18 @@ export default function SimulationSchedulePage() {
                         Presencial
                       </button>
                     </div>
+                  </div>
+
+                  {/* Position Input */}
+                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                    <span className="text-xs text-slate-400 block uppercase font-bold">Puesto al que Postulas</span>
+                    <input
+                      type="text"
+                      placeholder="Ej: UX/UI Designer, Backend Dev"
+                      value={puestoInteres}
+                      onChange={(e) => setPuestoInteres(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                    />
                   </div>
                 </div>
 

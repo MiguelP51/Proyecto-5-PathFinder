@@ -191,7 +191,8 @@ export default function PathMentorFeedbacks() {
           fortalezas: fort,
           areasMejora: amej,
           comentarios: coms,
-          lastUpdated: item.fecha
+          lastUpdated: item.fecha,
+          position: item.puesto || 'Sin especificar'
         };
       });
       setFeedbacks(mapped);
@@ -610,7 +611,7 @@ export default function PathMentorFeedbacks() {
                   </div>
                   <div className={styles.infoCol}>
                     <span className={styles.infoTitle}>Puesto Postulado</span>
-                    <span className={styles.infoText}>{selectedFeedback?.position || 'UX/UI Designer'}</span>
+                    <span className={styles.infoText}>{selectedFeedback?.position || 'Sin especificar'}</span>
                   </div>
                 </div>
               </section>

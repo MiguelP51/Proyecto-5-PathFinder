@@ -155,7 +155,7 @@ export default function PathMentorInterviews() {
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Todas');
+  const [statusFilter, setStatusFilter] = useState('Programada');
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -815,11 +815,11 @@ export default function PathMentorInterviews() {
                 </div>
 
                 {(selectedDetailInterview.status === 'Cancelada' || selectedDetailInterview.status === 'Reagendada') && selectedDetailInterview.motivoCancelacion && (
-                  <div style={{ marginBottom: '28px', padding: '20px', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '16px' }}>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 'bold', color: '#991b1b' }}>
+                  <div className={styles.cancellationBox}>
+                    <h4 className={styles.cancellationTitle}>
                       Motivo de {selectedDetailInterview.status === 'Cancelada' ? 'Cancelación' : 'Reagendación'}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#7f1d1d' }}>
+                    <p className={styles.cancellationText}>
                       "{selectedDetailInterview.motivoCancelacion}"
                     </p>
                   </div>

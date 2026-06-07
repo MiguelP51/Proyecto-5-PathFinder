@@ -40,5 +40,6 @@ public class EntrevistaResponseDTO {
     private String motivoCancelacion;
     private Double promedioCalificacion;
     private Map<String, String> nombresCompetencias;
+    private String puesto;
 }
 

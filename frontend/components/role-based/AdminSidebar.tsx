@@ -39,9 +39,13 @@ export default function AdminSidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-72 transform bg-white shadow-xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed left-0 top-0 z-50 flex flex-col bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300
+          w-full h-auto max-h-[85vh] border-b border-slate-200 dark:border-slate-800 rounded-b-3xl
+          md:w-72 md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none
+          ${open 
+            ? "translate-y-0 md:translate-x-0 md:translate-y-0" 
+            : "-translate-y-full md:-translate-x-full md:translate-y-0"
+          }`}
       >
 
         {/* Header */}

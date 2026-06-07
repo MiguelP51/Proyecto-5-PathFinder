@@ -708,3 +708,24 @@
     margin-top: 24px;
 }
 
+.cancellationBox {
+    margin-bottom: 28px;
+    padding: 20px;
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+    border-radius: 16px;
+}
+
+.cancellationTitle {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    font-weight: bold;
+    color: #991b1b;
+}
+
+.cancellationText {
+    margin: 0;
+    font-size: 14px;
+    color: #7f1d1d;
+}
+

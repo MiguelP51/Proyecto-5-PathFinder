@@ -74,6 +74,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevista.setTipo(request.getTipo());
         entrevista.setEstado("Programada");
         entrevista.setActivo(true);
+        entrevista.setPuesto(request.getPuesto() != null ? request.getPuesto().trim() : null);
 
         Entrevista guardada = entrevistaRepository.save(entrevista);
 
@@ -270,6 +271,15 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         nombresCompetencias.put("competenciaProactividad", "Calificación General");
         nombresCompetencias.put("competenciaResolucion", "Resolución de Problemas");
 
+        String puesto = ent.getPuesto();
+        if (puesto == null || puesto.trim().isEmpty()) {
+            Optional<PerfilCV> cvOpt = perfilCVRepository.findByUsuario_Correo(ent.getEstudiante().getCorreo());
+            puesto = cvOpt.map(PerfilCV::getInteresesProfesionales).orElse(null);
+        }
+        if (puesto == null || puesto.trim().isEmpty()) {
+            puesto = "Sin especificar";
+        }
+
         return EntrevistaResponseDTO.builder()
                 .idEntrevista(ent.getIdEntrevista())
                 .idEstudiante(ent.getEstudiante().getIdUsuario())
@@ -295,6 +305,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 .motivoCancelacion(ent.getMotivoCancelacion())
                 .promedioCalificacion(promedio)
                 .nombresCompetencias(nombresCompetencias)
+                .puesto(puesto)
                 .build();
     }
 }

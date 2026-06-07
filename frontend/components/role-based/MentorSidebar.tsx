@@ -16,25 +16,12 @@ export default function MentorSidebar({ open, onClose }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
-  const [collapsed, setCollapsed] = useState(false);
 
-  /* LOAD COLLAPSE STATE */
+  /* DYNAMIC SIDEBAR WIDTH & RESIZE LISTENER */
   useEffect(() => {
-    const savedState = localStorage.getItem("mentor-sidebar");
-    if (savedState === "true") {
-      setCollapsed(true);
-    }
+    // Since the sidebar is an overlay on all resolutions, it never pushes page content
+    document.documentElement.style.setProperty("--sidebar-width", "0px");
   }, []);
-
-  /* SAVE COLLAPSE STATE & UPDATE CSS VARIABLE */
-  useEffect(() => {
-    localStorage.setItem("mentor-sidebar", String(collapsed));
-    // Update CSS variable so child pages shift their margins accordingly
-    document.documentElement.style.setProperty(
-      "--sidebar-width",
-      collapsed ? "96px" : "320px"
-    );
-  }, [collapsed]);
 
   const userName = session?.user?.name || "Mentor";
   const userEmail = session?.user?.email || "";
@@ -56,24 +43,25 @@ export default function MentorSidebar({ open, onClose }: Props) {
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-[190] bg-black/40 md:hidden"
+          className="fixed inset-0 z-[190] bg-black/45 backdrop-blur-sm transition-opacity duration-300"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`${
-          collapsed ? styles.sidebarCollapsed : styles.sidebar
-        } fixed top-0 left-0 h-full z-[200] border-r border-slate-200 bg-white transition-all duration-300 md:translate-x-0 ${
-          open ? "translate-x-0 w-72" : "-translate-x-full md:w-auto"
-        }`}
-        style={{
-          width: open ? "288px" : undefined // override width on mobile drawer open
-        }}
+        className={`fixed top-0 left-0 z-[200] flex flex-col bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 shadow-xl transition-all duration-300
+          w-full h-auto max-h-[85vh] border-b rounded-b-3xl overflow-y-auto
+          md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none
+          ${open 
+            ? "translate-y-0 md:translate-x-0 md:translate-y-0" 
+            : "-translate-y-full md:-translate-x-full md:translate-y-0"
+          }
+          md:w-[320px]
+        `}
       >
         {/* Close Button on Mobile Drawer */}
         {open && (
@@ -90,42 +78,36 @@ export default function MentorSidebar({ open, onClose }: Props) {
         <div className={styles.sidebarHeader}>
           <div className={styles.logoContainer}>
             <div className={styles.logoCircle}>P</div>
-            {(!collapsed || open) && (
-              <h1 className={styles.logoText}>
-                PATH<span>MENTOR</span>
-              </h1>
-            )}
+            <h1 className={styles.logoText}>
+              PATH<span>MENTOR</span>
+            </h1>
           </div>
         </div>
 
         {/* USER INFO BAR (NextAuth Session) */}
-        {(!collapsed || open) && (
-          <div className="flex items-center gap-3 border-b border-slate-100 p-5 bg-slate-50/50">
-            {userImage ? (
-              <img
-                src={userImage}
-                alt="avatar"
-                className="h-10 w-10 rounded-full object-cover border border-slate-200"
-              />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white">
-                {userName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800 text-sm truncate">
-                {userName}
-              </p>
-              <p className="text-xs text-slate-400 truncate">{userEmail}</p>
+        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 p-5 bg-slate-50/50 dark:bg-slate-850/50">
+          {userImage ? (
+            <img
+              src={userImage}
+              alt="avatar"
+              className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+            />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white">
+              {userName.charAt(0).toUpperCase()}
             </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">
+              {userName}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{userEmail}</p>
           </div>
-        )}
+        </div>
 
         {/* NAV */}
         <div className={styles.topSection}>
-          {(!collapsed || open) && (
-            <p className={styles.panelTitle}>PANEL MENTOR</p>
-          )}
+          <p className={styles.panelTitle}>PANEL MENTOR</p>
 
           <nav className={styles.navLinks}>
             {navLinks.map((link) => (
@@ -146,7 +128,7 @@ export default function MentorSidebar({ open, onClose }: Props) {
                 }}
               >
                 <span>{link.icon}</span>
-                {(!collapsed || open) && <span>{link.label}</span>}
+                <span>{link.label}</span>
               </Link>
             ))}
           </nav>
@@ -154,21 +136,11 @@ export default function MentorSidebar({ open, onClose }: Props) {
 
         {/* FOOTER */}
         <div className={styles.bottomSection + " flex flex-col gap-3"}>
-          {(!collapsed || open) && (
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="w-full h-12 flex items-center justify-center gap-2 rounded-xl text-red-500 hover:bg-red-50 font-semibold border border-transparent hover:border-red-100 transition-all duration-200 text-sm"
-            >
-              🚪 Cerrar sesión
-            </button>
-          )}
-
-          {/* Collapse toggle (desktop only) */}
           <button
-            className={styles.collapseButton + " hidden md:flex"}
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="w-full h-12 flex items-center justify-center gap-2 rounded-xl text-red-500 hover:bg-red-50 font-semibold border border-transparent hover:border-red-100 transition-all duration-200 text-sm"
           >
-            {collapsed ? "→" : "← Contraer"}
+            🚪 Cerrar sesión
           </button>
         </div>
       </aside>

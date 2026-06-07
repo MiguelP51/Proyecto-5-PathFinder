@@ -60,5 +60,8 @@ public class Entrevista extends AuditoriaBase {
 
     @Column(name = "motivo_cancelacion", length = 500)
     private String motivoCancelacion;
+
+    @Column(name = "puesto", length = 100)
+    private String puesto;
 }
 

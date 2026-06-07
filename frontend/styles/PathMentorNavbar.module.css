@@ -157,3 +157,30 @@
 .collapseButton:hover {
     background: #f1f5f9;
 }
+
+.link {
+    color: #475569;
+    transition: all 0.2s ease;
+}
+
+.link:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+:global(.dark) .sidebarHeader {
+    border-bottom: 1px solid #1e293b;
+}
+
+:global(.dark) .bottomSection {
+    border-top: 1px solid #1e293b;
+}
+
+:global(.dark) .link {
+    color: #cbd5e1;
+}
+
+:global(.dark) .link:hover {
+    background-color: #1e293b;
+    color: #ffffff;
+}

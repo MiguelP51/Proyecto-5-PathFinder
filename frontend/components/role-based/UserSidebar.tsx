@@ -26,6 +26,7 @@ import {
   User,
   ChevronDown,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 interface Props {
@@ -189,10 +190,15 @@ export default function UserSidebar({ open, onClose }: Props) {
       )}
 
       {/* Sidebar */}
+      {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed left-0 top-0 z-50 flex flex-col bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300
+          w-full h-auto max-h-[85vh] border-b border-slate-100 dark:border-slate-800 rounded-b-3xl
+          md:w-72 md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none
+          ${open 
+            ? "translate-y-0 md:translate-x-0 md:translate-y-0" 
+            : "-translate-y-full md:-translate-x-full md:translate-y-0"
+          }`}
       >
         {/* Header - Logo */}
         <div className="flex items-center justify-between px-6 py-5">
@@ -207,9 +213,10 @@ export default function UserSidebar({ open, onClose }: Props) {
 
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5 hidden md:block" />
+            <X className="h-5 w-5 md:hidden" />
           </button>
         </div>
 
