@@ -65,6 +65,15 @@ interface SkillPathActivoResponse {
   xp: number;
 }
 
+interface InsigniaResponse {
+  idInsignia: number;
+  nombre: string;
+  descripcion: string;
+  emoji: string;
+  colorFondo: string;
+  fechaObtenida: string;
+}
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -138,25 +147,6 @@ const habilidadesMock = [
 
 void habilidadesMock;
 
-const insignias = [
-  {
-    id: 1,
-    nombre: "Primera Victoria",
-    descripcion: "Completa tu primer PathChallenge",
-    fecha: "9/2/2026",
-    emoji: "🏆",
-    bg: "bg-yellow-100",
-  },
-  {
-    id: 2,
-    nombre: "Explorador",
-    descripcion: "Completa diagnósticos en 3 subáreas diferentes",
-    fecha: "14/3/2026",
-    emoji: "🔵",
-    bg: "bg-blue-100",
-  },
-];
-
 const notificaciones = [
   {
     id: 1,
@@ -188,6 +178,8 @@ export default function ExploracionDashboardPage() {
     SkillPathActivoResponse[]
   >([]);
   const [skillPathsActivosLoaded, setSkillPathsActivosLoaded] = useState(false);
+  const [insignias, setInsignias] = useState<InsigniaResponse[]>([]);
+  const [insigniasLoaded, setInsigniasLoaded] = useState(false);
   const [entrevistasProximas, setEntrevistasProximas] = useState<
     EntrevistaProximaResponse[]
   >([]);
@@ -263,6 +255,28 @@ export default function ExploracionDashboardPage() {
       .finally(() => {
         if (!cancelled) {
           setSkillPathsActivosLoaded(true);
+        }
+      });
+
+    apiFetch<InsigniaResponse[] | InsigniaResponse | null>(
+      "/api/insignias",
+      {},
+      backendJwt,
+    )
+      .then((data) => {
+        if (!cancelled) {
+          const list = data ? (Array.isArray(data) ? data : [data]) : [];
+          setInsignias(list);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInsignias([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setInsigniasLoaded(true);
         }
       });
 
@@ -628,25 +642,35 @@ export default function ExploracionDashboardPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 font-extrabold">Insignias Recientes</h2>
                 <div className="grid grid-cols-2 gap-3">
-                  {insignias.map((ins) => (
-                    <div
-                      key={ins.id}
-                      className="flex flex-col items-center rounded-xl border border-slate-100 p-3 text-center"
-                    >
+                  {!insigniasLoaded ? (
+                    <p className="col-span-2 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                      Cargando insignias...
+                    </p>
+                  ) : insignias.length === 0 ? (
+                    <p className="col-span-2 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                      Sin insignias obtenidas
+                    </p>
+                  ) : (
+                    insignias.map((ins) => (
                       <div
-                        className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl ${ins.bg}`}
+                        key={ins.idInsignia}
+                        className="flex flex-col items-center rounded-xl border border-slate-100 p-3 text-center"
                       >
-                        {ins.emoji}
+                        <div
+                          className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl ${ins.colorFondo}`}
+                        >
+                          {ins.emoji}
+                        </div>
+                        <p className="mt-2 text-xs font-bold">{ins.nombre}</p>
+                        <p className="mt-0.5 text-[10px] text-slate-500">
+                          {ins.descripcion}
+                        </p>
+                        <p className="mt-1 text-[10px] font-semibold text-emerald-600">
+                          ✓ Obtenida {ins.fechaObtenida}
+                        </p>
                       </div>
-                      <p className="mt-2 text-xs font-bold">{ins.nombre}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-500">
-                        {ins.descripcion}
-                      </p>
-                      <p className="mt-1 text-[10px] font-semibold text-emerald-600">
-                        ✓ Obtenida {ins.fecha}
-                      </p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
