@@ -56,6 +56,15 @@ interface EntrevistaProximaResponse {
   virtualLink: string | null;
 }
 
+interface SkillPathActivoResponse {
+  idSkillPath: number;
+  titulo: string;
+  plataforma: string;
+  progreso: number;
+  estado: string;
+  xp: number;
+}
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -105,25 +114,6 @@ const siguienteAccion = {
   titulo: "Continúa tu Scrum Master Professional Certificate",
   descripcion: "Llevas un 60% de progreso. ¡Solo te quedan 2 semanas!",
 };
-
-const skillPaths = [
-  {
-    id: 1,
-    titulo: "Scrum Master Professional Certificate",
-    plataforma: "Coursera",
-    progreso: 60,
-    estado: "En progreso",
-    estadoColor: "bg-purple-100 text-[#7447D7]",
-  },
-  {
-    id: 2,
-    titulo: "Effective Communication Skills",
-    plataforma: "LinkedIn Learning",
-    progreso: 30,
-    estado: "Certificado pendiente",
-    estadoColor: "bg-orange-100 text-orange-600",
-  },
-];
 
 const challenges = [
   {
@@ -194,6 +184,10 @@ export default function ExploracionDashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardResumenResponse | null>(
     null,
   );
+  const [skillPathsActivos, setSkillPathsActivos] = useState<
+    SkillPathActivoResponse[]
+  >([]);
+  const [skillPathsActivosLoaded, setSkillPathsActivosLoaded] = useState(false);
   const [entrevistasProximas, setEntrevistasProximas] = useState<
     EntrevistaProximaResponse[]
   >([]);
@@ -250,6 +244,28 @@ export default function ExploracionDashboardPage() {
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
     let cancelled = false;
 
+    apiFetch<SkillPathActivoResponse[] | SkillPathActivoResponse | null>(
+      "/api/skillpaths/activos",
+      {},
+      backendJwt,
+    )
+      .then((data) => {
+        if (!cancelled) {
+          const list = data ? (Array.isArray(data) ? data : [data]) : [];
+          setSkillPathsActivos(list);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSkillPathsActivos([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSkillPathsActivosLoaded(true);
+        }
+      });
+
     apiFetch<EntrevistaProximaResponse | EntrevistaProximaResponse[] | null>(
       "/api/entrevistas/estudiante",
       {},
@@ -285,6 +301,7 @@ export default function ExploracionDashboardPage() {
   };
 
   const habilidades = dashboard?.habilidades ?? [];
+  const hasSkillPathsActivos = skillPathsActivos.length > 0;
 
   if (status === "unauthenticated") {
     return (
@@ -411,38 +428,43 @@ export default function ExploracionDashboardPage() {
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {skillPaths.map((sp) => (
-                    <div
-                      key={sp.id}
-                      className="rounded-xl border border-slate-100 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold">{sp.titulo}</p>
-                          <p className="text-xs text-slate-500">
-                            {sp.plataforma}
-                          </p>
+                  {!skillPathsActivosLoaded ? (
+                    <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                      Cargando SkillPaths activos...
+                    </p>
+                  ) : hasSkillPathsActivos ? (
+                    skillPathsActivos.map((sp) => (
+                      <div
+                        key={sp.idSkillPath}
+                        className="rounded-xl border border-slate-100 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{sp.titulo}</p>
+                            <p className="text-xs text-slate-500">
+                              {sp.plataforma}
+                            </p>
+                          </div>
                         </div>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${sp.estadoColor}`}
-                        >
-                          {sp.estado}
-                        </span>
+                        <div className="mt-3">
+                          <div className="mb-1 flex justify-between text-xs text-slate-500">
+                            <span>Progreso</span>
+                            <span>{sp.progreso}%</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-slate-100">
+                            <div
+                              className="h-2 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
+                              style={{ width: `${sp.progreso}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-3">
-                        <div className="mb-1 flex justify-between text-xs text-slate-500">
-                          <span>Progreso</span>
-                          <span>{sp.progreso}%</span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-100">
-                          <div
-                            className="h-2 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
-                            style={{ width: `${sp.progreso}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                      Sin SkillPaths activos
+                    </p>
+                  )}
                 </div>
               </div>
 
