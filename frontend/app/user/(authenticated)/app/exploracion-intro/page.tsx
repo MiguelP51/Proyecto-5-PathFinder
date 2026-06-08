@@ -1,19 +1,5 @@
 "use client";
 
-// HU-EST-18: Iniciar la etapa de exploración del entrenamiento
-//
-// Ruta: /user/app/exploracion-intro
-// Precondición: estudiante completó proceso de selección (HU-EST-17)
-//
-// Flujo principal:
-//   - Primera vez: mostrar tutorial de 6 slides con botones Siguiente/Comenzar
-//   - "Saltar tutorial" o "Comenzar" al final → /user/app/exploracion/dashboard
-//   - TODO: Si ya ingresó antes → redirigir directo al dashboard (requiere backend)
-//
-// TODO pendiente cuando el backend esté listo:
-//   GET  /api/estudiante/exploracion/estado → { primeraVez: boolean }
-//   POST /api/estudiante/exploracion/iniciar → registrar primer ingreso
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";

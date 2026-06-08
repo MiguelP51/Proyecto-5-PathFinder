@@ -1,21 +1,5 @@
 "use client";
 // @ts-nocheck
-
-// HU-EST-19: Dashboard general de exploración
-//
-// Ruta temporal de prueba: /test/exploracion-dashboard
-// Ruta real (cuando auth esté lista): /user/app/exploracion/dashboard
-//
-// TODO pendientes cuando el backend esté listo:
-//   GET /api/estudiante/exploracion/resumen
-//   GET /api/estudiante/exploracion/skillpaths?estado=activo
-//   GET /api/estudiante/exploracion/challenges?estado=activo
-//   GET /api/estudiante/exploracion/habilidades
-//   GET /api/estudiante/exploracion/insignias?recientes=true
-//   GET /api/estudiante/exploracion/notificaciones
-//   GET /api/estudiante/exploracion/siguiente-accion
-//   GET /api/estudiante/exploracion/entrevistas-proximas
-
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Award, BookOpen, Target, TrendingUp } from "lucide-react";
