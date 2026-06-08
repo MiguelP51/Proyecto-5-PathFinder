@@ -49,12 +49,19 @@ export default function SubAreaDetallePage({
 
   useEffect(() => {
     if (!idSubarea || !session?.backendJwt) return;
+
     apiFetch<SubAreaDTO>(
       `/api/exploracion/subareas/${idSubarea}`,
       {},
       session.backendJwt
     )
-      .then((data) => setSubarea(data))
+      .then((data) => {
+        if (data.yaVisitada) {
+          router.replace(`/areas/${area}/subareas/${idSubarea}/dashboard`);
+        } else {
+          setSubarea(data);
+        }
+      })
       .catch(() => setError("No se pudo cargar la información de la subárea"))
       .finally(() => setLoading(false));
   }, [idSubarea, session, area, router]);
@@ -86,6 +93,7 @@ export default function SubAreaDetallePage({
 
   return (
     <div className="min-h-screen bg-[#f5f5ff]">
+      {/* Volver */}
       <div className="mx-auto max-w-3xl px-6 pt-6">
         <Link
           href={`/areas/${area}/subareas`}
@@ -96,6 +104,7 @@ export default function SubAreaDetallePage({
         </Link>
       </div>
 
+      {/* Header */}
       <section className="mx-auto max-w-3xl px-6 py-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-3 text-3xl">
           <span>{subarea.areaEmoji}</span>
@@ -106,6 +115,7 @@ export default function SubAreaDetallePage({
         <p className="text-slate-500">{subarea.descripcion}</p>
       </section>
 
+      {/* Card ¿Qué aprenderás? */}
       <section className="mx-auto max-w-3xl px-6 mb-5">
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900 mb-4">¿Qué aprenderás?</h2>
@@ -115,6 +125,7 @@ export default function SubAreaDetallePage({
             mediante nuestro sistema de SkillPaths y PathChallenges.
           </p>
 
+          {/* Habilidades asociadas */}
           <div className="flex items-start gap-3 mb-5">
             <span className="text-xl mt-0.5">🎯</span>
             <div>
@@ -122,7 +133,10 @@ export default function SubAreaDetallePage({
               {habilidades.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {habilidades.map((h, i) => (
-                    <span key={i} className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600">
+                    <span
+                      key={i}
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600"
+                    >
                       {h}
                     </span>
                   ))}
@@ -133,17 +147,22 @@ export default function SubAreaDetallePage({
             </div>
           </div>
 
+          {/* SkillPath recomendado */}
           <div className="flex items-start gap-3 mb-5">
             <span className="text-xl mt-0.5">📖</span>
             <div>
               <p className="font-semibold text-slate-800 mb-1">SkillPath recomendado</p>
               <p className="text-sm text-slate-500 mb-2">
-                {subarea.cantidadSkillPaths} rutas de aprendizaje disponibles con cursos de plataformas reconocidas
+                {subarea.cantidadSkillPaths} rutas de aprendizaje disponibles con cursos de
+                plataformas reconocidas
               </p>
               {plataformas.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {plataformas.map((p, i) => (
-                    <span key={i} className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                    <span
+                      key={i}
+                      className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
+                    >
                       {p}
                     </span>
                   ))}
@@ -152,26 +171,32 @@ export default function SubAreaDetallePage({
             </div>
           </div>
 
+          {/* PathChallenge relacionado */}
           <div className="flex items-start gap-3">
             <span className="text-xl mt-0.5">🏆</span>
             <div>
               <p className="font-semibold text-slate-800 mb-1">PathChallenge relacionado</p>
               <p className="text-sm text-slate-500">
-                {subarea.cantidadPathChallenges} retos prácticos para aplicar tus conocimientos en situaciones reales
+                {subarea.cantidadPathChallenges} retos prácticos para aplicar tus conocimientos
+                en situaciones reales
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* CTA Diagnóstico */}
       <section className="mx-auto max-w-3xl px-6 pb-10">
         <div
           className="rounded-2xl p-8 text-center text-white"
-          style={{ background: "linear-gradient(135deg, #6f63ff, #c850c0)" }}
+          style={{
+            background: "linear-gradient(135deg, #6f63ff, #c850c0)",
+          }}
         >
           <h2 className="text-xl font-black mb-2">Comienza tu diagnóstico inicial</h2>
           <p className="text-white/80 text-sm mb-6">
-            Realiza una evaluación rápida para identificar tu nivel actual y recibir recomendaciones personalizadas
+            Realiza una evaluación rápida para identificar tu nivel actual y recibir
+            recomendaciones personalizadas
           </p>
           <button
             onClick={handleComenzar}

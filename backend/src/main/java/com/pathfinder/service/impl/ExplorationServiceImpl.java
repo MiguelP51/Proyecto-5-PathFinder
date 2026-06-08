@@ -68,11 +68,17 @@ public class ExplorationServiceImpl implements ExplorationService {
                 .idSubarea(sa.getIdSubarea())
                 .areaId(sa.getAreaId())
                 .areaNombre(sa.getAreaNombre())
+                .areaEmoji(sa.getAreaEmoji())
                 .nombre(sa.getNombre())
+                .emoji(sa.getEmoji())
                 .descripcion(sa.getDescripcion())
                 .objetivos(sa.getObjetivos())
                 .habilidadesRelacionadas(sa.getHabilidadesRelacionadas())
+                .nivel(sa.getNivel())
+                .cantidadSkillPaths(sa.getCantidadSkillPaths())
+                .cantidadPathChallenges(sa.getCantidadPathChallenges())
+                .plataformasSkillPath(sa.getPlataformasSkillPath())
                 .yaVisitada(yaVisitada)
                 .build();
-    }
+        }
 }

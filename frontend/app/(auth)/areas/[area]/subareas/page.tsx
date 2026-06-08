@@ -9,19 +9,23 @@ import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
 import Footer from "@/components/Footer";
 
-// --- Tipos ---
 interface SubAreaDTO {
   idSubarea: number;
   areaId: string;
   areaNombre: string;
+  areaEmoji: string;
   nombre: string;
+  emoji: string;
   descripcion: string;
   objetivos: string;
   habilidadesRelacionadas: string;
+  nivel: string;
+  cantidadSkillPaths: number;
+  cantidadPathChallenges: number;
+  plataformasSkillPath: string;
   yaVisitada: boolean;
 }
 
-// --- Colores por área (igual que antes) ---
 const areaConfig: Record<string, { titulo: string; emoji: string; colorFrom: string; colorTo: string }> = {
   "recursos-humanos": { titulo: "Recursos Humanos", emoji: "🧑‍💼", colorFrom: "#6f63ff", colorTo: "#8f4df0" },
   marketing:          { titulo: "Marketing",         emoji: "📱", colorFrom: "#ba42dc", colorTo: "#ef4bc8" },
@@ -39,15 +43,12 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Resolver params (Next.js 16)
   useEffect(() => {
     params.then(({ area }) => setArea(area));
   }, [params]);
 
-  // Fetch subareas del backend
   useEffect(() => {
     if (!area || !session?.backendJwt) return;
-
     apiFetch<SubAreaDTO[]>(
       `/api/exploracion/areas/${area}/subareas`,
       {},
@@ -58,21 +59,16 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
       .finally(() => setLoading(false));
   }, [area, session]);
 
-  // Al hacer clic en una subárea
   const handleSeleccionarSubarea = async (subarea: SubAreaDTO) => {
     try {
-      // Registrar visita (si ya fue visitada el backend lo ignora)
       await apiFetch(
         `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
         { method: "POST" },
         session?.backendJwt
       );
-
       if (subarea.yaVisitada) {
-        // Ir directo al dashboard de la subárea
         router.push(`/areas/${area}/subareas/${subarea.idSubarea}/dashboard`);
       } else {
-        // Ir a la página de descripción (primera vez)
         router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
       }
     } catch {
@@ -146,14 +142,27 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
                   </span>
                 )}
 
+                {/* Emoji subárea */}
+                <span className="mb-4 block text-4xl">{subarea.emoji}</span>
+
                 {/* Nombre */}
-                <h2 className="mb-1 text-lg font-bold text-slate-900 mt-2">
+                <h2 className="mb-1 text-lg font-bold text-slate-900">
                   {subarea.nombre}
                 </h2>
 
                 {/* Descripción */}
-                <p className="mb-5 text-sm text-slate-500 line-clamp-2">
+                <p className="mb-3 text-sm text-slate-500 line-clamp-2">
                   {subarea.descripcion}
+                </p>
+
+                {/* Habilidades y nivel */}
+                <p className="mb-1 text-sm text-slate-600">
+                  <span className="font-semibold">
+                    {subarea.habilidadesRelacionadas?.split(",").filter(Boolean).length ?? 0}
+                  </span> habilidades
+                </p>
+                <p className="mb-5 text-sm text-slate-600">
+                  <span className="font-semibold">Nivel:</span> {subarea.nivel ?? "Principiante"}
                 </p>
 
                 {/* Botón */}
