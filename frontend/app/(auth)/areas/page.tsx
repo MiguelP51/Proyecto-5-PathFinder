@@ -261,7 +261,7 @@ function AreaDetail({
               background:
                 "linear-gradient(135deg, var(--area-from), var(--area-to))",
             }}
-            className={styles.areaExploreLink}
+            className="inline-flex items-center gap-2 mt-6 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90"
           >
             Explorar {area.title}
           </Link>
