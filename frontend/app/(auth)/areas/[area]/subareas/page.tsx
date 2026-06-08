@@ -1,182 +1,121 @@
-// HU-EST-20: Página de subáreas de un área específica
-// Ruta: /areas/[area]/subareas
-// Accesible desde el botón "Explorar subáreas" en /areas/[area]
+// HU-EST-20 + HU-EST-21: Página de subáreas con lógica de primera visita
+"use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api";
 import Footer from "@/components/Footer";
 
-// ─── Datos de subáreas por área ───────────────────────────────────────────────
-const subareasData = {
-  "recursos-humanos": {
-    titulo: "Recursos Humanos",
-    emoji: "👥",
-    colorFrom: "#6f63ff",
-    colorTo: "#8f4df0",
-    subareas: [
-      {
-        id: "reclutamiento-seleccion",
-        emoji: "🎯",
-        nombre: "Reclutamiento y Selección",
-        descripcion: "Procesos de atracción y selección de talento",
-        habilidades: 0,
-        nivel: "Principiante",
-      },
-      {
-        id: "gestion-desempeno",
-        emoji: "📊",
-        nombre: "Gestión del Desempeño",
-        descripcion: "Evaluación y desarrollo de colaboradores",
-        habilidades: 0,
-        nivel: "Intermedio",
-      },
-      {
-        id: "clima-organizacional",
-        emoji: "✨",
-        nombre: "Clima Organizacional",
-        descripcion: "Cultura y ambiente laboral",
-        habilidades: 0,
-        nivel: "Avanzado",
-      },
-    ],
-  },
-  marketing: {
-    titulo: "Marketing",
-    emoji: "📱",
-    colorFrom: "#ba42dc",
-    colorTo: "#ef4bc8",
-    subareas: [
-      {
-        id: "marketing-digital",
-        emoji: "💻",
-        nombre: "Marketing Digital",
-        descripcion: "SEO, SEM y estrategias digitales",
-        habilidades: 0,
-        nivel: "Principiante",
-      },
-      {
-        id: "social-media",
-        emoji: "📱",
-        nombre: "Social Media",
-        descripcion: "Gestión de redes sociales",
-        habilidades: 0,
-        nivel: "Intermedio",
-      },
-      {
-        id: "branding",
-        emoji: "🎨",
-        nombre: "Branding",
-        descripcion: "Construcción y gestión de marca",
-        habilidades: 0,
-        nivel: "Avanzado",
-      },
-    ],
-  },
-  finanzas: {
-    titulo: "Finanzas",
-    emoji: "💰",
-    colorFrom: "#f73586",
-    colorTo: "#f2186c",
-    subareas: [
-      {
-        id: "analisis-financiero",
-        emoji: "📈",
-        nombre: "Análisis Financiero",
-        descripcion: "Evaluación de estados financieros",
-        habilidades: 0,
-        nivel: "Principiante",
-      },
-      {
-        id: "gestion-inversiones",
-        emoji: "💹",
-        nombre: "Gestión de Inversiones",
-        descripcion: "Portafolios y estrategias de inversión",
-        habilidades: 0,
-        nivel: "Intermedio",
-      },
-    ],
-  },
-  comercial: {
-    titulo: "Comercial",
-    emoji: "🤝",
-    colorFrom: "#ff3f6e",
-    colorTo: "#ff4438",
-    subareas: [
-      {
-        id: "tecnicas-ventas",
-        emoji: "💼",
-        nombre: "Técnicas de Ventas",
-        descripcion: "Estrategias de venta efectivas",
-        habilidades: 0,
-        nivel: "Principiante",
-      },
-      {
-        id: "negociacion",
-        emoji: "🤝",
-        nombre: "Negociación",
-        descripcion: "Habilidades de negociación comercial",
-        habilidades: 0,
-        nivel: "Intermedio",
-      },
-    ],
-  },
-  logistica: {
-    titulo: "Logística",
-    emoji: "📦",
-    colorFrom: "#ff6a00",
-    colorTo: "#f7931e",
-    subareas: [
-      {
-        id: "cadena-suministro",
-        emoji: "🔗",
-        nombre: "Cadena de Suministro",
-        descripcion: "Gestión de supply chain",
-        habilidades: 0,
-        nivel: "Principiante",
-      },
-      {
-        id: "gestion-inventarios",
-        emoji: "📊",
-        nombre: "Gestión de Inventarios",
-        descripcion: "Control y optimización de inventarios",
-        habilidades: 0,
-        nivel: "Intermedio",
-      },
-    ],
-  },
+// --- Tipos ---
+interface SubAreaDTO {
+  idSubarea: number;
+  areaId: string;
+  areaNombre: string;
+  nombre: string;
+  descripcion: string;
+  objetivos: string;
+  habilidadesRelacionadas: string;
+  yaVisitada: boolean;
+}
+
+// --- Colores por área (igual que antes) ---
+const areaConfig: Record<string, { titulo: string; emoji: string; colorFrom: string; colorTo: string }> = {
+  "recursos-humanos": { titulo: "Recursos Humanos", emoji: "🧑‍💼", colorFrom: "#6f63ff", colorTo: "#8f4df0" },
+  marketing:          { titulo: "Marketing",         emoji: "📱", colorFrom: "#ba42dc", colorTo: "#ef4bc8" },
+  finanzas:           { titulo: "Finanzas",          emoji: "💰", colorFrom: "#f73586", colorTo: "#f2186c" },
+  comercial:          { titulo: "Comercial",         emoji: "🤝", colorFrom: "#ff3f6e", colorTo: "#ff4438" },
+  logistica:          { titulo: "Logística",         emoji: "📦", colorFrom: "#ff6a00", colorTo: "#f7931e" },
 };
 
-// ─── Página ───────────────────────────────────────────────────────────────────
-export default async function SubareasPage({
-  params,
-}: {
-  params: Promise<{ area: string }>;
-}) {
-  const { area } = await params;
-  const data = subareasData[area as keyof typeof subareasData];
+export default function SubareasPage({ params }: { params: Promise<{ area: string }> }) {
+  const router = useRouter();
+  const { data: session } = useSession();
 
-  if (!data) notFound();
+  const [area, setArea] = useState<string>("");
+  const [subareas, setSubareas] = useState<SubAreaDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Resolver params (Next.js 16)
+  useEffect(() => {
+    params.then(({ area }) => setArea(area));
+  }, [params]);
+
+  // Fetch subareas del backend
+  useEffect(() => {
+    if (!area || !session?.backendJwt) return;
+
+    apiFetch<SubAreaDTO[]>(
+      `/api/exploracion/areas/${area}/subareas`,
+      {},
+      session.backendJwt
+    )
+      .then(setSubareas)
+      .catch(() => setError("No se pudieron cargar las subáreas"))
+      .finally(() => setLoading(false));
+  }, [area, session]);
+
+  // Al hacer clic en una subárea
+  const handleSeleccionarSubarea = async (subarea: SubAreaDTO) => {
+    try {
+      // Registrar visita (si ya fue visitada el backend lo ignora)
+      await apiFetch(
+        `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
+        { method: "POST" },
+        session?.backendJwt
+      );
+
+      if (subarea.yaVisitada) {
+        // Ir directo al dashboard de la subárea
+        router.push(`/areas/${area}/subareas/${subarea.idSubarea}/dashboard`);
+      } else {
+        // Ir a la página de descripción (primera vez)
+        router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
+      }
+    } catch {
+      router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
+    }
+  };
+
+  const config = areaConfig[area] ?? { titulo: area, emoji: "📁", colorFrom: "#6f63ff", colorTo: "#8f4df0" };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-[#6f63ff]" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <p className="text-slate-500">{error}</p>
+      <Link href={`/areas/${area}`} className="text-[#6f63ff] hover:underline">
+        Volver al área
+      </Link>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f9f9fb]">
-      {/* ── Volver ── */}
+      {/* Volver */}
       <div className="mx-auto max-w-5xl px-6 pt-6">
         <Link
           href={`/areas/${area}`}
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#6f63ff] transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver a {data.titulo}
+          Volver a {config.titulo}
         </Link>
       </div>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <section className="mx-auto max-w-5xl px-6 py-8">
         <div className="flex items-center gap-4 mb-2">
-          <span className="text-4xl">{data.emoji}</span>
+          <span className="text-4xl">{config.emoji}</span>
           <h1 className="text-3xl font-black text-slate-900 md:text-4xl">
-            Especialízate en {data.titulo}
+            Especialízate en {config.titulo}
           </h1>
         </div>
         <p className="text-slate-500 ml-16">
@@ -184,81 +123,62 @@ export default async function SubareasPage({
         </p>
       </section>
 
-      {/* ── Tarjetas de subáreas ── */}
+      {/* Tarjetas */}
       <section className="mx-auto max-w-5xl px-6 pb-10">
-        <div
-          className={`grid gap-5 ${data.subareas.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}
-        >
-          {data.subareas.map((subarea) => {
-            const progreso = 0; // TODO: conectar con backend
-            const iniciado = progreso > 0;
-
-            return (
+        {subareas.length === 0 ? (
+          <div className="text-center py-16 text-slate-400">
+            No hay subáreas disponibles para esta área aún.
+          </div>
+        ) : (
+          <div className={`grid gap-5 ${subareas.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+            {subareas.map((subarea) => (
               <div
-                key={subarea.id}
+                key={subarea.idSubarea}
                 className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
               >
-                {/* Badge progreso */}
-                {iniciado && (
+                {/* Badge visitada */}
+                {subarea.yaVisitada && (
                   <span
                     className="absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-bold text-white"
-                    style={{
-                      background: `linear-gradient(135deg, ${data.colorFrom}, ${data.colorTo})`,
-                    }}
+                    style={{ background: `linear-gradient(135deg, ${config.colorFrom}, ${config.colorTo})` }}
                   >
-                    {progreso}% completado
+                    En progreso
                   </span>
                 )}
 
-                {/* Emoji */}
-                <span className="mb-4 block text-4xl">{subarea.emoji}</span>
-
-                {/* Nombre y descripción */}
-                <h2 className="mb-1 text-lg font-bold text-slate-900">
+                {/* Nombre */}
+                <h2 className="mb-1 text-lg font-bold text-slate-900 mt-2">
                   {subarea.nombre}
                 </h2>
-                <p className="mb-4 text-sm text-slate-500">
-                  {subarea.descripcion}
-                </p>
 
-                {/* Habilidades y nivel */}
-                <p className="mb-1 text-sm text-slate-600">
-                  <span className="font-semibold">{subarea.habilidades}</span>{" "}
-                  habilidades
-                </p>
-                <p className="mb-5 text-sm text-slate-600">
-                  <span className="font-semibold">Nivel:</span> {subarea.nivel}
+                {/* Descripción */}
+                <p className="mb-5 text-sm text-slate-500 line-clamp-2">
+                  {subarea.descripcion}
                 </p>
 
                 {/* Botón */}
                 <button
+                  onClick={() => handleSeleccionarSubarea(subarea)}
                   className={`w-full rounded-xl py-2.5 text-sm font-bold transition ${
-                    iniciado
+                    subarea.yaVisitada
                       ? "text-white"
                       : "border border-slate-200 text-slate-700 hover:border-slate-400"
                   }`}
                   style={
-                    iniciado
-                      ? {
-                          background: `linear-gradient(135deg, ${data.colorFrom}, ${data.colorTo})`,
-                        }
+                    subarea.yaVisitada
+                      ? { background: `linear-gradient(135deg, ${config.colorFrom}, ${config.colorTo})` }
                       : {}
                   }
                 >
-                  {iniciado ? "Continuar" : "Comenzar"}
+                  {subarea.yaVisitada ? "Continuar" : "Comenzar"}
                 </button>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <Footer />
     </div>
   );
-}
-
-// Genera rutas estáticas
-export async function generateStaticParams() {
-  return Object.keys(subareasData).map((area) => ({ area }));
 }
