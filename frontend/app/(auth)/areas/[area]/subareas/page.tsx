@@ -66,11 +66,7 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
         { method: "POST" },
         session?.backendJwt
       );
-      if (subarea.yaVisitada) {
-        router.push(`/areas/${area}/subareas/${subarea.idSubarea}/dashboard`);
-      } else {
-        router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
-      }
+      router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
     } catch {
       router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
     }
