@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Usuario actualizarUsuario(Usuario usuario, LoginRequestDTO request) {
-        if (StringUtils.hasText(request.getNombreCompleto())) {
+        if (!StringUtils.hasText(usuario.getNombreCompleto()) && StringUtils.hasText(request.getNombreCompleto())) {
             usuario.setNombreCompleto(request.getNombreCompleto().trim());
         }
 

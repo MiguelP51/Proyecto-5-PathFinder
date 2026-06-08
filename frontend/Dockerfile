@@ -4,23 +4,25 @@ FROM node:20 AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --include=optional
 
 COPY . .
 
 RUN npm run build
 
 # Etapa 2: runtime
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Copiar solo lo necesario
+# Copiar solo lo necesario y node_modules ya compilado
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
 
-RUN npm ci --omit=dev
+# Limpiar las dependencias de desarrollo localmente sin descargar nada
+RUN npm prune --omit=dev
 
 EXPOSE 3000
 

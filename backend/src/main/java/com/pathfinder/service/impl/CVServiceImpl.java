@@ -10,9 +10,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+
+import java.io.InputStream;
 
 import java.io.IOException;
 import java.text.Normalizer;
@@ -38,6 +43,11 @@ public class CVServiceImpl implements CVService {
     private final PerfilCVHabilidadRepository perfilHabilidadRepo;
     private final PerfilCVIdiomaRepository perfilIdiomaRepo;
     private final PerfilCVHerramientaRepository perfilHerramientaRepo;
+    private final ArchivoCVRepository archivoCVRepository;
+    private final S3Client s3Client;
+
+    @Value("${aws.bucket-name}")
+    private String bucketName;
 
     // =========================================================
     // DICCIONARIOS
@@ -1098,5 +1108,39 @@ public class CVServiceImpl implements CVService {
         if (tipo == null) return TipoHabilidad.TECNICA;
         try { return TipoHabilidad.valueOf(tipo.toUpperCase()); }
         catch (Exception e) { return TipoHabilidad.TECNICA; }
+    }
+
+    @Override
+    public byte[] obtenerArchivoCVPdf(String correoUsuario) throws Exception {
+        PerfilCV perfil = perfilCVRepository.findByUsuario_Correo(correoUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil no encontrado para: " + correoUsuario));
+
+        ArchivoCV archivoCV = archivoCVRepository.findTopByPerfilCv_IdPerfilCvAndActivoTrueOrderByFechaCargaDesc(perfil.getIdPerfilCv())
+                .orElseThrow(() -> new IllegalArgumentException("No hay un CV en PDF activo para este perfil"));
+
+        if (archivoCV.getRutaArchivo() == null || archivoCV.getRutaArchivo().isEmpty()) {
+            throw new IllegalArgumentException("La ruta del archivo no está disponible");
+        }
+
+        try (InputStream is = s3Client.getObject(GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(archivoCV.getRutaArchivo())
+                .build())) {
+            return is.readAllBytes();
+        } catch (Exception e) {
+            log.error("Error al descargar el archivo desde S3 (key: {}): {}", archivoCV.getRutaArchivo(), e.getMessage());
+            throw new RuntimeException("Error al descargar el archivo desde S3: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public String obtenerNombreArchivoCVPdf(String correoUsuario) {
+        PerfilCV perfil = perfilCVRepository.findByUsuario_Correo(correoUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil no encontrado para: " + correoUsuario));
+
+        ArchivoCV archivoCV = archivoCVRepository.findTopByPerfilCv_IdPerfilCvAndActivoTrueOrderByFechaCargaDesc(perfil.getIdPerfilCv())
+                .orElseThrow(() -> new IllegalArgumentException("No hay un CV en PDF activo para este perfil"));
+
+        return archivoCV.getNombreArchivo() != null ? archivoCV.getNombreArchivo() : "CV.pdf";
     }
 }

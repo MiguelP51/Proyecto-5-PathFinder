@@ -9,19 +9,19 @@ export const authOptions = {
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
     state: {
       name: `next-auth.state`,
-      options: { httpOnly: true, sameSite: "none", path: "/", secure: true }
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false }
     },
   },
   providers: [
@@ -71,6 +71,7 @@ export const authOptions = {
         user.requiereCompletarPerfil = data.requiereCompletarPerfil;
         user.avatarUrl = data.avatarUrl;
         user.backendJwt = data.backendJwt;
+        user.name = data.nombreCompleto || user.name;
 
         console.log("[NextAuth] Login exitoso para:", user.email, "con rol:", user.rol);
         return true;
@@ -91,6 +92,7 @@ export const authOptions = {
         token.avatarUrl = user.avatarUrl;
         token.backendJwt = user.backendJwt;
         token.googleIdToken = account?.id_token;
+        token.name = user.name;
       }
       return token;
     },
@@ -103,6 +105,7 @@ export const authOptions = {
       session.user.avatarUrl = token.avatarUrl;
       session.backendJwt = token.backendJwt;
       session.googleIdToken = token.googleIdToken;
+      session.user.name = token.name;
       return session;
     },
 

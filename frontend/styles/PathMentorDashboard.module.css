@@ -1,0 +1,378 @@
+.page {
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+.container {
+    margin-left: var(--sidebar-width, 320px);
+    transition: all 0.3s ease;
+    margin-top: 92px;
+    padding: 40px;
+    min-height: calc(100vh - 92px);
+}
+
+/* HEADER */
+.header h1 {
+    font-size: 36px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.header p {
+    font-size: 16px;
+    color: #64748b;
+    margin-bottom: 32px;
+}
+
+/* METRICS */
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.metricCard {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metricCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.metricCard h2 {
+    font-size: 36px;
+    font-weight: 800;
+    margin-top: 16px;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.metricCard p {
+    font-size: 15px;
+    font-weight: 600;
+    color: #475569;
+    margin-top: 8px;
+}
+
+.metricCard span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* ICONS */
+.metricIconBlue,
+.metricIconPurple,
+.metricIconGreen,
+.metricIconYellow {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.metricIconBlue {
+    background: #cffafe;
+    color: #0891b2;
+}
+
+.metricIconPurple {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.metricIconGreen {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.metricIconYellow {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+/* BOTTOM GRID */
+.bottomGrid {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+/* CARDS */
+.interviewsCard,
+.quickActions,
+.feedbackCard {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+.feedbackCard h2 {
+    margin-bottom: 4px;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cardHeader h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.cardHeader button {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cardHeader button:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+
+.cardSubtitle {
+    font-size: 14px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* INTERVIEWS */
+.interviewItem {
+    margin-top: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.interviewItem:hover {
+    background-color: #f8fafc;
+}
+
+.interviewItem h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.interviewItem span {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.virtualBadge,
+.presentialBadge {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+}
+
+.virtualBadge {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.presentialBadge {
+    background: #fdf4ff;
+    color: #d946ef;
+}
+
+/* RIGHT COLUMN */
+.rightColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* QUICK ACTIONS */
+.quickActions h2,
+.feedbackCard h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.quickActions button {
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quickActions button:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.primaryAction {
+    background: linear-gradient(90deg, #0891b2, #2563eb) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.primaryAction:hover {
+    opacity: 0.95;
+    box-shadow: 0 4px 12px -1px rgba(37, 99, 235, 0.3);
+}
+
+/* FEEDBACK */
+.feedbackItem {
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.feedbackItem h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #c2410c;
+}
+
+.feedbackItem p {
+    font-size: 14px;
+    color: #475569;
+    margin-top: 4px;
+}
+
+.feedbackItem span {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ea580c;
+}
+
+.viewAllButton {
+    width: 100%;
+    height: 44px;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.viewAllButton:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1200px) {
+    .metricsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bottomGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin-left: 0;
+        padding: 24px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+    }
+
+    .header p {
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+
+    .metricsGrid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .metricCard {
+        min-height: auto;
+        padding: 20px;
+    }
+
+    .metricCard h2 {
+        font-size: 28px;
+        margin-top: 12px;
+    }
+
+    .metricCard p {
+        font-size: 14px;
+    }
+
+    .interviewItem {
+        padding: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .interviewItem h3 {
+        font-size: 16px;
+    }
+
+    .feedbackItem {
+        padding: 16px;
+    }
+
+    .feedbackItem h3 {
+        font-size: 14px;
+    }
+}

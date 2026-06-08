@@ -34,6 +34,7 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
     private final PerfilCVIdiomaRepository      perfilIdiomaRepo;
     private final PerfilCVHerramientaRepository perfilHerramientaRepo;
     private final ProgresoEstudianteRepository  progresoRepo;
+    private final ArchivoCVRepository           archivoCVRepository;
 
     // =========================================================
     // HU-EST-03 — Estado del estudiante
@@ -94,7 +95,11 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
                         .idiomas(Collections.emptyList())
                         .herramientas(Collections.emptyList());
 
-        perfilOpt.ifPresent(perfil -> builder
+        perfilOpt.ifPresent(perfil -> {
+            Optional<ArchivoCV> archivoOpt = archivoCVRepository
+                    .findTopByPerfilCv_IdPerfilCvAndActivoTrueOrderByFechaCargaDesc(perfil.getIdPerfilCv());
+            
+            builder
                 .correoContacto(perfil.getCorreoContacto())
                 .celular(perfil.getCelular())
                 .provincia(perfil.getProvincia())
@@ -104,6 +109,8 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
                 .interesesProfesionales(perfil.getInteresesProfesionales())
                 .objetivosLaborales(perfil.getObjetivosLaborales())
                 .fechaActualizacionCv(perfil.getFechaActualizacionCv())
+                .cvNombreArchivo(archivoOpt.map(ArchivoCV::getNombreArchivo).orElse(null))
+                .cvUploaded(archivoOpt.isPresent())
                 .experiencias(mapExperiencias(
                         experienciaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())))
                 .formaciones(mapFormaciones(
@@ -113,8 +120,8 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
                 .idiomas(mapIdiomas(
                         perfilIdiomaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())))
                 .herramientas(mapHerramientas(
-                        perfilHerramientaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())))
-        );
+                        perfilHerramientaRepo.findByPerfilCv_IdPerfilCv(perfil.getIdPerfilCv())));
+        });
 
         return builder.build();
     }
@@ -457,6 +464,13 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
                     "Nivel inválido en " + contexto + ": '" + nivel
                     + "'. Valores aceptados: BASICO, INTERMEDIO, AVANZADO");
         }
+    }
+
+    @Override
+    @jakarta.transaction.Transactional
+    public void actualizarProgresoEstudiante(String correo, NombreEtapa etapa, EstadoEtapa estado, boolean setFecha) {
+        Usuario usuario = obtenerUsuario(correo);
+        actualizarProgreso(usuario, etapa, estado, setFecha);
     }
 
     private Usuario obtenerUsuario(String correo) {

@@ -10,6 +10,7 @@ interface ProfilePhotoSectionProps {
   userName: string;
   onPhotoChange: (file: File) => void;
   compact?: boolean;
+  disabled?: boolean;
 }
 
 export function ProfilePhotoSection({
@@ -17,6 +18,7 @@ export function ProfilePhotoSection({
   userName,
   onPhotoChange,
   compact = false,
+  disabled = false,
 }: ProfilePhotoSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,40 +45,47 @@ export function ProfilePhotoSection({
             {initials}
           </AvatarFallback>
         </Avatar>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className={`absolute bottom-0 right-0 flex items-center justify-center rounded-full bg-[#0E3E66] text-white shadow-md transition-transform hover:scale-105 ${compact ? "h-7 w-7" : "h-9 w-9"}`}
-          aria-label="Cambiar foto de perfil"
-        >
-          <Camera className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-        </button>
+        {!disabled && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className={`absolute bottom-0 right-0 flex items-center justify-center rounded-full bg-[#0E3E66] text-white shadow-md transition-transform hover:scale-105 ${compact ? "h-7 w-7" : "h-9 w-9"}`}
+            aria-label="Cambiar foto de perfil"
+          >
+            <Camera className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          </button>
+        )}
       </div>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        disabled={disabled}
         onChange={handleFileChange}
         className="hidden"
       />
       {compact ? (
         <div className="flex flex-col">
           <span className="font-semibold text-[#0E3E66]">{userName}</span>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="text-sm text-[#643781] hover:underline"
-          >
-            Cambiar foto
-          </button>
+          {!disabled && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-sm text-[#643781] hover:underline"
+            >
+              Cambiar foto
+            </button>
+          )}
         </div>
       ) : (
-        <Button
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-        >
-          <Camera className="mr-2 h-4 w-4" />
-          Cambiar foto de perfil
-        </Button>
+        !disabled && (
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            Cambiar foto de perfil
+          </Button>
+        )
       )}
     </div>
   );

@@ -7,6 +7,8 @@ import {
   User,
   ClipboardList,
   BarChart3,
+  LayoutDashboard,
+  CalendarDays,
   LogOut,
   X,
 } from "lucide-react";
@@ -113,6 +115,26 @@ export default function AuthenticatedSidebar({
             <BarChart3 className="h-5 w-5" />
             Resultados
           </Link>
+
+          {session?.user?.rol === "MENTOR" && (
+            <>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 rounded-xl p-3 transition hover:bg-slate-100"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </Link>
+
+              <Link
+                href="/availability"
+                className="flex items-center gap-3 rounded-xl p-3 transition hover:bg-slate-100"
+              >
+                <CalendarDays className="h-5 w-5" />
+                Disponibilidad
+              </Link>
+            </>
+          )}
 
           <button
             onClick={() => signOut({ callbackUrl: "/" })}

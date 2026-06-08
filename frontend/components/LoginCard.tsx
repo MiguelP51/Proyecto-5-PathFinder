@@ -3,12 +3,13 @@ import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 import styles from "../styles/LoginRegister.module.css";
 
-const handleGoogleLogin = async () => {
-  signIn('google', {
-    callbackUrl: '/role-redirect',
-  });
-};
 const LoginCard = () => {
+  const handleGoogleLogin = async () => {
+    signIn('google', {
+      callbackUrl: '/role-redirect',
+    });
+  };
+
   return (
     <div className={styles.welcomebox}>
       <div className={styles.cardContent}>

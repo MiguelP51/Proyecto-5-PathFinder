@@ -21,6 +21,21 @@ public class ProfileController {
 
     private final PerfilEstudianteService perfilEstudianteService;
 
+    // GET /api/profile/student/{correo} — perfil de estudiante para el mentor (HU-PM-05)
+    @GetMapping("/student/{correo}")
+    public ResponseEntity<ApiResponse<PerfilEstudianteResponse>> obtenerPerfilEstudiante(
+            @PathVariable String correo) {
+        try {
+            PerfilEstudianteResponse perfil =
+                    perfilEstudianteService.obtenerPerfil(correo);
+            return ResponseEntity.ok(ApiResponse.success("Perfil del estudiante obtenido correctamente", perfil));
+        } catch (Exception e) {
+            log.error("Error obteniendo perfil del estudiante: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error obteniendo el perfil del estudiante"));
+        }
+    }
+
     // GET /api/profile — perfil completo para revisión (HU-EST-08)
     @GetMapping
     public ResponseEntity<ApiResponse<PerfilEstudianteResponse>> obtenerPerfil(

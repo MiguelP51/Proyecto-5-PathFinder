@@ -72,7 +72,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             return usuarioRepository.save(u);
         });
 
-        usuario.setNombreCompleto(name);
+        if (usuario.getNombreCompleto() == null || usuario.getNombreCompleto().isBlank()) {
+            usuario.setNombreCompleto(name);
+        }
         usuario.setAvatarUrl(picture);
         usuarioRepository.save(usuario);
 

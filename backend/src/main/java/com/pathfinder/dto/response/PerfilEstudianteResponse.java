@@ -35,6 +35,9 @@ public class PerfilEstudianteResponse {
     private EstadoEtapa estadoPerfil;
     private boolean     confirmado;
 
+    private String      cvNombreArchivo;
+    private boolean     cvUploaded;
+
     // ── Items — reflejan campos reales de las entidades ──────
 
     @Data @Builder

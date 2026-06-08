@@ -12,6 +12,7 @@ export interface WorkExperience {
   position: string;
   startDate: string;
   endDate: string;
+  currentlyWorking?: boolean;
   functions: string;
   achievements: string;
 }
@@ -19,11 +20,13 @@ export interface WorkExperience {
 interface WorkExperienceSectionProps {
   experiences: WorkExperience[];
   onChange: (experiences: WorkExperience[]) => void;
+  disabled?: boolean;
 }
 
 export function WorkExperienceSection({
   experiences,
   onChange,
+  disabled = false,
 }: WorkExperienceSectionProps) {
   const addExperience = () => {
     const newExperience: WorkExperience = {
@@ -32,6 +35,7 @@ export function WorkExperienceSection({
       position: "",
       startDate: "",
       endDate: "",
+      currentlyWorking: false,
       functions: "",
       achievements: "",
     };
@@ -45,7 +49,7 @@ export function WorkExperienceSection({
   const updateExperience = (
     id: string,
     field: keyof WorkExperience,
-    value: string
+    value: string | boolean
   ) => {
     onChange(
       experiences.map((exp) =>
@@ -65,15 +69,17 @@ export function WorkExperienceSection({
             Experiencia Laboral
           </h2>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addExperience}
-          className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar
-        </Button>
+        {!disabled && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addExperience}
+            className="border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar
+          </Button>
+        )}
       </div>
 
       {experiences.length === 0 ? (
@@ -85,14 +91,16 @@ export function WorkExperienceSection({
           <p className="text-sm text-slate-400">
             Si no tienes experiencia, puedes omitir esta sección
           </p>
-          <Button
-            variant="outline"
-            onClick={addExperience}
-            className="mt-4 border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar experiencia
-          </Button>
+          {!disabled && (
+            <Button
+              variant="outline"
+              onClick={addExperience}
+              className="mt-4 border-[#0E3E66] text-[#0E3E66] hover:bg-[#0E3E66]/5"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Agregar experiencia
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -104,20 +112,23 @@ export function WorkExperienceSection({
               <div className="absolute -left-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#643781] to-[#8E348F] text-sm font-semibold text-white">
                 {index + 1}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeExperience(exp.id)}
-                className="absolute right-2 top-2 h-8 w-8 text-slate-400 hover:text-red-500"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!disabled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeExperience(exp.id)}
+                  className="absolute right-2 top-2 h-8 w-8 text-slate-400 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-slate-700">Empresa</Label>
                   <Input
                     value={exp.company}
+                    disabled={disabled}
                     onChange={(e) =>
                       updateExperience(exp.id, "company", e.target.value)
                     }
@@ -130,6 +141,7 @@ export function WorkExperienceSection({
                   <Label className="text-slate-700">Cargo</Label>
                   <Input
                     value={exp.position}
+                    disabled={disabled}
                     onChange={(e) =>
                       updateExperience(exp.id, "position", e.target.value)
                     }
@@ -146,6 +158,7 @@ export function WorkExperienceSection({
                   <Input
                     type="date"
                     value={exp.startDate}
+                    disabled={disabled}
                     onChange={(e) =>
                       updateExperience(exp.id, "startDate", e.target.value)
                     }
@@ -160,18 +173,42 @@ export function WorkExperienceSection({
                   </Label>
                   <Input
                     type="date"
-                    value={exp.endDate}
+                    value={exp.endDate || ""}
+                    disabled={disabled || exp.currentlyWorking}
                     onChange={(e) =>
                       updateExperience(exp.id, "endDate", e.target.value)
                     }
-                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
+                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20 disabled:bg-slate-100"
                   />
+                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={exp.currentlyWorking || false}
+                      disabled={disabled}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        onChange(
+                          experiences.map((item) =>
+                            item.id === exp.id
+                              ? {
+                                  ...item,
+                                  currentlyWorking: isChecked,
+                                  endDate: isChecked ? "" : item.endDate,
+                                }
+                              : item
+                          )
+                        );
+                      }}
+                    />
+                    Actualmente trabajo aquí
+                  </label>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-slate-700">Funciones Realizadas</Label>
                   <Textarea
                     value={exp.functions}
+                    disabled={disabled}
                     onChange={(e) =>
                       updateExperience(exp.id, "functions", e.target.value)
                     }
@@ -185,6 +222,7 @@ export function WorkExperienceSection({
                   <Label className="text-slate-700">Logros / Resultados</Label>
                   <Textarea
                     value={exp.achievements}
+                    disabled={disabled}
                     onChange={(e) =>
                       updateExperience(exp.id, "achievements", e.target.value)
                     }
