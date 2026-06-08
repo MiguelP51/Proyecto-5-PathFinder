@@ -16,7 +16,7 @@ public class SkillPath extends AuditoriaBase {
     private Integer idSkillPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario", nullable = false)
+    @JoinColumn(name = "id_usuario")
     private Usuario usuario;
 
     @Column(name = "titulo", nullable = false, length = 255)
@@ -60,4 +60,7 @@ public class SkillPath extends AuditoriaBase {
 
     @Column(name = "es_recomendado")
     private Boolean esRecomendado = false;
+
+    @Column(name = "activo")
+    private Boolean activo = true;
 }

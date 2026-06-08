@@ -1,72 +1,86 @@
-import { mockSkillPaths } from "./mock-data";
 import { SkillPath, SkillPathFilters } from "./types";
 
-const simulateDelay = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 250));
-};
+interface BackendApiResponse<T> {
+    success: boolean;
+    message: string;
+    data: T;
+}
+
+function getSkillPathBackendUrl() {
+    const isServer = typeof window === "undefined";
+
+    if (isServer) {
+        return process.env.SKILLPATH_BACKEND_URL || "http://host.docker.internal:8080";
+    }
+
+    return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+}
+
+async function skillPathFetch<T>(
+    path: string,
+    token?: string | null,
+): Promise<T> {
+    const response = await fetch(`${getSkillPathBackendUrl()}${path}`, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        cache: "no-store",
+    });
+
+    const contentType = response.headers.get("content-type");
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error consumiendo SkillPath API:", {
+            status: response.status,
+            body: errorText,
+        });
+
+        throw new Error(`Error ${response.status} al consumir SkillPath API`);
+    }
+
+    if (!contentType?.includes("application/json")) {
+        const text = await response.text();
+        console.error("La respuesta no es JSON:", text);
+        throw new Error("La respuesta del backend no es JSON");
+    }
+
+    const json = (await response.json()) as BackendApiResponse<T>;
+
+    return json.data;
+}
 
 export async function getSkillPaths(
-    filters?: SkillPathFilters
+    filters?: SkillPathFilters,
+    token?: string | null,
 ): Promise<SkillPath[]> {
-    await simulateDelay();
-
-    let skillPaths = [...mockSkillPaths];
+    const params = new URLSearchParams();
 
     if (filters?.subareaId) {
-        skillPaths = skillPaths.filter(
-            (skillPath) => skillPath.subareaId === filters.subareaId
-        );
+        params.set("subareaId", filters.subareaId);
     }
 
-    if (filters?.search && filters.search.trim().length > 0) {
-        const searchTerm = filters.search.trim().toLowerCase();
+    const queryString = params.toString();
 
-        skillPaths = skillPaths.filter((skillPath) => {
-            const titleMatch = skillPath.title.toLowerCase().includes(searchTerm);
-            const platformMatch = skillPath.platform.toLowerCase().includes(searchTerm);
-            const descriptionMatch = skillPath.description
-                .toLowerCase()
-                .includes(searchTerm);
-            const skillMatch = skillPath.skills.some((skill) =>
-                skill.name.toLowerCase().includes(searchTerm)
-            );
+    const path = queryString
+        ? `/api/skillpaths/estudiante?${queryString}`
+        : "/api/skillpaths/estudiante";
 
-            return titleMatch || platformMatch || descriptionMatch || skillMatch;
-        });
-    }
-
-    if (filters?.difficulty && filters.difficulty !== "TODOS") {
-        skillPaths = skillPaths.filter(
-            (skillPath) => skillPath.difficulty === filters.difficulty
-        );
-    }
-
-    if (filters?.status && filters.status !== "TODOS") {
-        skillPaths = skillPaths.filter(
-            (skillPath) => skillPath.status === filters.status
-        );
-    }
-
-    return skillPaths;
+    return skillPathFetch<SkillPath[]>(path, token);
 }
 
 export async function getSkillPathById(
-    skillPathId: string
+    skillPathId: string,
+    token?: string | null,
 ): Promise<SkillPath | null> {
-    await simulateDelay();
-
-    return (
-        mockSkillPaths.find((skillPath) => skillPath.id === skillPathId) ?? null
-    );
-}
-
-export async function getRecommendedSkillPathsBySubarea(
-    subareaId: string
-): Promise<SkillPath[]> {
-    await simulateDelay();
-
-    return mockSkillPaths.filter(
-        (skillPath) =>
-            skillPath.subareaId === subareaId && skillPath.isRecommended
-    );
+    try {
+        return await skillPathFetch<SkillPath>(
+            `/api/skillpaths/estudiante/${skillPathId}`,
+            token,
+        );
+    } catch (error) {
+        console.error("Error obteniendo SkillPath:", error);
+        return null;
+    }
 }

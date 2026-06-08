@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { SkillPathEvidenceSection } from "@/components/skillpath/SkillPathEvidenceSection";
 import { SkillPathRewardSummary } from "@/components/skillpath/SkillPathRewardSummary";
 import {
@@ -31,7 +33,10 @@ export default async function SkillPathDetailPage({
                                                       params,
                                                   }: SkillPathDetailPageProps) {
     const { skillPathId } = await params;
-    const skillPath = await getSkillPathById(skillPathId);
+    const session = await getServerSession(authOptions);
+    const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+
+    const skillPath = await getSkillPathById(skillPathId, backendJwt);
 
     if (!skillPath) {
         notFound();

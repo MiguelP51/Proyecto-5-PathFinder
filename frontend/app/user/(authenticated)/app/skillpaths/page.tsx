@@ -4,6 +4,9 @@ import { ArrowLeft, BookOpen, GraduationCap, Sparkles } from "lucide-react";
 import { getSkillPaths } from "@/lib/skillpath/service";
 import { SkillPathListClient } from "@/components/skillpath/SkillPathListClient";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
 interface SkillPathsPageProps {
     searchParams?: Promise<{
         subareaId?: string;
@@ -15,10 +18,15 @@ export default async function SkillPathsPage({
                                              }: SkillPathsPageProps) {
     const resolvedSearchParams = await searchParams;
     const subareaId = resolvedSearchParams?.subareaId;
+    const session = await getServerSession(authOptions);
+    const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
 
-    const skillPaths = await getSkillPaths({
-        subareaId,
-    });
+    const skillPaths = await getSkillPaths(
+        {
+            subareaId,
+        },
+        backendJwt,
+    );
 
     const isSubareaView = Boolean(subareaId);
     const currentSubareaName = skillPaths[0]?.subareaName;
