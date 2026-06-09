@@ -57,4 +57,11 @@ public class Entrevista extends AuditoriaBase {
 
     @Column(name = "competencia_resolucion")
     private Integer competenciaResolucion; // 1 a 5 estrellas
+
+    @Column(name = "motivo_cancelacion", length = 500)
+    private String motivoCancelacion;
+
+    @Column(name = "puesto", length = 100)
+    private String puesto;
 }
+

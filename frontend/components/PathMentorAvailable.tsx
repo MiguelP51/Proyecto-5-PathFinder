@@ -4,6 +4,7 @@ import styles from '../styles/Availability.module.css';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TIME_SLOTS = [
@@ -55,7 +56,7 @@ export default function AvailabilityPage() {
   const [maxEntrevistas, setMaxEntrevistas] = useState<number>(4);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState('Lunes');
+  const [selectedDays, setSelectedDays] = useState<string[]>(['Lunes']);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [selectedType, setSelectedType] = useState('virtual');
@@ -98,12 +99,12 @@ export default function AvailabilityPage() {
 
   const handleSaveAll = async () => {
     if (!session?.backendJwt) {
-      alert("Debes iniciar sesión para guardar tu disponibilidad.");
+      toast.error("Debes iniciar sesión para guardar tu disponibilidad.");
       return;
     }
 
     if (blocks.length === 0) {
-      alert("Debes agregar al menos un bloque de disponibilidad.");
+      toast.warning("Debes agregar al menos un bloque de disponibilidad.");
       return;
     }
 
@@ -114,7 +115,7 @@ export default function AvailabilityPage() {
     });
 
     if (hasInvalid) {
-      alert("Por favor, corrige o elimina los bloques de disponibilidad marcados como inválidos antes de guardar.");
+      toast.warning("Por favor, corrige o elimina los bloques de disponibilidad marcados como inválidos antes de guardar.");
       return;
     }
 
@@ -128,7 +129,7 @@ export default function AvailabilityPage() {
 
     const hasExceeded = Object.keys(dailySlots).some(day => dailySlots[day] > maxEntrevistas);
     if (hasExceeded) {
-      alert("Por favor, ajusta tus bloques. El total de entrevistas para uno o más días supera el límite diario permitido.");
+      toast.warning("Por favor, ajusta tus bloques. El total de entrevistas para uno o más días supera el límite diario permitido.");
       return;
     }
 
@@ -160,11 +161,11 @@ export default function AvailabilityPage() {
         body: JSON.stringify(payload)
       }, session?.backendJwt);
 
-      alert("¡Configuración y disponibilidad guardadas con éxito!");
+      toast.success("¡Configuración y disponibilidad guardadas con éxito!");
       loadAvailability();
     } catch (err) {
       console.error("Error guardando disponibilidad:", err);
-      alert("Error al guardar disponibilidad: " + (err instanceof Error ? err.message : err));
+      toast.error("Error al guardar disponibilidad: " + (err instanceof Error ? err.message : err));
     }
   };
 
@@ -265,11 +266,13 @@ export default function AvailabilityPage() {
 
                                 <div className={styles.daysGrid}>
                                     {DAYS_OF_WEEK.map((day) => (
-                                        <label key={day}>
+                                        <label key={day} className="flex items-center gap-1.5 cursor-pointer">
                                             <input
-                                                type="checkbox"
+                                                type="radio"
+                                                name="selectedFilterDay"
                                                 checked={selectedFilterDay === day}
                                                 onChange={() => setSelectedFilterDay(day)}
+                                                className="cursor-pointer"
                                             />
                                             {day}
                                         </label>
@@ -288,7 +291,7 @@ export default function AvailabilityPage() {
                                 <button 
                                     className={styles.addButton}
                                     onClick={() => {
-                                        setSelectedDay(selectedFilterDay);
+                                        setSelectedDays([selectedFilterDay]);
                                         setStartTime('09:00');
                                         setEndTime('10:00');
                                         setSelectedType('virtual');
@@ -549,16 +552,26 @@ export default function AvailabilityPage() {
                         
                         <div className={styles.modalForm}>
                             <div className={styles.formGroup}>
-                                <label>Día</label>
-                                <select 
-                                    className={styles.modalSelect}
-                                    value={selectedDay}
-                                    onChange={(e) => setSelectedDay(e.target.value)}
-                                >
+                                <label className="block text-sm font-bold text-slate-700 mb-2 dark:text-slate-200">Días aplicables</label>
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                                     {DAYS_OF_WEEK.map((d) => (
-                                        <option key={d} value={d}>{d}</option>
+                                        <label key={d} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox"
+                                                checked={selectedDays.includes(d)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedDays([...selectedDays, d]);
+                                                    } else {
+                                                        setSelectedDays(selectedDays.filter(day => day !== d));
+                                                    }
+                                                }}
+                                                className="cursor-pointer rounded border-slate-300 text-[#7447D7] focus:ring-[#7447D7]"
+                                            />
+                                            {d}
+                                        </label>
                                     ))}
-                                </select>
+                                </div>
                             </div>
                             
                             <div className={styles.formRow}>
@@ -633,6 +646,13 @@ export default function AvailabilityPage() {
                             </div>
                             
                             {(() => {
+                              if (selectedDays.length === 0) {
+                                return (
+                                  <div className={styles.modalErrorMsg}>
+                                    ✗ Debes seleccionar al menos un día.
+                                  </div>
+                                );
+                              }
                               if (startTime >= endTime) return null;
                               const slots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
                               if (slots === 0) {
@@ -642,17 +662,47 @@ export default function AvailabilityPage() {
                                   </div>
                                 );
                               }
-                              const isOverlapping = detectarCruceDeBloques(selectedDay, startTime, endTime, blocks);
-                              if (isOverlapping) {
+
+                              const errors: string[] = [];
+                              const successes: string[] = [];
+
+                              selectedDays.forEach(day => {
+                                const isOverlapping = detectarCruceDeBloques(day, startTime, endTime, blocks);
+                                if (isOverlapping) {
+                                  errors.push(`${day}: Este bloque se cruza con uno ya existente.`);
+                                  return;
+                                }
+
+                                let dailySlots = 0;
+                                blocks.forEach(b => {
+                                  if (b.day === day) {
+                                    const [hStart, hEnd] = b.time.split(" - ");
+                                    dailySlots += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                  }
+                                });
+                                const totalSlots = dailySlots + slots;
+                                if (totalSlots > maxEntrevistas) {
+                                  errors.push(`${day}: Supera el límite diario (${totalSlots} entrevistas, máximo permitido: ${maxEntrevistas}).`);
+                                } else {
+                                  successes.push(`${day} (${slots} entrevista${slots > 1 ? 's' : ''})`);
+                                }
+                              });
+
+                              if (errors.length > 0) {
                                 return (
-                                  <div className={styles.modalErrorMsg}>
-                                    ✗ Este bloque de tiempo se cruza con un bloque ya configurado para el {selectedDay}.
+                                  <div className="space-y-1 mt-2">
+                                    {errors.map((err, idx) => (
+                                      <div key={idx} className={styles.modalErrorMsg}>
+                                        ✗ {err}
+                                      </div>
+                                    ))}
                                   </div>
                                 );
                               }
+
                               return (
                                 <div className={styles.modalInfoMsg}>
-                                  ✓ Este bloque permitirá agendar {slots} entrevista{slots > 1 ? 's' : ''}.
+                                  ✓ Bloque válido para: {successes.join(", ")}.
                                 </div>
                               );
                             })()}
@@ -667,31 +717,61 @@ export default function AvailabilityPage() {
                                 <button 
                                     className={styles.btnSubmit}
                                     disabled={
+                                        selectedDays.length === 0 ||
                                         startTime >= endTime || 
                                         obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso) === 0 ||
-                                        detectarCruceDeBloques(selectedDay, startTime, endTime, blocks)
+                                        selectedDays.some(day => {
+                                          if (detectarCruceDeBloques(day, startTime, endTime, blocks)) return true;
+                                          let dailySlots = 0;
+                                          blocks.forEach(b => {
+                                            if (b.day === day) {
+                                              const [hStart, hEnd] = b.time.split(" - ");
+                                              dailySlots += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                            }
+                                          });
+                                          const slots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
+                                          return (dailySlots + slots) > maxEntrevistas;
+                                        })
                                     }
                                     onClick={() => {
-                                        // Simple validation
                                         if (startTime >= endTime) {
-                                            alert("La hora de inicio debe ser anterior a la hora de fin.");
+                                            toast.error("La hora de inicio debe ser anterior a la hora de fin.");
                                             return;
                                         }
 
-                                        if (detectarCruceDeBloques(selectedDay, startTime, endTime, blocks)) {
-                                            alert("Este bloque de tiempo se cruza con un bloque ya existente.");
-                                            return;
+                                        const newBlocksToAdd: any[] = [];
+                                        let baseId = Date.now();
+
+                                        for (const day of selectedDays) {
+                                            if (detectarCruceDeBloques(day, startTime, endTime, blocks)) {
+                                                toast.error(`El bloque se cruza con un bloque existente el día ${day}.`);
+                                                return;
+                                            }
+
+                                            let dailySlots = 0;
+                                            blocks.forEach(b => {
+                                                if (b.day === day) {
+                                                    const [hStart, hEnd] = b.time.split(" - ");
+                                                    dailySlots += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                                                }
+                                            });
+                                            const newSlots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
+                                            if (dailySlots + newSlots > maxEntrevistas) {
+                                                toast.error(`El bloque supera el máximo permitido de entrevistas el día ${day}.`);
+                                                return;
+                                            }
+
+                                            newBlocksToAdd.push({
+                                                id: baseId++,
+                                                day: day,
+                                                time: `${startTime} - ${endTime}`,
+                                                type: selectedType
+                                            });
                                         }
-                                        
-                                        const newBlock = {
-                                            id: Date.now(),
-                                            day: selectedDay,
-                                            time: `${startTime} - ${endTime}`,
-                                            type: selectedType
-                                        };
-                                        
-                                        setBlocks([...blocks, newBlock]);
+
+                                        setBlocks([...blocks, ...newBlocksToAdd]);
                                         setIsModalOpen(false);
+                                        toast.success("Bloque(s) agregado(s) con éxito.");
                                     }}
                                 >
                                     + Agregar Bloque

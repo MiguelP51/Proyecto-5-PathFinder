@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import MentorProfileForm from "@/components/mentor/mentor-profile-form";
+import { toast } from "sonner";
+
 
 // ─── Tipos que devuelve el backend ───────────────────────────────────────────
 
@@ -234,6 +236,7 @@ export default function ProfileSetupPage() {
   const [isProcessingCV, setIsProcessingCV] = useState(false);
   const [cvUploaded, setCvUploaded] = useState(false);
   const [cvFileName, setCvFileName] = useState("");
+  const [pendingCVFile, setPendingCVFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [hasSavedProfile, setHasSavedProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
@@ -264,8 +267,7 @@ export default function ProfileSetupPage() {
   ]);
   const [tools, setTools] = useState<SkillItem[]>([]);
 
-  // Al cargar la página, intentamos traer el CV guardado del usuario
-  useEffect(() => {
+  const loadProfile = async () => {
     if (status === "authenticated" && session?.user?.email) {
       // MENTOR usa su propio formulario, no necesita cargar CV de estudiante
       if (session?.user?.rol === "MENTOR") {
@@ -282,37 +284,62 @@ export default function ProfileSetupPage() {
 
       // Cargar Perfil guardado si existe
       const backendJwt = (session as { backendJwt?: string }).backendJwt;
-      apiFetch<any>("/api/profile", {}, backendJwt)
-          .then((dto) => {
-            const mapped = mapDtoToState(dto);
-            if (mapped.personalData.fullName) {
-              setPersonalData((prev) => ({
-                ...prev,
-                ...mapped.personalData,
-                email: mapped.personalData.email || prev.email,
-              }));
-              setHasSavedProfile(true);
-              setIsEditing(false);
-            }
-            if (dto.confirmado) {
-              setIsProfileConfirmed(true);
-            }
-            if (mapped.educations.length > 0) setEducations(mapped.educations);
-            if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
-            if (mapped.skills.length > 0) setSkills(mapped.skills);
-            if (mapped.languages.length > 0) setLanguages(mapped.languages);
-            if (mapped.tools.length > 0) setTools(mapped.tools);
-          })
-          .catch(() => {
-          // Sin perfil guardado aún, no pasa nada
-          })
-          .finally(() => {
-            setIsLoadingData(false);
-          });
+      try {
+        const dto = await apiFetch<any>("/api/profile", {}, backendJwt);
+        const mapped = mapDtoToState(dto);
+        if (mapped.personalData.fullName) {
+          setPersonalData((prev) => ({
+            ...prev,
+            ...mapped.personalData,
+            email: mapped.personalData.email || prev.email,
+          }));
+          setHasSavedProfile(true);
+          setIsEditing(false);
+        } else {
+          setHasSavedProfile(false);
+          setIsEditing(true);
+        }
+        if (dto.confirmado) {
+          setIsProfileConfirmed(true);
+        } else {
+          setIsProfileConfirmed(false);
+        }
+        if (dto.cvUploaded) {
+          setCvUploaded(true);
+          setCvFileName(dto.cvNombreArchivo || "CV.pdf");
+        } else {
+          setCvUploaded(false);
+          setCvFileName("");
+        }
+        setEducations(mapped.educations.length > 0 ? mapped.educations : []);
+        setExperiences(mapped.experiences.length > 0 ? mapped.experiences : []);
+        setSkills(mapped.skills.length > 0 ? mapped.skills : []);
+        setLanguages(mapped.languages.length > 0 ? mapped.languages : [{ name: "Español", level: "Avanzado" }]);
+        setTools(mapped.tools.length > 0 ? mapped.tools : []);
+      } catch (err) {
+        // Sin perfil guardado aún, no pasa nada
+      } finally {
+        setIsLoadingData(false);
+      }
     } else if (status === "unauthenticated") {
       setIsLoadingData(false);
     }
+  };
+
+  // Al cargar la página, intentamos traer el CV guardado del usuario
+  useEffect(() => {
+    loadProfile();
   }, [status, session]);
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      // Al cancelar, descartamos los cambios, limpiamos el archivo pendiente y recargamos
+      setPendingCVFile(null);
+      loadProfile();
+    } else {
+      setIsEditing(true);
+    }
+  };
 
   const handlePhotoChange = (file: File) => {
     setPhotoUrl(URL.createObjectURL(file));
@@ -321,26 +348,13 @@ export default function ProfileSetupPage() {
   // ── Subir CV al back y autocompletar ──────────────────────────────────────
   const handleCVUpload = async (file: File) => {
     setIsProcessingCV(true);
+    setPendingCVFile(file);
     setCvFileName(file.name);
     setError("");
 
     try {
       const formData = new FormData();
       formData.append("archivo", file);
-
-      const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
-
-      // 1. Subir archivo físico al back (requiere auth)
-      if (backendJwt) {
-        try {
-          await apiFetch("/api/cv/upload", {
-            method: "POST",
-            body: formData,
-          }, backendJwt);
-        } catch (uploadErr) {
-          console.error("Error registrando archivo de CV:", uploadErr);
-        }
-      }
 
       // 2. Extraer datos (no requiere auth)
       const dto = await apiFetch<any>("/api/cv/extract", {
@@ -370,6 +384,41 @@ export default function ProfileSetupPage() {
       setIsProcessingCV(false);
     }
   };
+
+  const handleDownloadCV = async (download: boolean) => {
+    if (!session?.backendJwt) return;
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const response = await fetch(`${backendUrl}/api/cv/download`, {
+        headers: {
+          'Authorization': `Bearer ${session.backendJwt}`
+        }
+      });
+      if (!response.ok) throw new Error("No se pudo descargar el archivo de CV.");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      if (download) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = cvFileName || "CV.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success("CV descargado correctamente.");
+      } else {
+        window.open(url, '_blank');
+      }
+      
+      if (download) {
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      }
+    } catch (err) {
+      console.error("Error al descargar/visualizar mi CV:", err);
+      toast.error(err instanceof Error ? err.message : "Error al descargar o visualizar el CV");
+    }
+  };
+
 
   // ── Guardar CV en BD ───────────────────────────────────────────────────────
   const validateForm = (): boolean => {
@@ -596,6 +645,24 @@ export default function ProfileSetupPage() {
     setIsSaving(true);
 
     try {
+      const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+
+      // Subir archivo físico al back si hay uno pendiente
+      if (pendingCVFile && backendJwt) {
+        const formData = new FormData();
+        formData.append("archivo", pendingCVFile);
+        try {
+          await apiFetch("/api/cv/upload", {
+            method: "POST",
+            body: formData,
+          }, backendJwt);
+          setPendingCVFile(null); // Limpiar una vez subido con éxito
+        } catch (uploadErr) {
+          console.error("Error registrando archivo de CV:", uploadErr);
+          throw new Error("No se pudo subir el archivo de CV: " + (uploadErr instanceof Error ? uploadErr.message : uploadErr));
+        }
+      }
+
       const dto = mapStateToDtoForSave(
         personalData,
         educations,
@@ -609,10 +676,11 @@ export default function ProfileSetupPage() {
       await apiFetch<any>("/api/profile", {
         method: "PUT",
         body: JSON.stringify(dto),
-      }, (session as { backendJwt?: string } | null)?.backendJwt);
+      }, backendJwt);
 
       setHasSavedProfile(true);
       setIsEditing(false);
+      toast.success("Perfil guardado con éxito.");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error guardando el perfil"
@@ -631,6 +699,24 @@ export default function ProfileSetupPage() {
     setIsConfirming(true);
 
     try {
+      const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+
+      // Subir archivo físico al back si hay uno pendiente
+      if (pendingCVFile && backendJwt) {
+        const formData = new FormData();
+        formData.append("archivo", pendingCVFile);
+        try {
+          await apiFetch("/api/cv/upload", {
+            method: "POST",
+            body: formData,
+          }, backendJwt);
+          setPendingCVFile(null); // Limpiar una vez subido con éxito
+        } catch (uploadErr) {
+          console.error("Error registrando archivo de CV:", uploadErr);
+          throw new Error("No se pudo subir el archivo de CV: " + (uploadErr instanceof Error ? uploadErr.message : uploadErr));
+        }
+      }
+
       const dto = mapStateToDtoForSave(
         personalData,
         educations,
@@ -639,8 +725,6 @@ export default function ProfileSetupPage() {
         languages,
         tools
       );
-
-      const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
 
       // 1. Guardar primero el borrador más actualizado
       await apiFetch<any>("/api/profile", {
@@ -807,8 +891,9 @@ export default function ProfileSetupPage() {
         completionPercentage={completionPercentage}
         pendingItems={pendingItems}
         isEditing={isEditing}
-        onToggleEdit={() => setIsEditing(!isEditing)}
+        onToggleEdit={handleToggleEdit}
         hasSavedProfile={hasSavedProfile}
+        onBackToDashboard={() => router.push("/user/home")}
       />
 
       <main className="container mx-auto px-4 py-8 md:px-6">
@@ -865,6 +950,7 @@ export default function ProfileSetupPage() {
               cvUploaded={cvUploaded}
               cvFileName={cvFileName}
               disabled={!isEditing}
+              onDownloadCV={handleDownloadCV}
             />
 
             <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-[#0E3E66] to-[#643781] p-6 text-white shadow-sm">

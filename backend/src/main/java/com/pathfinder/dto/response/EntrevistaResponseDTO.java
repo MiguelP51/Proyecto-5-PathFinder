@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.Map;
 
 @Data
 @Builder
@@ -20,7 +21,7 @@ public class EntrevistaResponseDTO {
     private String fecha; // YYYY-MM-DD
     private String hora; // HH:MM
     private String tipo; // virtual / presencial
-    private String estado; // Programada / Completada / Cancelada
+    private String estado; // Programada / Completada / Cancelada / Reagendada
     private String virtualLink;
     
     // De etapa de selección
@@ -35,4 +36,10 @@ public class EntrevistaResponseDTO {
     private Integer competenciaTecnica;
     private Integer competenciaProactividad;
     private Integer competenciaResolucion;
+
+    private String motivoCancelacion;
+    private Double promedioCalificacion;
+    private Map<String, String> nombresCompetencias;
+    private String puesto;
 }
+

@@ -29,6 +29,8 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     private final ResultadoDISCRepository resultadoDISCRepository;
     private final PerfilCVRepository perfilCVRepository;
     private final EmailService emailService;
+    private final FeriadoRepository feriadoRepository;
+
 
     @Override
     @Transactional
@@ -51,7 +53,13 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
         LocalDate fecha = LocalDate.parse(request.getFecha());
 
+        // Validar si la fecha es feriado
+        if (feriadoRepository.existsByFechaAndActivoTrue(fecha)) {
+            throw new IllegalStateException("La fecha seleccionada es un día feriado nacional y no laborable.");
+        }
+
         // Validar colisión de horario para el mentor
+
         boolean colision = entrevistaRepository.existsByMentor_IdUsuarioAndFechaAndHoraAndActivoTrue(mentor.getIdUsuario(), fecha, request.getHora());
         if (colision) {
             throw new IllegalStateException("El horario seleccionado ya no está disponible con este mentor");
@@ -66,6 +74,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevista.setTipo(request.getTipo());
         entrevista.setEstado("Programada");
         entrevista.setActivo(true);
+        entrevista.setPuesto(request.getPuesto() != null ? request.getPuesto().trim() : null);
 
         Entrevista guardada = entrevistaRepository.save(entrevista);
 
@@ -98,7 +107,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
     @Override
     public List<EntrevistaResponseDTO> obtenerEntrevistasMentor(String correoMentor) {
-        List<Entrevista> entrevistas = entrevistaRepository.findByMentor_CorreoAndActivoTrue(correoMentor);
+        List<Entrevista> entrevistas = entrevistaRepository.findByMentor_Correo(correoMentor);
         return entrevistas.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
@@ -112,7 +121,25 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             throw new IllegalStateException("No tienes permisos para modificar esta entrevista");
         }
 
-        entrevista.setVirtualLink(virtualLink);
+        String link = virtualLink.trim();
+        if (!link.toLowerCase().startsWith("http://") && !link.toLowerCase().startsWith("https://")) {
+            link = "https://" + link;
+        }
+
+        String urlLower = link.toLowerCase();
+        boolean isValid = urlLower.contains("zoom.us") ||
+                          urlLower.contains("meet.google.com") ||
+                          urlLower.contains("teams.microsoft.com") ||
+                          urlLower.contains("teams.live.com") ||
+                          urlLower.contains("join.skype.com") ||
+                          urlLower.contains("webex.com") ||
+                          urlLower.contains("meet.jit.si");
+
+        if (!isValid) {
+            throw new IllegalArgumentException("El enlace de la reunión no es válido. Debe ser de Zoom, Google Meet, Teams, Skype, Webex o Jitsi.");
+        }
+
+        entrevista.setVirtualLink(link);
         entrevista.setFechaModificacion(LocalDateTime.now());
         entrevistaRepository.save(entrevista);
 
@@ -124,7 +151,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 entrevista.getFecha().toString(),
                 entrevista.getHora(),
                 entrevista.getTipo(),
-                virtualLink
+                link
         );
 
         log.info("Enlace virtual guardado para entrevista ID {}", idEntrevista);
@@ -157,6 +184,53 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         log.info("Feedback registrado para entrevista ID {}", idEntrevista);
     }
 
+    @Override
+    @Transactional
+    public void cancelarOReagendarEntrevistaEstudiante(String correoEstudiante, String motivo, boolean esReagendado) {
+        Entrevista entrevista = entrevistaRepository.findFirstByEstudiante_CorreoAndActivoTrueOrderByFechaDescHoraDesc(correoEstudiante)
+                .orElseThrow(() -> new IllegalArgumentException("No tienes ninguna entrevista activa para cancelar o reagendar"));
+
+        if (!"Programada".equalsIgnoreCase(entrevista.getEstado())) {
+            throw new IllegalStateException("Solo puedes cancelar o reagendar una entrevista que esté en estado 'Programada'");
+        }
+
+        String nuevoEstado = esReagendado ? "Reagendada" : "Cancelada";
+        entrevista.setEstado(nuevoEstado);
+        entrevista.setActivo(false);
+        entrevista.setMotivoCancelacion(motivo);
+        entrevista.setFechaModificacion(LocalDateTime.now());
+        entrevistaRepository.save(entrevista);
+
+        // Actualizar progreso del estudiante para permitir agendar nuevamente
+        Usuario estudiante = entrevista.getEstudiante();
+        actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
+        actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.PENDIENTE);
+
+        // Notificar por correo real tanto al estudiante como al mentor
+        emailService.enviarCorreoCancelacionOReagendacion(
+                estudiante.getCorreo(),
+                estudiante.getNombreCompleto(),
+                entrevista.getMentor().getNombreCompleto(),
+                entrevista.getFecha().toString(),
+                entrevista.getHora(),
+                nuevoEstado,
+                motivo
+        );
+
+        emailService.enviarCorreoCancelacionOReagendacion(
+                entrevista.getMentor().getCorreo(),
+                estudiante.getNombreCompleto(),
+                entrevista.getMentor().getNombreCompleto(),
+                entrevista.getFecha().toString(),
+                entrevista.getHora(),
+                nuevoEstado,
+                motivo
+        );
+
+        log.info("Entrevista ID {} cambiada a {} por el estudiante {}. Motivo: {}", 
+                entrevista.getIdEntrevista(), nuevoEstado, correoEstudiante, motivo);
+    }
+
     private void actualizarProgreso(Usuario usuario, NombreEtapa etapa, EstadoEtapa estado) {
         ProgresoEstudiante p = progresoRepository.findByUsuario_IdUsuarioAndNombreEtapa(usuario.getIdUsuario(), etapa)
                 .orElseGet(() -> {
@@ -181,6 +255,31 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         // Buscar CV
         boolean cvAvailable = perfilCVRepository.existsByUsuario_Correo(ent.getEstudiante().getCorreo());
 
+        // Calcular promedio de calificación (1 decimal)
+        Double promedio = null;
+        if (ent.getCompetenciaComunicacion() != null && ent.getCompetenciaTecnica() != null &&
+            ent.getCompetenciaProactividad() != null && ent.getCompetenciaResolucion() != null) {
+            double avg = (ent.getCompetenciaComunicacion() + ent.getCompetenciaTecnica() +
+                          ent.getCompetenciaProactividad() + ent.getCompetenciaResolucion()) / 4.0;
+            promedio = Math.round(avg * 10.0) / 10.0;
+        }
+
+        // Nombres de competencias dinámicos
+        java.util.Map<String, String> nombresCompetencias = new java.util.HashMap<>();
+        nombresCompetencias.put("competenciaComunicacion", "Comunicación");
+        nombresCompetencias.put("competenciaTecnica", "Habilidades Técnicas");
+        nombresCompetencias.put("competenciaProactividad", "Calificación General");
+        nombresCompetencias.put("competenciaResolucion", "Resolución de Problemas");
+
+        String puesto = ent.getPuesto();
+        if (puesto == null || puesto.trim().isEmpty()) {
+            Optional<PerfilCV> cvOpt = perfilCVRepository.findByUsuario_Correo(ent.getEstudiante().getCorreo());
+            puesto = cvOpt.map(PerfilCV::getInteresesProfesionales).orElse(null);
+        }
+        if (puesto == null || puesto.trim().isEmpty()) {
+            puesto = "Sin especificar";
+        }
+
         return EntrevistaResponseDTO.builder()
                 .idEntrevista(ent.getIdEntrevista())
                 .idEstudiante(ent.getEstudiante().getIdUsuario())
@@ -203,6 +302,10 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 .competenciaTecnica(ent.getCompetenciaTecnica())
                 .competenciaProactividad(ent.getCompetenciaProactividad())
                 .competenciaResolucion(ent.getCompetenciaResolucion())
+                .motivoCancelacion(ent.getMotivoCancelacion())
+                .promedioCalificacion(promedio)
+                .nombresCompetencias(nombresCompetencias)
+                .puesto(puesto)
                 .build();
     }
 }

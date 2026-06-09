@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 import styles from '../styles/PathMentorFeedbacks.module.css';
 
 interface Feedback {
@@ -137,7 +138,8 @@ export default function PathMentorFeedbacks() {
     try {
       setLoading(true);
       const data = await apiFetch<any[]>("/api/entrevistas/mentor", {}, session?.backendJwt);
-      const mapped = data.map(item => {
+      const filteredData = data.filter(item => item.estado !== 'Cancelada' && item.estado !== 'Reagendada');
+      const mapped = filteredData.map(item => {
         let statusVal: Feedback['status'] = item.estado === 'Completada' ? 'Publicado' : 'Pendiente';
         let resultVal = item.resultado;
         let fort = "";
@@ -189,7 +191,8 @@ export default function PathMentorFeedbacks() {
           fortalezas: fort,
           areasMejora: amej,
           comentarios: coms,
-          lastUpdated: item.fecha
+          lastUpdated: item.fecha,
+          position: item.puesto || 'Sin especificar'
         };
       });
       setFeedbacks(mapped);
@@ -206,10 +209,21 @@ export default function PathMentorFeedbacks() {
   const draftCount = feedbacks.filter((item) => item.status === 'Borrador').length;
   const publishedCount = feedbacks.filter((item) => item.status === 'Publicado').length;
 
+  const normalizeText = (text: string): string => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
+
   const filteredFeedbacks = feedbacks.filter((item) => {
+    const nameNormalized = normalizeText(item.studentName);
+    const emailNormalized = normalizeText(item.studentEmail);
+    const searchNormalized = normalizeText(searchTerm);
+
     const matchesSearch =
-      item.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.studentEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      nameNormalized.includes(searchNormalized) ||
+      emailNormalized.includes(searchNormalized);
 
     const matchesStatus =
       statusFilter === 'Todos' || item.status === statusFilter;
@@ -296,7 +310,7 @@ export default function PathMentorFeedbacks() {
       comentarios: formComentarios
     };
     localStorage.setItem(`draft_feedback_${selectedFeedback.id}`, JSON.stringify(draftData));
-    alert("Borrador guardado localmente.");
+    toast.success("Borrador guardado localmente.");
     setActiveView('list');
     loadFeedbacks();
   };
@@ -304,7 +318,7 @@ export default function PathMentorFeedbacks() {
   const handlePublish = async () => {
     if (!selectedFeedback || !session?.backendJwt) return;
     if (!formResult) {
-      alert('Por favor selecciona un resultado antes de publicar el feedback.');
+      toast.warning('Por favor selecciona un resultado antes de publicar el feedback.');
       return;
     }
 
@@ -329,12 +343,12 @@ export default function PathMentorFeedbacks() {
 
       // Clean local draft
       localStorage.removeItem(`draft_feedback_${selectedFeedback.id}`);
-      alert("¡Feedback publicado y notificado con éxito!");
+      toast.success("¡Feedback publicado y notificado con éxito!");
       setActiveView('list');
       loadFeedbacks();
     } catch (err) {
       console.error("Error publicando feedback:", err);
-      alert("Error al publicar feedback: " + (err instanceof Error ? err.message : err));
+      toast.error("Error al publicar feedback: " + (err instanceof Error ? err.message : err));
     }
   };
 
@@ -597,7 +611,7 @@ export default function PathMentorFeedbacks() {
                   </div>
                   <div className={styles.infoCol}>
                     <span className={styles.infoTitle}>Puesto Postulado</span>
-                    <span className={styles.infoText}>{selectedFeedback?.position || 'UX/UI Designer'}</span>
+                    <span className={styles.infoText}>{selectedFeedback?.position || 'Sin especificar'}</span>
                   </div>
                 </div>
               </section>

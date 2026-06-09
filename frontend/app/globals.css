@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1e293b;
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --font-montserrat: 'Montserrat', sans-serif;
 }
 
 @theme inline {
@@ -12,15 +21,688 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-montserrat);
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
+
+.dark html, .dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* Anulación global de degradados de fondo claros en modo oscuro */
+.dark div.min-h-screen[class*="bg-gradient-"],
+.dark div.min-h-screen,
+.dark .min-h-screen {
+  background-image: none !important;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+.dark .border-slate-200, .dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-50\/50 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+/* Force container backgrounds */
+.dark div.bg-white,
+.dark section.bg-white,
+.dark article.bg-white,
+.dark header.bg-white,
+.dark aside.bg-white,
+.dark main.bg-white,
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark div.bg-white\/95,
+.dark header.bg-white\/95,
+.dark .bg-white\/95 {
+  background-color: rgba(30, 41, 59, 0.95) !important;
+}
+
+/* Force text colors */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #f8fafc !important;
+}
+
+/* Specific dark blue text override */
+.dark .text-slate-900,
+.dark .text-\[\#0e3e66\],
+.dark .text-\[\#0E3E66\] {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Force borders */
+.dark .border,
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+/* Gray backgrounds */
+.dark .bg-slate-50,
+.dark .bg-slate-100\/50,
+.dark .bg-slate-100,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/40,
+.dark .bg-slate-50\/30 {
+  background-color: #0f172a !important;
+}
+
+/* Acordeon / lists inputs hover inside sidebar */
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+/* CSS Modules Dark Mode Support for Mentor panels */
+.dark [class*="PathMentorNavbar_sidebar"],
+.dark [class*="PathMentorNavbar_sidebarCollapsed"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentorNavbar_sidebarHeader"] {
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentorNavbar_collapseButton"] {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="PathMentorNavbar_collapseButton"]:hover {
+  background-color: #475569 !important;
+}
+
+.dark [class*="PathMentorNavbar_link"] {
+  color: #cbd5e1 !important;
+}
+
+.dark [class*="PathMentorNavbar_link"]:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* Robust Topbar dark mode case-insensitive selector */
+.dark [class*="PathMentor" i][class*="Topbar" i],
+.dark [class*="PathMentor" i][class*="topbar" i],
+.dark [class*="Mentor" i][class*="Topbar" i],
+.dark [class*="Mentor" i][class*="topbar" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="PathMentor" i][class*="Topbar" i] h3,
+.dark [class*="PathMentor" i][class*="topbar" i] h3,
+.dark [class*="Mentor" i][class*="Topbar" i] h3,
+.dark [class*="Mentor" i][class*="topbar" i] h3 {
+  color: #f8fafc !important;
+}
+
+.dark [class*="PathMentor" i][class*="Topbar" i] p,
+.dark [class*="PathMentor" i][class*="topbar" i] p,
+.dark [class*="Mentor" i][class*="Topbar" i] p,
+.dark [class*="Mentor" i][class*="topbar" i] p {
+  color: #94a3b8 !important;
+}
+
+.dark [class*="PathMentor" i][class*="Topbar" i] [class*="avatarImg" i],
+.dark [class*="PathMentor" i][class*="topbar" i] [class*="avatarImg" i],
+.dark [class*="Mentor" i][class*="Topbar" i] [class*="avatarImg" i],
+.dark [class*="Mentor" i][class*="topbar" i] [class*="avatarImg" i] {
+  border-color: #334155 !important;
+}
+
+/* CSS Modules Dark Mode Support for Mentor and Admin panels */
+.dark [class*="PathMentor"],
+.dark [class*="Admin"] {
+  /* text color default */
+}
+
+/* Page layouts & containers */
+.dark [class*="PathMentor" i][class*="page" i],
+.dark [class*="PathMentor" i][class*="container" i],
+.dark [class*="PathMentor" i][class*="content" i],
+.dark [class*="PathMentor" i][class*="wrapper" i],
+.dark [class*="PathMentor" i][class*="main" i],
+.dark [class*="Admin" i][class*="page" i],
+.dark [class*="Admin" i][class*="container" i] {
+  background-color: #0f172a !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Cards & panels */
+.dark [class*="PathMentor" i][class*="card" i],
+.dark [class*="PathMentor" i][class*="modal" i],
+.dark [class*="PathMentor" i][class*="detail" i],
+.dark [class*="PathMentor" i][class*="formSection" i],
+.dark [class*="PathMentor" i][class*="infoGrid" i],
+.dark [class*="PathMentor" i][class*="box" i],
+.dark [class*="PathMentor" i][class*="panel" i],
+.dark [class*="Admin" i][class*="card" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* Inputs & Selects */
+.dark [class*="PathMentor" i][class*="input" i],
+.dark [class*="PathMentor" i][class*="select" i],
+.dark [class*="PathMentor" i][class*="textarea" i],
+.dark [class*="Admin" i][class*="input" i],
+.dark [class*="Admin" i][class*="select" i] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+/* Text elements */
+.dark [class*="PathMentor" i] h1,
+.dark [class*="PathMentor" i] h2,
+.dark [class*="PathMentor" i] h3,
+.dark [class*="PathMentor" i] h4,
+.dark [class*="PathMentor" i] h5,
+.dark [class*="PathMentor" i] h6,
+.dark [class*="PathMentor" i] span,
+.dark [class*="PathMentor" i] label,
+.dark [class*="PathMentor" i] p,
+.dark [class*="PathMentor" i] th,
+.dark [class*="PathMentor" i] td,
+.dark [class*="Admin" i] h1,
+.dark [class*="Admin" i] h2,
+.dark [class*="Admin" i] h3,
+.dark [class*="Admin" i] h4,
+.dark [class*="Admin" i] span,
+.dark [class*="Admin" i] p {
+  color: #f8fafc !important;
+}
+
+/* Subtext & secondary values */
+.dark [class*="PathMentor" i][class*="text" i],
+.dark [class*="PathMentor" i][class*="subtext" i],
+.dark [class*="PathMentor" i][class*="infoText" i],
+.dark [class*="PathMentor" i][class*="infoValue" i],
+.dark [class*="PathMentor" i][class*="studentEmail" i],
+.dark [class*="PathMentor" i][class*="dateCell" i],
+.dark [class*="PathMentor" i][class*="scoreValue" i] {
+  color: #cbd5e1 !important;
+}
+
+/* Headings in details modal */
+.dark [class*="PathMentor" i][class*="modalTitle" i],
+.dark [class*="PathMentor" i][class*="studentName" i] {
+  color: #f8fafc !important;
+}
+
+/* Buttons in mentor panels */
+.dark [class*="PathMentor" i][class*="btn" i],
+.dark [class*="PathMentor" i][class*="button" i],
+.dark [class*="Admin" i][class*="btn" i],
+.dark [class*="Admin" i][class*="button" i] {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentor" i][class*="btnSaveDraft"]:hover,
+.dark [class*="PathMentor" i][class*="btnVer"]:hover,
+.dark [class*="PathMentor" i][class*="btnEditar"]:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* Table elements */
+.dark [class*="PathMentor" i][class*="table" i] th {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.dark [class*="PathMentor" i][class*="table" i] td {
+  border-color: #334155 !important;
+}
+
+.dark [class*="PathMentor" i][class*="table" i] tr:hover {
+  background-color: rgba(51, 65, 85, 0.3) !important;
+}
+
+/* Modal overlays */
+.dark [class*="PathMentor" i][class*="overlay" i],
+.dark [class*="Admin" i][class*="overlay" i] {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+}
+
+/* AI Card & Cancellation details */
+.dark [class*="PathMentor" i][class*="aiCard" i] {
+  background-color: #3b0764 !important;
+  border-color: #6b21a8 !important;
+}
+
+.dark [class*="PathMentor" i][class*="aiCardTitle" i] {
+  color: #d8b4fe !important;
+}
+
+.dark [class*="PathMentor" i][class*="aiCardText" i] {
+  color: #f5f3ff !important;
+}
+
+.dark [class*="PathMentor" i][class*="cancellationBox" i] {
+  background-color: rgba(127, 29, 29, 0.2) !important;
+  border-color: #7f1d1d !important;
+}
+
+.dark [class*="PathMentor" i][class*="cancellationTitle" i] {
+  color: #fca5a5 !important;
+}
+
+.dark [class*="PathMentor" i][class*="cancellationText" i] {
+  color: #fecaca !important;
+}
+
+/* Badge specific styling for dark mode */
+.dark [class*="PathMentor" i][class*="statusPublicado" i],
+.dark [class*="PathMentor" i][class*="resultAprobado" i] {
+  background-color: rgba(79, 70, 229, 0.2) !important;
+  color: #818cf8 !important;
+}
+
+.dark [class*="PathMentor" i][class*="statusBorrador" i],
+.dark [class*="PathMentor" i][class*="resultObservaciones" i] {
+  background-color: rgba(219, 39, 119, 0.2) !important;
+  color: #f472b6 !important;
+}
+
+.dark [class*="PathMentor" i][class*="statusPendiente" i],
+.dark [class*="PathMentor" i][class*="resultEmpty" i] {
+  background-color: rgba(71, 85, 105, 0.2) !important;
+  color: #94a3b8 !important;
+}
+
+.dark [class*="PathMentor" i][class*="resultMejora" i] {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+}
+
+/* Student and Public Explorer Pages (Areas, About, Contact, Simulation) */
+.dark [class*="Areas" i][class*="areasPage" i],
+.dark [class*="Areas" i][class*="areaDetailSection" i],
+.dark [class*="AboutUsPage" i],
+.dark [class*="ContactPage" i],
+.dark [class*="Simulation" i] {
+  background-color: #0f172a !important;
+  background-image: none !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Areas" i][class*="heroSection" i] {
+  background: linear-gradient(112deg, #1e1b4b 0%, #0f172a 100%) !important;
+}
+
+.dark [class*="Areas" i][class*="areaDescriptionBox" i] {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.dark [class*="Areas" i][class*="functionCard" i] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Areas" i][class*="functionCard" i]:hover {
+  background-color: #334155 !important;
+}
+
+.dark [class*="Areas" i][class*="badge" i] {
+  background-color: #1e293b !important;
+  color: #a78bfa !important;
+  box-shadow: none !important;
+}
+
+/* Make sure all titles and texts in explorer/public views are light in dark mode */
+.dark [class*="Areas" i] h1,
+.dark [class*="Areas" i] h2,
+.dark [class*="Areas" i] h3,
+.dark [class*="Areas" i] h4,
+.dark [class*="Areas" i] p,
+.dark [class*="Areas" i] span,
+.dark [class*="AboutUsPage" i] h1,
+.dark [class*="AboutUsPage" i] h2,
+.dark [class*="AboutUsPage" i] h3,
+.dark [class*="AboutUsPage" i] p,
+.dark [class*="ContactPage" i] h1,
+.dark [class*="ContactPage" i] h2,
+.dark [class*="ContactPage" i] p,
+.dark [class*="ContactPage" i] label,
+.dark [class*="ContactPage" i] input,
+.dark [class*="ContactPage" i] textarea,
+.dark [class*="Simulation" i] h1,
+.dark [class*="Simulation" i] h2,
+.dark [class*="Simulation" i] h3,
+.dark [class*="Simulation" i] p,
+.dark [class*="Simulation" i] span {
+  color: #f8fafc !important;
+}
+
+.dark [class*="ContactPage" i] input,
+.dark [class*="ContactPage" i] textarea {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="AboutUsPage" i][class*="Card" i],
+.dark [class*="AboutUsPage" i][class*="card" i] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Sidebar Margin Resets - Since Sidebar is now an overlay on all views */
+[class*="PathMentor" i][class*="container" i],
+[class*="Availability" i][class*="container" i],
+[class*="Mentor" i][class*="container" i] {
+  margin-left: 0 !important;
+}
+
+[class*="PathMentor" i][class*="topbar" i],
+[class*="Mentor" i][class*="topbar" i] {
+  left: 0 !important;
+}
+
+/* Global Typography Font Enforcement in Dark Mode to prevent text distortion */
+.dark,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark p,
+.dark span,
+.dark a,
+.dark strong,
+.dark label,
+.dark input,
+.dark select,
+.dark textarea {
+  font-family: var(--font-montserrat), sans-serif !important;
+}
+
+/* 1. Dark Mode support for Availability panel pages */
+.dark [class*="Availability" i][class*="page" i],
+.dark [class*="Availability" i][class*="container" i],
+.dark [class*="Availability" i][class*="content" i],
+.dark [class*="Availability" i][class*="wrapper" i] {
+  background-color: #0f172a !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Availability" i][class*="Card" i],
+.dark [class*="Availability" i][class*="card" i],
+.dark [class*="Availability" i][class*="modalContent" i],
+.dark [class*="Availability" i][class*="timeBlock" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* Availability Sync Card & Link Card */
+.dark [class*="Availability" i][class*="syncCard" i] {
+  background-color: #083344 !important;
+  background: #083344 !important;
+  border-color: #0891b2 !important;
+}
+
+.dark [class*="Availability" i][class*="syncContent" i] p {
+  color: #cffafe !important;
+}
+
+.dark [class*="Availability" i][class*="linkCard" i] {
+  background-color: #172554 !important;
+  border-color: #1e40af !important;
+}
+
+.dark [class*="Availability" i][class*="linkCard" i] p {
+  color: #dbeafe !important;
+}
+
+/* Availability Calendar Button & Dropdown Selects */
+.dark [class*="Availability" i][class*="calendarButton" i] {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark [class*="Availability" i][class*="calendarButton" i]:hover {
+  background-color: #334155 !important;
+}
+
+.dark [class*="Availability" i] select,
+.dark [class*="Availability" i] select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="Availability" i][class*="bothTag" i] {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Availability" i][class*="customSelectTrigger" i] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="Availability" i][class*="customDropdownOptions" i] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="Availability" i][class*="customOption" i]:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* 2. Dark Mode support for Dashboard Quick Actions & Buttons */
+.dark [class*="quickActions" i] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="quickActions" i] button {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="quickActions" i] button:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+/* 3. Dark Mode support for Landing/Home Page */
+.dark [class*="Landpage" i][class*="landing" i],
+.dark [class*="Landpage" i][class*="hero" i],
+.dark [class*="Landpage" i][class*="Section" i] {
+  background-color: #0f172a !important;
+  background-image: none !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Landpage" i] [class*="Card" i],
+.dark [class*="Landpage" i] [class*="Box" i],
+.dark [class*="Landpage" i] [class*="statCard" i],
+.dark [class*="Landpage" i] [class*="benefitCard" i],
+.dark [class*="Landpage" i] [class*="areaCard" i],
+.dark [class*="Landpage" i] [class*="stepCard" i],
+.dark [class*="Landpage" i] [class*="testimonialCard" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark [class*="Landpage" i] h1,
+.dark [class*="Landpage" i] h2,
+.dark [class*="Landpage" i] h3,
+.dark [class*="Landpage" i] p,
+.dark [class*="Landpage" i] span,
+.dark [class*="Landpage" i] strong,
+.dark [class*="Landpage" i] li,
+.dark [class*="Landpage" i] blockquote {
+  color: #f8fafc !important;
+}
+
+/* Landing Page Headings and Gradients Override */
+.dark [class*="Landpage" i] [class*="gradientText" i],
+.dark [class*="Landpage" i] [class*="benefitsTitle" i] span,
+.dark [class*="Landpage" i] [class*="areasTitle" i] span,
+.dark [class*="Landpage" i] [class*="stepsTitle" i] span,
+.dark [class*="Landpage" i] [class*="testimonialsTitle" i] span {
+  background: linear-gradient(90deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Landing Page Highlight Overrides */
+.dark [class*="Landpage" i] [class*="highlightPurple" i] {
+  color: #c084fc !important;
+}
+.dark [class*="Landpage" i] [class*="highlightPink" i] {
+  color: #f472b6 !important;
+}
+.dark [class*="Landpage" i] [class*="statPurple" i] {
+  color: #a78bfa !important;
+}
+.dark [class*="Landpage" i] [class*="statPurpleLight" i] {
+  color: #c084fc !important;
+}
+.dark [class*="Landpage" i] [class*="statPink" i] {
+  color: #f472b6 !important;
+}
+
+.dark [class*="Landpage" i] [class*="Description" i],
+.dark [class*="Landpage" i] [class*="Text" i] {
+  color: #cbd5e1 !important;
+}
+
+/* Landing Page Buttons Override */
+.dark [class*="Landpage" i] [class*="secondaryButton" i],
+.dark [class*="Landpage" i] [class*="ctaSecondaryButton" i],
+.dark [class*="Landpage" i] [class*="viewAllAreasButton" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.dark [class*="Landpage" i] [class*="secondaryButton" i]:hover,
+.dark [class*="Landpage" i] [class*="ctaSecondaryButton" i]:hover,
+.dark [class*="Landpage" i] [class*="viewAllAreasButton" i]:hover {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+}
+
+/* Dark Mode support for Login & Register page */
+.dark [class*="LoginRegister" i][class*="container" i] {
+  background-color: #0f172a !important;
+  background-image: none !important;
+  background: #0f172a !important;
+}
+
+.dark [class*="LoginRegister" i][class*="welcomebox" i] {
+  background-color: #1e293b !important;
+  background: #1e293b !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark [class*="LoginRegister" i] h1,
+.dark [class*="LoginRegister" i] p,
+.dark [class*="LoginRegister" i] span,
+.dark [class*="LoginRegister" i] div {
+  color: #f8fafc !important;
+}
+
+.dark [class*="LoginRegister" i] [class*="googleBtn" i] {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark [class*="LoginRegister" i] [class*="googleBtn" i]:hover {
+  background-color: #334155 !important;
+}
+

@@ -21,6 +21,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Entrevista {
   idEntrevista: number;
@@ -44,6 +45,14 @@ interface Entrevista {
   competenciaTecnica: number;
   competenciaProactividad: number;
   competenciaResolucion: number;
+  motivoCancelacion?: string;
+  promedioCalificacion?: number;
+  nombresCompetencias?: {
+    competenciaComunicacion?: string;
+    competenciaTecnica?: string;
+    competenciaProactividad?: string;
+    competenciaResolucion?: string;
+  };
 }
 
 export default function SimulationDetailsPage() {
@@ -53,6 +62,11 @@ export default function SimulationDetailsPage() {
   const [entrevista, setEntrevista] = useState<Entrevista | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [canceling, setCanceling] = useState(false);
+  const [showMotiveModal, setShowMotiveModal] = useState(false);
+  const [motiveText, setMotiveText] = useState("");
+  const [isRescheduleAction, setIsRescheduleAction] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -80,6 +94,40 @@ export default function SimulationDetailsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelInterviewSubmit = async () => {
+    if (!motiveText.trim()) {
+      toast.warning("Por favor, ingresa el motivo antes de continuar.");
+      return;
+    }
+
+    const actionText = isRescheduleAction ? "reagendar" : "cancelar";
+    
+    try {
+      setCanceling(true);
+      await apiFetch("/api/entrevistas/cancelar", {
+        method: "POST",
+        body: JSON.stringify({
+          motivo: motiveText.trim(),
+          esReagendado: isRescheduleAction
+        })
+      }, session?.backendJwt);
+
+      toast.success(`Entrevista ${isRescheduleAction ? "cancelada para reagendación" : "cancelada con éxito"}.`);
+      setShowMotiveModal(false);
+      
+      if (isRescheduleAction && entrevista) {
+        router.push(`/user/app/simulation-schedule?mentorId=${entrevista.idMentor}`);
+      } else {
+        loadEntrevista();
+      }
+    } catch (err) {
+      console.error(`Error al ${actionText} la entrevista:`, err);
+      toast.error(err instanceof Error ? err.message : `Error al ${actionText} la entrevista.`);
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -126,6 +174,26 @@ export default function SimulationDetailsPage() {
         </div>
       </div>
     );
+  }
+
+  // Parse feedback if it is JSON
+  let parsedFeedback = {
+    fortalezas: "",
+    areasMejora: "",
+    comentarios: entrevista?.feedbackComentarios || ""
+  };
+
+  if (entrevista?.feedbackComentarios) {
+    try {
+      const parsed = JSON.parse(entrevista.feedbackComentarios);
+      if (parsed && typeof parsed === "object") {
+        parsedFeedback.fortalezas = parsed.fortalezas || "";
+        parsedFeedback.areasMejora = parsed.areasMejora || "";
+        parsedFeedback.comentarios = parsed.comentarios || "";
+      }
+    } catch (e) {
+      // fallback
+    }
   }
 
   return (
@@ -190,7 +258,7 @@ export default function SimulationDetailsPage() {
               </div>
 
               {entrevista.estado === "Programada" && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {entrevista.tipo === "virtual" && entrevista.virtualLink ? (
                     <a
                       href={entrevista.virtualLink.startsWith("http") ? entrevista.virtualLink : `https://${entrevista.virtualLink}`}
@@ -211,6 +279,30 @@ export default function SimulationDetailsPage() {
                       Enlace Pendiente
                     </button>
                   )}
+
+                  <button
+                    onClick={() => {
+                      setIsRescheduleAction(true);
+                      setMotiveText("");
+                      setShowMotiveModal(true);
+                    }}
+                    disabled={canceling}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#7447D7] text-[#7447D7] hover:bg-purple-50 px-6 text-sm font-bold transition disabled:opacity-50 cursor-pointer animate-pulse"
+                  >
+                    Reagendar Cita
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsRescheduleAction(false);
+                      setMotiveText("");
+                      setShowMotiveModal(true);
+                    }}
+                    disabled={canceling}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 px-6 text-sm font-bold transition disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancelar Cita
+                  </button>
                 </div>
               )}
             </section>
@@ -292,19 +384,50 @@ export default function SimulationDetailsPage() {
 
                 {/* Si está completada, mostrar los comentarios de feedback */}
                 {entrevista.estado === "Completada" && (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
                       <MessageSquare className="h-5 w-5 text-[#7447D7]" />
-                      Retroalimentación General
+                      Retroalimentación de la Simulación
                     </h3>
-                    <div className="rounded-xl bg-slate-50 p-5 border border-slate-100 relative">
-                      <span className="absolute -top-3 left-4 px-2 py-0.5 text-[10px] font-black uppercase bg-purple-100 text-[#7447D7] rounded-md tracking-wider">
-                        Comentarios del Mentor
-                      </span>
-                      <p className="text-sm text-slate-700 leading-relaxed italic whitespace-pre-line mt-1">
-                        "{entrevista.feedbackComentarios || "El mentor no dejó comentarios adicionales en su evaluación."}"
-                      </p>
-                    </div>
+                    
+                    {parsedFeedback.fortalezas && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                          💪 Fortalezas Clave
+                        </span>
+                        <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            {parsedFeedback.fortalezas}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedFeedback.areasMejora && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+                          📈 Áreas de Mejora
+                        </span>
+                        <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            {parsedFeedback.areasMejora}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedFeedback.comentarios && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
+                          💬 Observaciones y Recomendaciones
+                        </span>
+                        <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
+                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                            "{parsedFeedback.comentarios}"
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -333,6 +456,18 @@ export default function SimulationDetailsPage() {
                       </span>
                     </div>
 
+                    {entrevista.promedioCalificacion != null && (
+                      <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/20 text-center">
+                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                          Promedio General
+                        </span>
+                        <div className="flex justify-center items-baseline gap-1">
+                          <span className="text-3xl font-extrabold text-[#7447D7]">{entrevista.promedioCalificacion}</span>
+                          <span className="text-sm font-bold text-slate-400">/ 5.0</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="border-t border-slate-100 pt-4 space-y-4">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                         Calificación por Competencia
@@ -341,7 +476,7 @@ export default function SimulationDetailsPage() {
                       <div className="space-y-3">
                         <div>
                           <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>Comunicación</span>
+                            <span>{entrevista.nombresCompetencias?.competenciaComunicacion || "Comunicación"}</span>
                             <span className="text-[#7447D7]">{entrevista.competenciaComunicacion || 5}/5</span>
                           </div>
                           {renderStars(entrevista.competenciaComunicacion)}
@@ -349,7 +484,7 @@ export default function SimulationDetailsPage() {
 
                         <div>
                           <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>Habilidad Técnica</span>
+                            <span>{entrevista.nombresCompetencias?.competenciaTecnica || "Habilidad Técnica"}</span>
                             <span className="text-[#7447D7]">{entrevista.competenciaTecnica || 5}/5</span>
                           </div>
                           {renderStars(entrevista.competenciaTecnica)}
@@ -357,7 +492,7 @@ export default function SimulationDetailsPage() {
 
                         <div>
                           <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>Proactividad</span>
+                            <span>{entrevista.nombresCompetencias?.competenciaProactividad || "Proactividad"}</span>
                             <span className="text-[#7447D7]">{entrevista.competenciaProactividad || 5}/5</span>
                           </div>
                           {renderStars(entrevista.competenciaProactividad)}
@@ -365,7 +500,7 @@ export default function SimulationDetailsPage() {
 
                         <div>
                           <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>Resolución de Problemas</span>
+                            <span>{entrevista.nombresCompetencias?.competenciaResolucion || "Resolución de Problemas"}</span>
                             <span className="text-[#7447D7]">{entrevista.competenciaResolucion || 5}/5</span>
                           </div>
                           {renderStars(entrevista.competenciaResolucion)}
@@ -396,6 +531,41 @@ export default function SimulationDetailsPage() {
         )}
 
       </main>
+
+      {/* Modal de Motivo de Cancelación/Reagendación */}
+      {showMotiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-slate-800">
+              {isRescheduleAction ? "Motivo de Reagendación" : "Motivo de Cancelación"}
+            </h3>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              Por favor, indica brevemente por qué deseas {isRescheduleAction ? "reagendar" : "cancelar"} tu cita. Esta información será compartida con tu PathMentor.
+            </p>
+            <textarea
+              className="w-full h-32 mt-4 p-4 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-[#7447D7] bg-slate-50 text-slate-800 resize-none"
+              placeholder="Escribe el motivo aquí..."
+              value={motiveText}
+              onChange={(e) => setMotiveText(e.target.value)}
+            />
+            <div className="flex gap-3 mt-6 justify-end">
+              <button
+                onClick={() => setShowMotiveModal(false)}
+                className="px-5 h-11 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelInterviewSubmit}
+                disabled={canceling}
+                className="px-5 h-11 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 transition shadow-lg shadow-purple-200/50 disabled:opacity-50 cursor-pointer flex items-center justify-center"
+              >
+                {canceling ? "Procesando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import com.pathfinder.service.ArchivoCVService;
 import com.pathfinder.service.CVService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -94,6 +95,44 @@ public class CVController {
             log.error("Error obteniendo CV: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error obteniendo el CV: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/cv/download — descarga el propio CV del estudiante
+    @GetMapping("/download")
+    public ResponseEntity<byte[]> descargarMiCV(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            byte[] data = cvService.obtenerArchivoCVPdf(userDetails.getUsername());
+            String nombreArchivo = cvService.obtenerNombreArchivoCVPdf(userDetails.getUsername());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivo + "\"")
+                    .body(data);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error al descargar mi CV: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // GET /api/cv/download/{correo} — descarga el CV del estudiante por correo (usado por mentor/admin)
+    @GetMapping("/download/{correo}")
+    public ResponseEntity<byte[]> descargarCVDeEstudiante(
+            @PathVariable String correo) {
+        try {
+            byte[] data = cvService.obtenerArchivoCVPdf(correo);
+            String nombreArchivo = cvService.obtenerNombreArchivoCVPdf(correo);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivo + "\"")
+                    .body(data);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error al descargar CV de estudiante {}: {}", correo, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface EntrevistaRepository extends JpaRepository<Entrevista, Integer> {
     List<Entrevista> findByEstudiante_CorreoAndActivoTrue(String correo);
     List<Entrevista> findByMentor_CorreoAndActivoTrue(String correo);
+    List<Entrevista> findByMentor_Correo(String correo);
     List<Entrevista> findByMentor_IdUsuarioAndFechaAndActivoTrue(Integer idUsuario, LocalDate fecha);
     
     Optional<Entrevista> findFirstByEstudiante_CorreoAndActivoTrueOrderByFechaDescHoraDesc(String correo);

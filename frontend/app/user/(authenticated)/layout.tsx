@@ -17,13 +17,6 @@ export default function AuthenticatedLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Detectar ancho de pantalla para inicializar el sidebar en desktop
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      setSidebarOpen(true);
-    }
-  }, []);
-
   // Validar rol del lado del cliente como fallback
   useEffect(() => {
     if (status === "authenticated") {
@@ -51,7 +44,7 @@ export default function AuthenticatedLayout({
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 transition-all duration-300 ${sidebarOpen ? "md:pl-72" : "md:pl-0"}`}>
+    <div className="min-h-screen bg-slate-50 transition-all duration-300">
 
       <UserTopBar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
