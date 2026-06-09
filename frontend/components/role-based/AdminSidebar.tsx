@@ -156,7 +156,7 @@ export default function AdminSidebar({
             <div className="flex flex-col gap-1">
               <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>
                 <RefreshCw className="h-5 w-5" />
-                Sincronización Externa
+                Sincronización de catálogo de cursos
               </Link>
               <Link href="/admin/audit-logs" className={linkClass("/admin/audit-logs")}>
                 <FileText className="h-5 w-5" />
