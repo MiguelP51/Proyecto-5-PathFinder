@@ -60,7 +60,7 @@ export default function SubAreaDetallePage({
   }, [idSubarea, session, area, router]);
 
   const handleComenzar = () => {
-    router.push(`/areas/${area}/subareas/${idSubarea}/dashboard`);
+    router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`);
   };
 
   if (loading) return (
