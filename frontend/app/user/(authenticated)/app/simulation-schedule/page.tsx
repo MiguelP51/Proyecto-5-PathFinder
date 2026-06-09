@@ -263,7 +263,7 @@ export default function SimulationSchedulePage() {
     try {
       setScheduling(true);
       setError("");
-      await apiFetch("/api/entrevistas/agendar", {
+      const response = await apiFetch<{ emailEnviado?: boolean }>("/api/entrevistas/agendar", {
         method: "POST",
         body: JSON.stringify({
           idMentor: selectedMentor.idUsuario,
@@ -274,7 +274,11 @@ export default function SimulationSchedulePage() {
         })
       }, session?.backendJwt);
 
-      toast.success("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
+      if (response && response.emailEnviado === false) {
+        toast.warning("¡Entrevista agendada! Sin embargo, no se pudo enviar el correo de confirmación por un problema técnico temporal.");
+      } else {
+        toast.success("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
+      }
       router.push("/user/home");
     } catch (err) {
       console.error("Error agendando entrevista:", err);

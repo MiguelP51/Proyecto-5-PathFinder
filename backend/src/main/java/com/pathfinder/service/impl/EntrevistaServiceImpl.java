@@ -83,7 +83,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
 
         // Enviar correo de confirmación (inicialmente sin enlace)
-        emailService.enviarCorreoConfirmacion(
+        boolean emailSent = emailService.enviarCorreoConfirmacion(
                 estudiante.getCorreo(),
                 estudiante.getNombreCompleto(),
                 mentor.getNombreCompleto(),
@@ -94,7 +94,9 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         );
 
         log.info("Entrevista agendada con éxito para estudiante {} con mentor {}", correoEstudiante, mentor.getCorreo());
-        return mapToDTO(guardada);
+        EntrevistaResponseDTO dto = mapToDTO(guardada);
+        dto.setEmailEnviado(emailSent);
+        return dto;
     }
 
     @Override
@@ -113,7 +115,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
     @Override
     @Transactional
-    public void guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink) {
+    public boolean guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink) {
         Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
                 .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada"));
 
@@ -144,7 +146,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevistaRepository.save(entrevista);
 
         // Notificar al estudiante por correo
-        emailService.enviarCorreoConfirmacion(
+        boolean emailSent = emailService.enviarCorreoConfirmacion(
                 entrevista.getEstudiante().getCorreo(),
                 entrevista.getEstudiante().getNombreCompleto(),
                 entrevista.getMentor().getNombreCompleto(),
@@ -155,6 +157,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         );
 
         log.info("Enlace virtual guardado para entrevista ID {}", idEntrevista);
+        return emailSent;
     }
 
     @Override

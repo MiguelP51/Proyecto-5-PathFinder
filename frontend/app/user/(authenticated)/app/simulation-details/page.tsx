@@ -62,6 +62,7 @@ export default function SimulationDetailsPage() {
   const [entrevista, setEntrevista] = useState<Entrevista | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [surveyCompleted, setSurveyCompleted] = useState(true); // default true to avoid flicker
 
   const [canceling, setCanceling] = useState(false);
   const [showMotiveModal, setShowMotiveModal] = useState(false);
@@ -84,6 +85,15 @@ export default function SimulationDetailsPage() {
       setError("");
       const data = await apiFetch<Entrevista | null>("/api/entrevistas/estudiante", {}, session?.backendJwt);
       setEntrevista(data);
+      
+      if (data && data.estado === "Completada") {
+        try {
+          const surveyData = await apiFetch<{ completada: boolean }>("/api/encuestas/completada", {}, session?.backendJwt);
+          setSurveyCompleted(surveyData.completada);
+        } catch (err) {
+          console.error("Error checking survey status:", err);
+        }
+      }
     } catch (err) {
       console.error("Error cargando entrevista:", err);
       // Si el error es controlado (por ejemplo, sin entrevistas registradas), no mostramos alerta roja
@@ -232,6 +242,31 @@ export default function SimulationDetailsPage() {
         ) : (
           <div className="space-y-8">
             
+            {/* Banner de Encuesta Pendiente */}
+            {entrevista.estado === "Completada" && !surveyCompleted && (
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-100 via-indigo-50 to-pink-50 dark:from-purple-950/30 dark:via-indigo-950/20 dark:to-pink-950/20 border border-purple-200 dark:border-purple-800/50 shadow-md shadow-purple-100/20 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex gap-4 items-center">
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] flex items-center justify-center text-white shadow-md shadow-purple-200/50 flex-shrink-0 animate-pulse">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">
+                      ¡Tu opinión es muy importante para nosotros!
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                      Por favor, tómate un minuto para responder nuestra encuesta de satisfacción sobre la simulación de entrevista.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/user/app/survey"
+                  className="w-full sm:w-auto h-10 px-5 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-90 transition text-xs font-bold text-white shadow-md shadow-purple-200/30 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                >
+                  Realizar Encuesta
+                </Link>
+              </div>
+            )}
+
             {/* Header del estado de la entrevista */}
             <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
               <div>
