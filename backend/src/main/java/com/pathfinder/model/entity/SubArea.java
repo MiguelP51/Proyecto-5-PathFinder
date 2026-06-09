@@ -53,4 +53,7 @@ public class SubArea extends AuditoriaBase {
 
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
+
+    @Column(name = "slug", length = 100)
+    private String slug;
 }

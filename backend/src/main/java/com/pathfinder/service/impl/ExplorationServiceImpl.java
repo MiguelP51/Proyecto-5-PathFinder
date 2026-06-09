@@ -78,6 +78,7 @@ public class ExplorationServiceImpl implements ExplorationService {
                 .cantidadSkillPaths(sa.getCantidadSkillPaths())
                 .cantidadPathChallenges(sa.getCantidadPathChallenges())
                 .plataformasSkillPath(sa.getPlataformasSkillPath())
+                .slug(sa.getSlug())
                 .yaVisitada(yaVisitada)
                 .build();
         }

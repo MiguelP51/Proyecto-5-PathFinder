@@ -199,7 +199,7 @@ export default function ResultadoDiagnosticoPage({
             Explorar otras áreas
           </button>
           <button
-            onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}`)}
+            onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/dashboard`)}
             className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white transition"
             style={{ background: "linear-gradient(135deg, #6f63ff, #c850c0)" }}
           >

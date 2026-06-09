@@ -20,4 +20,5 @@ public class SubAreaResponseDTO {
     private Integer cantidadPathChallenges;
     private String plataformasSkillPath;
     private Boolean yaVisitada;
+    private String slug;
 }
