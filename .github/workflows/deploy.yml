@@ -57,6 +57,7 @@ jobs:
           host: ${{ env.HOST }}
           username: ${{ env.USER }}
           key: ${{ env.KEY }}
+          command_timeout: 20m
           script: |
 
             echo "================================="
@@ -71,9 +72,6 @@ jobs:
 
             echo "Deteniendo contenedores..."
             docker-compose down
-
-            echo "Limpiando Docker..."
-            docker system prune -af
 
             if [ "${FRONT_CHANGED}" = "true" ]; then
               echo "Rebuild frontend..."
@@ -92,10 +90,14 @@ jobs:
             echo "Levantando servicios..."
             docker-compose up -d
 
+            echo "Limpiando imágenes huérfanas..."
+            docker image prune -f
+
             echo "Contenedores activos:"
             docker ps
 
             echo "================================="
             echo " DEPLOY COMPLETADO "
             echo "================================="
+
 
