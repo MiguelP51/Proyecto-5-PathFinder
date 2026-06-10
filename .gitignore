@@ -16,7 +16,8 @@ frontend/out/
 # ======================
 .env
 .env.local
-.env.*.local
+.env.dev
+.env.production
 
 # ======================
 # IDE / OS
@@ -24,3 +25,13 @@ frontend/out/
 .vscode/
 .DS_Store
 Thumbs.db
+
+certbot/
+*.pem
+*.key
+
+# ======================
+# PROJECT SPECIFIC
+# ======================
+scripts/
+db_schema/

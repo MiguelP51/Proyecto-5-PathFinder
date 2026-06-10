@@ -1,0 +1,108 @@
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 92px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* On mobile: toggle button on left, profile on right */
+    padding: 0 20px;
+    z-index: 150;
+    transition: left 0.3s ease;
+}
+
+@media (min-width: 768px) {
+    .topbar {
+        left: var(--sidebar-width, 320px);
+        padding: 0 40px;
+        justify-content: space-between; /* Space logo/burger and profile controls */
+    }
+}
+
+.rightSection {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.notification {
+    position: relative;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.userSection {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.userText {
+    text-align: left;
+}
+
+.userText h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+}
+
+.userText p {
+    font-size: 12px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+}
+
+.avatar {
+    font-size: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatarImg {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-cover: cover;
+    border: 2px solid #e2e8f0;
+}
+
+:global(.dark) .topbar {
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+}
+
+:global(.dark) .userText h3 {
+    color: #f8fafc;
+}
+
+:global(.dark) .userText p {
+    color: #94a3b8;
+}
+
+:global(.dark) .avatarImg {
+    border-color: #334155;
+}

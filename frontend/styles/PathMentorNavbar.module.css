@@ -1,0 +1,186 @@
+.sidebarCollapsed {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 96px;
+    height: 100vh;
+
+    background: white;
+
+    border-right: 1px solid #e5e7eb;
+
+    z-index: 200;
+
+    transition: all 0.3s ease;
+}
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 320px;
+    transition: all 0.3s ease;
+    height: 100vh;
+
+    background: white;
+
+    border-right: 1px solid #e5e7eb;
+
+    z-index: 200;
+}
+
+.sidebarHeader {
+    height: 92px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 28px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.logoContainer {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logoCircle {
+    width: 48px;
+    height: 48px;
+
+    border-radius: 14px;
+
+    background: #0ea5e9;
+
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 700;
+}
+
+.logoText {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.logoText span {
+    color: #0ea5e9;
+}
+
+.topSection {
+    padding: 28px 18px;
+}
+
+.panelTitle {
+    font-size: 14px;
+    font-weight: 700;
+
+    color: #64748b;
+
+    margin-bottom: 18px;
+}
+
+.navLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.link,
+.activeLink {
+    height: 56px;
+
+    border: none;
+    border-radius: 18px;
+
+    background: transparent;
+
+    text-align: left;
+
+    padding: 0 18px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+    justify-content: flex-start;
+}
+
+.activeLink {
+    background: linear-gradient(
+            90deg,
+            #0891b2,
+            #2563eb
+    );
+
+    color: white;
+}.bottomSection {
+     padding: 18px 18px 24px 18px;
+
+     border-top: 1px solid #e5e7eb;
+
+     display: flex;
+     justify-content: center;
+ }
+
+/* BUTTON */
+
+.collapseButton {
+    width: 100%;
+    max-width: 260px;
+
+    height: 56px;
+
+    border: none;
+    border-radius: 16px;
+
+    background: #f8fafc;
+
+    font-size: 18px;
+    color: #334155;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collapseButton:hover {
+    background: #f1f5f9;
+}
+
+.link {
+    color: #475569;
+    transition: all 0.2s ease;
+}
+
+.link:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+:global(.dark) .sidebarHeader {
+    border-bottom: 1px solid #1e293b;
+}
+
+:global(.dark) .bottomSection {
+    border-top: 1px solid #1e293b;
+}
+
+:global(.dark) .link {
+    color: #cbd5e1;
+}
+
+:global(.dark) .link:hover {
+    background-color: #1e293b;
+    color: #ffffff;
+}

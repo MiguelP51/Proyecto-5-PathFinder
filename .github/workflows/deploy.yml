@@ -13,7 +13,7 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Detectar cambios
         id: changes
@@ -24,9 +24,11 @@ jobs:
           FRONT_CHANGED=false
           BACK_CHANGED=false
 
-          git fetch origin develop
-
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-tree -r --name-only HEAD)
+          fi
 
           echo "$CHANGED_FILES"
 
@@ -55,6 +57,7 @@ jobs:
           host: ${{ env.HOST }}
           username: ${{ env.USER }}
           key: ${{ env.KEY }}
+          command_timeout: 20m
           script: |
 
             echo "================================="
@@ -69,9 +72,6 @@ jobs:
 
             echo "Deteniendo contenedores..."
             docker-compose down
-
-            echo "Limpiando Docker..."
-            docker system prune -af
 
             if [ "${FRONT_CHANGED}" = "true" ]; then
               echo "Rebuild frontend..."
@@ -90,10 +90,14 @@ jobs:
             echo "Levantando servicios..."
             docker-compose up -d
 
+            echo "Limpiando imágenes huérfanas..."
+            docker image prune -f
+
             echo "Contenedores activos:"
             docker ps
 
             echo "================================="
             echo " DEPLOY COMPLETADO "
             echo "================================="
+
 
