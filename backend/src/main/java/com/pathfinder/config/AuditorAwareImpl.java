@@ -1,7 +1,5 @@
 package com.pathfinder.config;
 
-import com.pathfinder.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,10 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component("auditorAwareImpl")
-@RequiredArgsConstructor
 public class AuditorAwareImpl implements AuditorAware<Integer> {
-
-    private final UsuarioRepository usuarioRepository;
 
     @Override
     public Optional<Integer> getCurrentAuditor() {
@@ -23,13 +18,20 @@ public class AuditorAwareImpl implements AuditorAware<Integer> {
             return Optional.empty();
         }
 
-        String correo = authentication.getName();
+        Object principal = authentication.getPrincipal();
 
-        if (correo == null || correo.isBlank() || "anonymousUser".equals(correo)) {
-            return Optional.empty();
+        try {
+            Object idUsuario = principal.getClass()
+                    .getMethod("getIdUsuario")
+                    .invoke(principal);
+
+            if (idUsuario instanceof Integer id) {
+                return Optional.of(id);
+            }
+        } catch (Exception ignored) {
+            // No consultar la base de datos aquí para evitar ciclos de auditoría.
         }
 
-        return usuarioRepository.findByCorreo(correo)
-                .map(usuario -> usuario.getIdUsuario());
+        return Optional.empty();
     }
 }
