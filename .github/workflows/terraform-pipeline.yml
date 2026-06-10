@@ -1,0 +1,83 @@
+name: Terraform Infrastructure Automation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Acción de Terraform a ejecutar'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+jobs:
+  terraform:
+    name: 'Terraform Action'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Inicializar Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform init
+
+      - name: Validar sintaxis
+        run: terraform validate
+
+      # 1. Ejecución automática en Push a Main (Solo realiza PLAN por seguridad)
+      - name: Terraform Plan (Push)
+        if: github.event_name == 'push'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_db_password: ${{ secrets.RDS_DB_PASSWORD }}
+          TF_VAR_ec2_key_name: ${{ secrets.EC2_KEY_NAME }}
+        run: terraform plan -no-color
+
+      # 2. Ejecución Manual vía workflow_dispatch
+      - name: Terraform Plan (Manual)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'plan'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_db_password: ${{ secrets.RDS_DB_PASSWORD }}
+          TF_VAR_ec2_key_name: ${{ secrets.EC2_KEY_NAME }}
+        run: terraform plan -no-color
+
+      - name: Terraform Apply (Manual)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_db_password: ${{ secrets.RDS_DB_PASSWORD }}
+          TF_VAR_ec2_key_name: ${{ secrets.EC2_KEY_NAME }}
+        run: terraform apply -auto-approve
+
+      - name: Terraform Destroy (Manual - Cuidado)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_db_password: ${{ secrets.RDS_DB_PASSWORD }}
+          TF_VAR_ec2_key_name: ${{ secrets.EC2_KEY_NAME }}
+        run: terraform destroy -auto-approve
