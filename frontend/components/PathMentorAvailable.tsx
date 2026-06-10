@@ -261,7 +261,7 @@ export default function AvailabilityPage() {
                             <div className={styles.daysSection}>
 
                                 <h3>
-                                    Días disponibles
+                                    Selecciona un día
                                 </h3>
 
                                 <div className={styles.daysGrid}>
@@ -285,7 +285,7 @@ export default function AvailabilityPage() {
                             <div className={styles.blockHeader}>
 
                                 <h3>
-                                    Bloques de Tiempo
+                                    Horarios disponibles
                                 </h3>
 
                                 <button 
@@ -299,7 +299,7 @@ export default function AvailabilityPage() {
                                         setIsModalOpen(true);
                                     }}
                                 >
-                                    + Agregar Bloque
+                                    + Añadir horario
                                 </button>
 
                             </div>
@@ -320,7 +320,7 @@ export default function AvailabilityPage() {
                                 <>
                                   {filteredBlocks.length === 0 ? (
                                     <div className={styles.emptyBlocksMsg}>
-                                      No hay bloques configurados para el {selectedFilterDay}.
+                                      No hay horarios definidos para el {selectedFilterDay}.
                                     </div>
                                   ) : (
                                     filteredBlocks.map((block) => {
@@ -419,7 +419,7 @@ export default function AvailabilityPage() {
                                       onClick={handleSaveAll}
                                       disabled={!canSave}
                                   >
-                                      💾 Guardar Disponibilidad
+                                      💾 Guardar Configuración
                                   </button>
                                 </>
                               );
@@ -442,7 +442,7 @@ export default function AvailabilityPage() {
                             <div className={styles.selectGroup}>
 
                                 <label>
-                                    Duración por entrevista
+                                    Duración de cada entrevista
                                 </label>
 
                                 <select
@@ -460,7 +460,7 @@ export default function AvailabilityPage() {
                             <div className={styles.selectGroup}>
 
                                 <label>
-                                    Tiempo entre entrevistas
+                                    Descanso entre entrevistas
                                 </label>
 
                                 <select
@@ -480,7 +480,7 @@ export default function AvailabilityPage() {
                             <div className={styles.selectGroup}>
 
                                 <label>
-                                    Máximo entrevistas por día
+                                    Límite diario de entrevistas
                                 </label>
 
                                 <select
@@ -510,7 +510,7 @@ export default function AvailabilityPage() {
                             <div>
 
                                 <h2>
-                                    Enlaces Automáticos
+                                    Generación automática de enlaces
                                 </h2>
 
                                 <p>
@@ -774,7 +774,7 @@ export default function AvailabilityPage() {
                                         toast.success("Bloque(s) agregado(s) con éxito.");
                                     }}
                                 >
-                                    + Agregar Bloque
+                                    + Añadir horario
                                 </button>
                             </div>
                         </div>
