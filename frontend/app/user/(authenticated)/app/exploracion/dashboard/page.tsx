@@ -1,6 +1,7 @@
 "use client";
 // @ts-nocheck
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Award, BookOpen, Target, TrendingUp } from "lucide-react";
 import Footer from "@/components/Footer";
@@ -622,9 +623,9 @@ export default function ExploracionDashboardPage() {
                     ))
                   )}
                 </div>
-                <button className="mt-3 w-full rounded-xl border border-slate-200 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]">
+                <Link href="/user/home" className="mt-3 w-full rounded-xl border border-slate-200 py-2 text-sm font-semibold text-center block transition hover:border-[#7447D7] hover:text-[#7447D7]">
                   Ver todas
-                </button>
+                </Link>
               </div>
 
               {/* Insignias recientes — cuadro propio */}
