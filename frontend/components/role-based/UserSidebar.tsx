@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -267,7 +269,7 @@ export default function UserSidebar({ open, onClose }: Props) {
                 {(() => {
                   const miEspacioLinks = [
                     { href: "/user/profile", label: "Mi Perfil", icon: <User className="h-5 w-5" />, isLocked: false },
-                    { href: "/user/home", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, isLocked: false },
+                    { href: "/user/app/exploracion/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, isLocked: false },
                     { href: "/user/explore", label: "Explorar", icon: <Compass className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { href: "/user/skillpaths", label: "SkillPaths", icon: <BookOpen className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { href: "/user/challenges", label: "Challenges", icon: <Trophy className="h-5 w-5" />, isLocked: !isProfileConfirmed },
