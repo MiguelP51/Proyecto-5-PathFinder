@@ -23,6 +23,10 @@ public class CursoExterno extends AuditoriaBase {
     @JoinColumn(name = "id_proveedor", nullable = false)
     private ProveedorExterno proveedor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_habilidad")
+    private Habilidad habilidad;
+
     @Column(name = "titulo", nullable = false, length = 250)
     private String titulo;
 
