@@ -57,11 +57,12 @@ export default withAuth(
   }
 );
 
-// Config: solo proteger las rutas de los roles
+// Config: proteger rutas de roles y áreas de entrenamiento
 export const config = {
   matcher: [
     "/user/:path*",
     "/mentor/:path*",
     "/admin/:path*",
+    "/areas/:path*",
   ],
 };
