@@ -1,0 +1,2 @@
+# Ignore local Terraform directory containing downloaded providers/modules
+.terraform/
