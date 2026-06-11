@@ -19,6 +19,9 @@ public interface SkillPathRepository extends JpaRepository<SkillPath, Integer> {
             String subareaId
     );
 
+    List<SkillPath> findByUsuarioIsNull();
+    List<SkillPath> findByUsuarioIsNotNull();
+
     Optional<SkillPath> findByIdSkillPathAndUsuario_CorreoAndActivoTrue(
             Integer idSkillPath,
             String correo

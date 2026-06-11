@@ -31,6 +31,7 @@ jobs:
           key: ${{ env.KEY }}
           command_timeout: 20m
           script: |
+            set -e
 
             echo "================================="
             echo " INICIANDO DEPLOY DEVELOP "
@@ -46,10 +47,31 @@ jobs:
             docker compose down
 
             echo "Construyendo y levantando servicios..."
-            docker compose up -d --build
+            # Intentamos levantar. Si falla (retorna código no-cero), ejecutamos la auto-limpieza
+            if ! docker compose up -d --build; then
+              echo " Falló la reconstrucción inicial. Ejecutando limpieza profunda de Docker para liberar espacio..."
+              
+              # Ejecutamos system prune para limpiar toda la caché de docker
+              docker system prune -af
+              
+              echo "Reintentando construcción por segunda vez..."
+              if ! docker compose up -d --build; then
+                echo " DEPLOY INCOMPLETO: Falló la reconstrucción por segunda vez (revisa si es falta de espacio o un error de compilación)."
+                exit 1
+              fi
+            fi
 
             echo "Limpiando imágenes huérfanas..."
             docker image prune -f
+
+            echo "Verificando contenedores activos..."
+            RUNNING_CONTAINERS=$(docker ps --filter "status=running" --format "{{.Names}}")
+            
+            if ! echo "$RUNNING_CONTAINERS" | grep -q "frontend" || ! echo "$RUNNING_CONTAINERS" | grep -q "backend"; then
+              echo " DEPLOY INCOMPLETO: Los contenedores principales (frontend/backend) no se iniciaron correctamente."
+              docker ps
+              exit 1
+            fi
 
             echo "Contenedores activos:"
             docker ps
