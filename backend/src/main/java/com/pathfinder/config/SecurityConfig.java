@@ -60,6 +60,7 @@ public class SecurityConfig {
                                 "/h2-console/**",
                                 "/api/cv/extract"
                         ).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/mentor/**").hasAnyRole("MENTOR", "ADMIN")
                         .anyRequest().authenticated()
