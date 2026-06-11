@@ -1,5 +1,12 @@
 package com.pathfinder.service.impl;
 
+import org.springframework.beans.factory.annotation.Value;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import java.io.InputStream;
 import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
 import com.pathfinder.model.entity.SkillPath;
 import com.pathfinder.model.entity.UsuarioSkillPath;
@@ -15,8 +22,6 @@ import jakarta.transaction.Transactional;
 import com.pathfinder.model.entity.EvidenciaSkillPath;
 import com.pathfinder.repository.EvidenciaSkillPathRepository;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +39,10 @@ public class SkillPathServiceImpl implements SkillPathService {
     private final UsuarioSkillPathRepository usuarioSkillPathRepository;
     private final UsuarioRepository usuarioRepository;
     private final EvidenciaSkillPathRepository evidenciaSkillPathRepository;
+    private final S3Client s3Client;
+
+    @Value("${aws.bucket-name}")
+    private String bucketName;
 
     @Override
     public List<SkillPathEstudianteResponseDTO> listarSkillPathsEstudiante(
@@ -164,7 +173,9 @@ public class SkillPathServiceImpl implements SkillPathService {
         return SkillPathEstudianteResponseDTO.SkillPathEvidenceDTO.builder()
                 .id(String.valueOf(evidencia.getIdEvidenciaSkillPath()))
                 .fileName(evidencia.getNombreArchivo())
-                .fileUrl(null)
+                .fileUrl("/api/skillpaths/estudiante/"
+                + evidencia.getUsuarioSkillPath().getSkillPath().getIdSkillPath()
+                + "/evidencia/download")
                 .status(evidencia.getEstadoValidacion())
                 .uploadedAt(evidencia.getFechaSubida() != null
                         ? evidencia.getFechaSubida().toLocalDate().toString()
@@ -270,23 +281,41 @@ public class SkillPathServiceImpl implements SkillPathService {
         UsuarioSkillPath avanceGuardado =
                 usuarioSkillPathRepository.save(usuarioSkillPath);
 
+        eliminarEvidenciasFisicasDeS3(avanceGuardado.getIdUsuarioSkillPath());
+
         evidenciaSkillPathRepository.deleteByUsuarioSkillPath_IdUsuarioSkillPath(
                 avanceGuardado.getIdUsuarioSkillPath()
         );
 
+        String s3Key = "skillpath-evidencias/usuario_"
+                + usuario.getIdUsuario()
+                + "/skillpath_"
+                + skillPath.getIdSkillPath()
+                + "_"
+                + System.currentTimeMillis()
+                + ".pdf";
+
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .contentType("application/pdf")
+                            .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error al almacenar la evidencia en S3: " + e.getMessage(), e);
+        }
+
         EvidenciaSkillPath evidencia = new EvidenciaSkillPath();
         evidencia.setUsuarioSkillPath(avanceGuardado);
         evidencia.setNombreArchivo(file.getOriginalFilename());
-        evidencia.setContentType(file.getContentType());
+        evidencia.setContentType("application/pdf");
         evidencia.setTamanioBytes(file.getSize());
+        evidencia.setRutaArchivo(s3Key);
         evidencia.setEstadoValidacion("PENDIENTE");
         evidencia.setFechaSubida(LocalDateTime.now());
-
-        try {
-            evidencia.setArchivo(file.getBytes());
-        } catch (IOException e) {
-            throw new IllegalStateException("No se pudo leer el archivo enviado", e);
-        }
 
         EvidenciaSkillPath evidenciaGuardada =
                 evidenciaSkillPathRepository.save(evidencia);
@@ -325,6 +354,8 @@ public class SkillPathServiceImpl implements SkillPathService {
                     "Este SkillPath ya fue validado. No se puede eliminar la evidencia."
             );
         }
+
+        eliminarEvidenciasFisicasDeS3(usuarioSkillPath.getIdUsuarioSkillPath());
 
         evidenciaSkillPathRepository.deleteByUsuarioSkillPath_IdUsuarioSkillPath(
                 usuarioSkillPath.getIdUsuarioSkillPath()
@@ -391,6 +422,92 @@ public class SkillPathServiceImpl implements SkillPathService {
                     );
                 })
                 .toList();
+    }
+
+    private void eliminarEvidenciasFisicasDeS3(Integer idUsuarioSkillPath) {
+        List<EvidenciaSkillPath> evidencias =
+                evidenciaSkillPathRepository.findByUsuarioSkillPath_IdUsuarioSkillPath(
+                        idUsuarioSkillPath
+                );
+
+        for (EvidenciaSkillPath evidencia : evidencias) {
+            if (StringUtils.hasText(evidencia.getRutaArchivo())) {
+                try {
+                    s3Client.deleteObject(
+                            DeleteObjectRequest.builder()
+                                    .bucket(bucketName)
+                                    .key(evidencia.getRutaArchivo())
+                                    .build()
+                    );
+                } catch (Exception e) {
+                    // No detenemos el flujo si falla el borrado físico.
+                    // Pero sí conviene loguearlo si tienes @Slf4j.
+                    System.err.println("No se pudo eliminar evidencia en S3: "
+                            + evidencia.getRutaArchivo()
+                            + " - "
+                            + e.getMessage());
+                }
+            }
+        }
+    }
+
+    @Override
+    public byte[] descargarEvidenciaSkillPath(
+            String correo,
+            Integer idSkillPath
+    ) {
+        UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
+                .findByUsuario_CorreoAndSkillPath_IdSkillPath(correo, idSkillPath)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe evidencia para este SkillPath."
+                ));
+
+        EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
+                .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                        usuarioSkillPath.getIdUsuarioSkillPath()
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe evidencia para este SkillPath."
+                ));
+
+        if (!StringUtils.hasText(evidencia.getRutaArchivo())) {
+            throw new IllegalArgumentException("La ruta de la evidencia no está disponible.");
+        }
+
+        try (InputStream is = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(evidencia.getRutaArchivo())
+                        .build()
+        )) {
+            return is.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al descargar la evidencia desde S3: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String obtenerNombreEvidenciaSkillPath(
+            String correo,
+            Integer idSkillPath
+    ) {
+        UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
+                .findByUsuario_CorreoAndSkillPath_IdSkillPath(correo, idSkillPath)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe evidencia para este SkillPath."
+                ));
+
+        EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
+                .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                        usuarioSkillPath.getIdUsuarioSkillPath()
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe evidencia para este SkillPath."
+                ));
+
+        return StringUtils.hasText(evidencia.getNombreArchivo())
+                ? evidencia.getNombreArchivo()
+                : "evidencia-skillpath.pdf";
     }
 
     private String valorPorDefecto(String valor, String defecto) {

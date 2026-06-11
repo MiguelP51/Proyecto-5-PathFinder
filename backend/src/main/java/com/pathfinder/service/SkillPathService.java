@@ -36,4 +36,14 @@ public interface SkillPathService {
     List<SkillPathEstudianteResponseDTO> listarSkillPathsIniciadosEstudiante(
             String correo
     );
+
+    byte[] descargarEvidenciaSkillPath(
+            String correo,
+            Integer idSkillPath
+    );
+
+    String obtenerNombreEvidenciaSkillPath(
+            String correo,
+            Integer idSkillPath
+    );
 }

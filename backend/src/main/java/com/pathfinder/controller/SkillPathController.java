@@ -17,6 +17,7 @@ import com.pathfinder.service.SkillPathService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpHeaders;
 
 import java.util.List;
 
@@ -249,6 +250,39 @@ public class SkillPathController {
             log.error("Error eliminando evidencia: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error al eliminar la evidencia"));
+        }
+    }
+
+    @GetMapping("/estudiante/{idSkillPath}/evidencia/download")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<byte[]> descargarEvidenciaSkillPath(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idSkillPath
+    ) {
+        try {
+            byte[] data = skillPathService.descargarEvidenciaSkillPath(
+                    userDetails.getUsername(),
+                    idSkillPath
+            );
+
+            String nombreArchivo = skillPathService.obtenerNombreEvidenciaSkillPath(
+                    userDetails.getUsername(),
+                    idSkillPath
+            );
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + nombreArchivo + "\""
+                    )
+                    .body(data);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error descargando evidencia de SkillPath: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

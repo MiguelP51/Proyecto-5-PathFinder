@@ -142,3 +142,31 @@ export async function deleteSkillPathEvidence(
         },
     );
 }
+
+export async function downloadSkillPathEvidence(
+    skillPathId: string,
+    token?: string | null,
+): Promise<Blob> {
+    const response = await fetch(
+        `${getSkillPathBackendUrl()}/api/skillpaths/estudiante/${skillPathId}/evidencia/download`,
+        {
+            method: "GET",
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            cache: "no-store",
+        },
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        console.error("Error obteniendo evidencia SkillPath:", {
+            status: response.status,
+            body: errorText,
+        });
+
+        throw new Error("No se pudo abrir la evidencia subida.");
+    }
+
+    return response.blob();
+}

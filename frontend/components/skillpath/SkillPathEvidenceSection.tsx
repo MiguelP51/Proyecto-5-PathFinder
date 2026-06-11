@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
     AlertCircle,
     CheckCircle2,
+    Eye,
     FileText,
     Loader2,
     Trash2,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/skillpath/display";
 import {
     deleteSkillPathEvidence,
+    downloadSkillPathEvidence,
     uploadSkillPathEvidence,
 } from "@/lib/skillpath/service";
 
@@ -55,9 +57,10 @@ export function SkillPathEvidenceSection({
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isViewing, setIsViewing] = useState(false);
 
     const evidenceStatus = evidence?.status ?? "SIN_EVIDENCIA";
-    const isBusy = isUploading || isDeleting;
+    const isBusy = isUploading || isDeleting || isViewing;
 
     const handleSelectFile = (file: File | undefined) => {
         setErrorMessage(null);
@@ -128,6 +131,56 @@ export function SkillPathEvidenceSection({
             setErrorMessage(message);
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleViewEvidence = async () => {
+        if (!evidence) {
+            return;
+        }
+
+        const pdfWindow = window.open("", "_blank");
+
+        try {
+            setIsViewing(true);
+            setErrorMessage(null);
+            setSuccessMessage(null);
+
+            const token = await getBackendJwtFromSession();
+
+            const blob = await downloadSkillPathEvidence(skillPathId, token);
+
+            const pdfBlob =
+                blob.type === "application/pdf"
+                    ? blob
+                    : new Blob([blob], { type: "application/pdf" });
+
+            const url = window.URL.createObjectURL(pdfBlob);
+
+            if (pdfWindow) {
+                pdfWindow.location.href = url;
+            } else {
+                window.open(url, "_blank");
+            }
+
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 60_000);
+        } catch (error) {
+            console.error("Error visualizando evidencia:", error);
+
+            if (pdfWindow) {
+                pdfWindow.close();
+            }
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo abrir la evidencia. Intenta nuevamente.";
+
+            setErrorMessage(message);
+        } finally {
+            setIsViewing(false);
         }
     };
 
@@ -233,24 +286,45 @@ export function SkillPathEvidenceSection({
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={handleDeleteEvidence}
-                            disabled={isBusy}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {isDeleting ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Eliminando...
-                                </>
-                            ) : (
-                                <>
-                                    <Trash2 className="h-4 w-4" />
-                                    Eliminar
-                                </>
-                            )}
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <button
+                                type="button"
+                                onClick={handleViewEvidence}
+                                disabled={isBusy}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#7447D7]/30 bg-white px-4 py-2 text-sm font-semibold text-[#7447D7] transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isViewing ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Abriendo...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye className="h-4 w-4" />
+                                        Ver PDF
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleDeleteEvidence}
+                                disabled={isBusy}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Eliminando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="h-4 w-4" />
+                                        Eliminar
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

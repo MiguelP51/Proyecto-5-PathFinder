@@ -1,6 +1,5 @@
 package com.pathfinder.model.entity;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -40,9 +39,8 @@ public class EvidenciaSkillPath {
     @Column(name = "tamanio_bytes", nullable = false)
     private Long tamanioBytes;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "archivo", nullable = false, columnDefinition = "bytea")
-    private byte[] archivo;
+    @Column(name = "ruta_archivo", nullable = false, length = 500)
+    private String rutaArchivo;
 
     @Column(name = "estado_validacion", nullable = false, length = 30)
     private String estadoValidacion = "PENDIENTE";
