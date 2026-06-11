@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { Award, BookOpen, Target, TrendingUp } from "lucide-react";
 import Footer from "@/components/Footer";
 import { apiFetch } from "@/lib/api";
+import { useNotifications } from "@/hooks/useNotifications";
+import type { SkillPath } from "@/lib/skillpath/types";
 
 declare global {
   namespace JSX {
@@ -36,7 +38,7 @@ interface DashboardResumenResponse {
   habilidades: Array<{
     nombre: string;
     tipo: string;
-    nivel: number;
+    nivel: "BASICO" | "INTERMEDIO" | "AVANZADO" | string;
   }>;
 }
 
@@ -50,14 +52,7 @@ interface EntrevistaProximaResponse {
   virtualLink: string | null;
 }
 
-interface SkillPathActivoResponse {
-  idSkillPath: number;
-  titulo: string;
-  plataforma: string;
-  progreso: number;
-  estado: string;
-  xp: number;
-}
+
 
 interface InsigniaResponse {
   idInsignia: number;
@@ -87,6 +82,43 @@ const formatFecha = (fechaStr: string) => {
   }
 };
 
+const getNivelHabilidadPorcentaje = (nivel?: string) => {
+  switch (nivel) {
+    case "BASICO":
+      return 33;
+    case "INTERMEDIO":
+      return 66;
+    case "AVANZADO":
+      return 100;
+    default:
+      return 0;
+  }
+};
+
+const formatNivelHabilidad = (nivel?: string) => {
+  switch (nivel) {
+    case "BASICO":
+      return "Básico";
+    case "INTERMEDIO":
+      return "Intermedio";
+    case "AVANZADO":
+      return "Avanzado";
+    default:
+      return nivel ?? "Sin nivel";
+  }
+};
+
+const formatTipoHabilidad = (tipo?: string) => {
+  switch (tipo) {
+    case "TECNICA":
+      return "Técnica";
+    case "BLANDA":
+      return "Blanda";
+    default:
+      return tipo ?? "";
+  }
+};
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -97,10 +129,6 @@ const usuarioMock = {
   xpSiguienteNivel: 3000,
 };
 
-const siguienteAccion = {
-  titulo: "Continúa tu Scrum Master Professional Certificate",
-  descripcion: "Llevas un 60% de progreso. ¡Solo te quedan 2 semanas!",
-};
 
 const challenges = [
   {
@@ -125,36 +153,35 @@ const habilidadesMock = [
 
 void habilidadesMock;
 
-const notificaciones = [
-  {
-    id: 1,
-    titulo: "Entrevista agendada",
-    descripcion:
-      "Tu entrevista con Carlos Rodríguez está programada para el 5 de junio a las 15:00",
-  },
-  {
-    id: 2,
-    titulo: "Feedback disponible",
-    descripcion:
-      "Carlos Rodríguez dejó comentarios sobre tu entrevista. Revisa tus áreas de mejora.",
-  },
-  {
-    id: 3,
-    titulo: "SkillPath completado",
-    descripcion:
-      'Has completado "Fundamentos de Excel". Sube tu certificado para validarlo.',
-  },
-];
+// Notificaciones mock removidas en favor de las notificaciones dinámicas del backend
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ExploracionDashboardPage() {
   const { data: session, status } = useSession();
+  const token = (session as { backendJwt?: string } | null)?.backendJwt;
+  const { notificaciones: notificacionesReales, loading: notificationsLoading } = useNotifications(token);
+
+  const getTipoLabel = (tipo: string) => {
+    switch (tipo) {
+      case "ENTREVISTA_AGENDADA":
+        return "Entrevista agendada";
+      case "ENLACE_ENTREVISTA":
+        return "Enlace de entrevista";
+      case "FEEDBACK_DISPONIBLE":
+        return "Feedback disponible";
+      case "ENTREVISTA_CANCELADA":
+        return "Entrevista cancelada";
+      case "ENTREVISTA_REAGENDADA":
+        return "Entrevista reagendada";
+      default:
+        return tipo.replace(/_/g, " ");
+    }
+  };
+
   const [dashboard, setDashboard] = useState<DashboardResumenResponse | null>(
     null,
   );
-  const [skillPathsActivos, setSkillPathsActivos] = useState<
-    SkillPathActivoResponse[]
-  >([]);
+  const [skillPathsActivos, setSkillPathsActivos] = useState<SkillPath[]>([]);
   const [skillPathsActivosLoaded, setSkillPathsActivosLoaded] = useState(false);
   const [insignias, setInsignias] = useState<InsigniaResponse[]>([]);
   const [insigniasLoaded, setInsigniasLoaded] = useState(false);
@@ -245,10 +272,10 @@ export default function ExploracionDashboardPage() {
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
     let cancelled = false;
 
-    apiFetch<SkillPathActivoResponse[] | SkillPathActivoResponse | null>(
-      "/api/skillpaths/activos",
-      {},
-      backendJwt,
+    apiFetch<SkillPath[] | SkillPath | null>(
+        "/api/skillpaths/estudiante/iniciados",
+        {},
+        backendJwt,
     )
       .then((data) => {
         if (!cancelled) {
@@ -325,6 +352,14 @@ export default function ExploracionDashboardPage() {
 
   const habilidades = dashboard?.habilidades ?? [];
   const hasSkillPathsActivos = skillPathsActivos.length > 0;
+  const skillPathRecomendado =
+      skillPathsActivos.find((sp) => sp.status === "EN_PROGRESO") ??
+      skillPathsActivos[0] ??
+      null;
+
+  const progresoSkillPathRecomendado = skillPathRecomendado
+      ? Math.min(Math.max(skillPathRecomendado.progressPercentage ?? 0, 0), 100)
+      : 0;
 
   if (status === "unauthenticated") {
     return (
@@ -423,13 +458,42 @@ export default function ExploracionDashboardPage() {
                     <BookOpen className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold">{siguienteAccion.titulo}</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {siguienteAccion.descripcion}
-                    </p>
-                    <button className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7447D7] px-4 text-sm font-bold text-white hover:bg-[#6338c4]">
-                      Continuar aprendiendo
-                    </button>
+                    {skillPathRecomendado ? (
+                        <>
+                          <p className="font-bold">
+                            Continúa con {skillPathRecomendado.title}
+                          </p>
+
+                          <p className="mt-1 text-sm text-slate-600">
+                            Llevas un {progresoSkillPathRecomendado}% de progreso.
+                            {skillPathRecomendado.platform
+                                ? ` Disponible en ${skillPathRecomendado.platform}.`
+                                : " Sigue avanzando en tu ruta de aprendizaje."}
+                          </p>
+
+                          <Link
+                              href={`/user/app/skillpaths/${skillPathRecomendado.id}`}
+                              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7447D7] px-4 text-sm font-bold text-white hover:bg-[#6338c4]"
+                          >
+                            Continuar aprendiendo
+                          </Link>
+                        </>
+                    ) : (
+                        <>
+                          <p className="font-bold">Explora nuevos SkillPaths</p>
+
+                          <p className="mt-1 text-sm text-slate-600">
+                            Aún no tienes SkillPaths iniciados. Explora una subárea para comenzar una ruta de aprendizaje.
+                          </p>
+
+                          <Link
+                              href="/user/app/exploracion-intro"
+                              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7447D7] px-4 text-sm font-bold text-white hover:bg-[#6338c4]"
+                          >
+                            Explorar SkillPaths
+                          </Link>
+                        </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -458,26 +522,26 @@ export default function ExploracionDashboardPage() {
                   ) : hasSkillPathsActivos ? (
                     skillPathsActivos.map((sp) => (
                       <div
-                        key={sp.idSkillPath}
+                        key={sp.id}
                         className="rounded-xl border border-slate-100 p-4"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="font-semibold">{sp.titulo}</p>
+                            <p className="font-semibold">{sp.title}</p>
                             <p className="text-xs text-slate-500">
-                              {sp.plataforma}
+                              {sp.platform}
                             </p>
                           </div>
                         </div>
                         <div className="mt-3">
                           <div className="mb-1 flex justify-between text-xs text-slate-500">
                             <span>Progreso</span>
-                            <span>{sp.progreso}%</span>
+                            <span>{sp.progressPercentage}%</span>
                           </div>
                           <div className="h-2 w-full rounded-full bg-slate-100">
                             <div
                               className="h-2 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
-                              style={{ width: `${sp.progreso}%` }}
+                              style={{ width: `${sp.progressPercentage}%` }}
                             />
                           </div>
                         </div>
@@ -503,9 +567,12 @@ export default function ExploracionDashboardPage() {
                       Retos prácticos en progreso
                     </p>
                   </div>
-                  <button className="text-sm font-semibold text-[#7447D7] hover:underline">
+                  <Link
+                      href="/user/app/skillpaths"
+                      className="text-sm font-semibold text-[#7447D7] hover:underline"
+                  >
                     Ver todos
-                  </button>
+                  </Link>
                 </div>
                 <div className="space-y-4">
                   {challenges.map((ch) => (
@@ -593,25 +660,39 @@ export default function ExploracionDashboardPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 font-extrabold">Tus Habilidades</h2>
                 <div className="space-y-3">
-                  {habilidades.map((h) => (
-                    <div key={h.nombre}>
-                      <div className="flex items-center justify-between text-sm">
-                        <div>
-                          <span className="font-medium">{h.nombre}</span>
-                          <p className="text-xs text-slate-400">{h.tipo}</p>
-                        </div>
-                        <span className="text-xs font-semibold text-[#7447D7]">
-                          Nivel {h.nivel}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100">
-                        <div
-                          className="h-1.5 rounded-full bg-[#7447D7]"
-                          style={{ width: `${Math.min(h.nivel * 20, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  {habilidades.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                        Aún no se han registrado habilidades en tu perfil.
+                      </p>
+                  ) : (
+                      habilidades.map((h) => {
+                        const porcentajeNivel = getNivelHabilidadPorcentaje(h.nivel);
+
+                        return (
+                            <div key={`${h.nombre}-${h.tipo}`}>
+                              <div className="flex items-center justify-between gap-3 text-sm">
+                                <div>
+                                  <span className="font-medium">{h.nombre}</span>
+                                  <p className="text-xs text-slate-400">
+                                    {formatTipoHabilidad(h.tipo)}
+                                  </p>
+                                </div>
+
+                                <span className="text-xs font-semibold text-[#7447D7]">
+                                  Nivel {formatNivelHabilidad(h.nivel)}
+                                </span>
+                              </div>
+
+                              <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100">
+                                <div
+                                    className="h-1.5 rounded-full bg-[#7447D7]"
+                                    style={{ width: `${porcentajeNivel}%` }}
+                                />
+                              </div>
+                            </div>
+                        );
+                      })
+                  )}
                 </div>
               </div>
 
@@ -690,17 +771,27 @@ export default function ExploracionDashboardPage() {
                   Notificaciones
                 </h2>
                 <div className="space-y-3">
-                  {notificaciones.map((n) => (
-                    <div
-                      key={n.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                    >
-                      <p className="text-sm font-bold">{n.titulo}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {n.descripcion}
-                      </p>
-                    </div>
-                  ))}
+                  {notificationsLoading ? (
+                    <p className="text-xs text-slate-500 py-2">
+                      Cargando notificaciones...
+                    </p>
+                  ) : notificacionesReales.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-2">
+                      Sin notificaciones recientes
+                    </p>
+                  ) : (
+                    notificacionesReales.slice(0, 3).map((n) => (
+                      <div
+                        key={n.idNotificacion}
+                        className="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                      >
+                        <p className="text-sm font-bold">{getTipoLabel(n.tipo)}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {n.mensaje}
+                        </p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

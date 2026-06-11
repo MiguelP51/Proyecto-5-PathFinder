@@ -93,6 +93,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 guardada.getIdEntrevista()
         );
 
+        // Notificación al estudiante
+        notificacionService.crearNotificacion(
+                "ENTREVISTA_AGENDADA",
+                "Tu entrevista con " + mentor.getNombreCompleto() + " está programada para el " + fechaStr + " a las " + request.getHora(),
+                estudiante.getCorreo(),
+                guardada.getIdEntrevista()
+        );
+
         // Enviar correo de confirmación (inicialmente sin enlace)
         boolean emailSent = emailService.enviarCorreoConfirmacion(
                 estudiante.getCorreo(),
@@ -156,6 +164,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevista.setFechaModificacion(LocalDateTime.now());
         entrevistaRepository.save(entrevista);
 
+        // Notificar al estudiante por base de datos/WebSocket
+        notificacionService.crearNotificacion(
+                "ENLACE_ENTREVISTA",
+                "El enlace virtual para tu entrevista con " + entrevista.getMentor().getNombreCompleto() + " ya está disponible.",
+                entrevista.getEstudiante().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
+
         // Notificar al estudiante por correo
         boolean emailSent = emailService.enviarCorreoConfirmacion(
                 entrevista.getEstudiante().getCorreo(),
@@ -203,6 +219,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 idEntrevista
         );
 
+        // Notificación al estudiante (feedback completado/disponible)
+        notificacionService.crearNotificacion(
+                "FEEDBACK_DISPONIBLE",
+                entrevista.getMentor().getNombreCompleto() + " dejó comentarios sobre tu entrevista. Revisa tus áreas de mejora.",
+                entrevista.getEstudiante().getCorreo(),
+                idEntrevista
+        );
+
         log.info("Feedback registrado para entrevista ID {}", idEntrevista);
     }
 
@@ -242,6 +266,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 tipoNotif,
                 mensajeNotif,
                 entrevista.getMentor().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
+
+        // Notificación al estudiante
+        notificacionService.crearNotificacion(
+                esReagendado ? "ENTREVISTA_REAGENDADA" : "ENTREVISTA_CANCELADA",
+                "Tu entrevista del " + entrevista.getFecha() + " fue " + nuevoEstado.toLowerCase() + " con éxito.",
+                estudiante.getCorreo(),
                 entrevista.getIdEntrevista()
         );
 
