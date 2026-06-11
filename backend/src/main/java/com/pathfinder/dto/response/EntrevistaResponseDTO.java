@@ -41,5 +41,6 @@ public class EntrevistaResponseDTO {
     private Double promedioCalificacion;
     private Map<String, String> nombresCompetencias;
     private String puesto;
+    private Boolean emailEnviado;
 }
 

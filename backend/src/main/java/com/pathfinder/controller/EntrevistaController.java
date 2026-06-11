@@ -30,7 +30,10 @@ public class EntrevistaController {
             @RequestBody AgendarEntrevistaRequest request) {
         try {
             EntrevistaResponseDTO dto = entrevistaService.agendarEntrevista(userDetails.getUsername(), request);
-            return ResponseEntity.ok(ApiResponse.success("Entrevista agendada correctamente", dto));
+            String message = Boolean.FALSE.equals(dto.getEmailEnviado())
+                    ? "Entrevista agendada correctamente, pero hubo un inconveniente al enviar la confirmación por correo."
+                    : "Entrevista agendada correctamente";
+            return ResponseEntity.ok(ApiResponse.success(message, dto));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
@@ -97,8 +100,11 @@ public class EntrevistaController {
             if (link == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("El enlace virtualLink es requerido"));
             }
-            entrevistaService.guardarEnlaceVirtual(id, userDetails.getUsername(), link.trim());
-            return ResponseEntity.ok(ApiResponse.success("Enlace virtual registrado con éxito", null));
+            boolean emailSent = entrevistaService.guardarEnlaceVirtual(id, userDetails.getUsername(), link.trim());
+            String message = emailSent
+                    ? "Enlace virtual registrado con éxito"
+                    : "Enlace virtual registrado con éxito, pero falló el envío del correo de notificación";
+            return ResponseEntity.ok(ApiResponse.success(message, null));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {

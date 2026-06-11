@@ -1,17 +1,17 @@
 "use client";
- 
+
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  User, 
-  Video, 
-  MapPin, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  Video,
+  MapPin,
+  Loader2,
+  CheckCircle2,
   ArrowLeft,
   ChevronRight
 } from "lucide-react";
@@ -23,6 +23,10 @@ interface Mentor {
   nombreCompleto: string;
   correo: string;
   avatarUrl: string;
+  linkedinUrl?: string | null;
+  perfilProfesional?: string | null;
+  celular?: string | null;
+  correoContacto?: string | null;
 }
 
 interface HolidayDTO {
@@ -37,12 +41,12 @@ export default function SimulationSchedulePage() {
   // Data states
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
-  
+
   // Date range states
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [rangeSlots, setRangeSlots] = useState<{ [date: string]: string[] }>({});
-  
+
   // Selected single slot states (populated on clicking a slot button)
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
@@ -69,12 +73,13 @@ export default function SimulationSchedulePage() {
   const formatSpanishDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr + "T00:00:00");
-      return date.toLocaleDateString("es-ES", {
+      const formatted = date.toLocaleDateString("es-ES", {
         weekday: "long",
         day: "numeric",
         month: "long",
         year: "numeric"
       });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
     } catch {
       return dateStr;
     }
@@ -96,12 +101,12 @@ export default function SimulationSchedulePage() {
       toast.warning("No es viable programar citas con más de un año de anticipación.");
       return false;
     }
-    
+
     if (endD < startD) {
       toast.warning("La fecha fin no puede ser anterior a la fecha inicio.");
       return false;
     }
-    
+
     return true;
   };
 
@@ -116,7 +121,7 @@ export default function SimulationSchedulePage() {
       if (mentorIdParam) {
         setIsRescheduling(true);
       }
-      
+
       loadMentors(mentorIdParam);
       loadHolidays();
 
@@ -148,7 +153,7 @@ export default function SimulationSchedulePage() {
       setLoadingMentors(true);
       setError("");
       const data = await apiFetch<Mentor[]>("/api/disponibilidad/estudiante/mentores", {}, session?.backendJwt);
-      
+
       if (mentorIdParam) {
         const parsedId = parseInt(mentorIdParam);
         const filtered = data.filter(m => m.idUsuario === parsedId);
@@ -263,7 +268,7 @@ export default function SimulationSchedulePage() {
     try {
       setScheduling(true);
       setError("");
-      await apiFetch("/api/entrevistas/agendar", {
+      const response = await apiFetch<{ emailEnviado?: boolean }>("/api/entrevistas/agendar", {
         method: "POST",
         body: JSON.stringify({
           idMentor: selectedMentor.idUsuario,
@@ -274,7 +279,11 @@ export default function SimulationSchedulePage() {
         })
       }, session?.backendJwt);
 
-      toast.success("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
+      if (response && response.emailEnviado === false) {
+        toast.warning("¡Entrevista agendada! Sin embargo, no se pudo enviar el correo de confirmación por un problema técnico temporal.");
+      } else {
+        toast.success("¡Entrevista agendada con éxito! Te hemos enviado un correo de confirmación.");
+      }
       router.push("/user/home");
     } catch (err) {
       console.error("Error agendando entrevista:", err);
@@ -298,10 +307,10 @@ export default function SimulationSchedulePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/20 text-slate-900 pb-16 font-sans">
       <main className="mx-auto w-full max-w-4xl px-4 py-8 md:py-10">
-        
+
         {/* Back Link */}
-        <Link 
-          href="/user/home" 
+        <Link
+          href="/user/home"
           className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#7447D7] transition mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -331,10 +340,10 @@ export default function SimulationSchedulePage() {
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-3">
-            
+
             {/* LADO IZQUIERDO: Formulario de Selección */}
             <div className="md:col-span-2 space-y-6">
-              
+
               {/* 1. Seleccionar Mentor */}
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -355,15 +364,14 @@ export default function SimulationSchedulePage() {
                         setSelectedDate("");
                         setSelectedSlot("");
                       }}
-                      className={`flex items-center gap-4 p-4 rounded-xl border text-left transition cursor-pointer ${
-                        selectedMentor?.idUsuario === mentor.idUsuario
-                          ? "border-[#7447D7] bg-purple-50/20 ring-1 ring-purple-100"
-                          : "border-slate-200 bg-white hover:border-slate-300"
-                      }`}
+                      className={`flex items-center gap-4 p-4 rounded-xl border text-left transition cursor-pointer ${selectedMentor?.idUsuario === mentor.idUsuario
+                        ? "border-[#7447D7] bg-purple-50/20 ring-1 ring-purple-100"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
                     >
-                      <img 
-                        src={mentor.avatarUrl || "https://avatar.iran.liara.run/public/boy"} 
-                        alt={mentor.nombreCompleto} 
+                      <img
+                        src={mentor.avatarUrl || "https://avatar.iran.liara.run/public/boy"}
+                        alt={mentor.nombreCompleto}
                         className="h-12 w-12 rounded-full object-cover border border-slate-100"
                       />
                       <div>
@@ -373,6 +381,35 @@ export default function SimulationSchedulePage() {
                     </button>
                   ))}
                 </div>
+                {selectedMentor && (selectedMentor.perfilProfesional || selectedMentor.linkedinUrl || selectedMentor.correoContacto || selectedMentor.celular) && (
+                  <div className="mt-6 p-4 rounded-xl bg-purple-50/30 border border-purple-100/50 space-y-3 animate-fade-in">
+                    <h4 className="text-xs font-bold text-[#7447D7] uppercase tracking-wider">Acerca del PathMentor</h4>
+                    {selectedMentor.perfilProfesional && (
+                      <p className="text-xs text-slate-600 leading-relaxed italic">
+                        "{selectedMentor.perfilProfesional}"
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 pt-2 border-t border-purple-100/30">
+                      {selectedMentor.linkedinUrl && (
+                        <a
+                          href={selectedMentor.linkedinUrl.startsWith("http") ? selectedMentor.linkedinUrl : `https://${selectedMentor.linkedinUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-[#0077B5] hover:underline font-semibold"
+                        >
+                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>
+                          LinkedIn
+                        </a>
+                      )}
+                      {selectedMentor.correoContacto && (
+                        <span>📧 {selectedMentor.correoContacto}</span>
+                      )}
+                      {selectedMentor.celular && (
+                        <span>📞 {selectedMentor.celular}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. Seleccionar Rango de Fechas */}
@@ -438,7 +475,7 @@ export default function SimulationSchedulePage() {
                       const slots = rangeSlots[dateStr];
                       const isHolidayDate = holidays.includes(dateStr);
                       const holidayDesc = holidayMap[dateStr];
-                      
+
                       return (
                         <div key={dateStr} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
                           <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-2">
@@ -449,7 +486,7 @@ export default function SimulationSchedulePage() {
                               </span>
                             )}
                           </h4>
-                          
+
                           {isHolidayDate ? (
                             <p className="text-xs text-red-500 italic">Día no laborable por feriado.</p>
                           ) : (
@@ -463,11 +500,10 @@ export default function SimulationSchedulePage() {
                                       setSelectedDate(dateStr);
                                       setSelectedSlot(slot);
                                     }}
-                                    className={`h-9 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                                      isSelected
-                                        ? "bg-[#7447D7] border-[#7447D7] text-white"
-                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                                    }`}
+                                    className={`h-9 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${isSelected
+                                      ? "bg-[#7447D7] border-[#7447D7] text-white"
+                                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                                      }`}
                                   >
                                     <Clock className="h-3 w-3" />
                                     {slot}
@@ -487,7 +523,7 @@ export default function SimulationSchedulePage() {
 
             {/* LADO DERECHO: Resumen e Info de Contacto */}
             <div className="space-y-6">
-              
+
               {/* Resumen */}
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
@@ -531,22 +567,20 @@ export default function SimulationSchedulePage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setModality("virtual")}
-                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          modality === "virtual"
-                            ? "bg-purple-100 border-[#7447D7]/30 text-[#7447D7]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                        }`}
+                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${modality === "virtual"
+                          ? "bg-purple-100 border-[#7447D7]/30 text-[#7447D7]"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
                       >
                         <Video className="h-3.5 w-3.5" />
                         Virtual
                       </button>
                       <button
                         onClick={() => setModality("presencial")}
-                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                          modality === "presencial"
-                            ? "bg-purple-100 border-[#7447D7]/30 text-[#7447D7]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                        }`}
+                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${modality === "presencial"
+                          ? "bg-purple-100 border-[#7447D7]/30 text-[#7447D7]"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
                       >
                         <MapPin className="h-3.5 w-3.5" />
                         Presencial
@@ -559,7 +593,7 @@ export default function SimulationSchedulePage() {
                     <span className="text-xs text-slate-400 block uppercase font-bold">Puesto al que Postulas</span>
                     <input
                       type="text"
-                      placeholder="Ej: UX/UI Designer, Backend Dev"
+                      placeholder="Ej: Marketing, RRHH"
                       value={puestoInteres}
                       onChange={(e) => setPuestoInteres(e.target.value)}
                       className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"

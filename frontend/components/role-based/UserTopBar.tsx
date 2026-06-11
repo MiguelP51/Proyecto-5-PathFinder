@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { handleSecureLogout } from "@/lib/auth-utils";
 import { LogOut, Menu, Sun, Moon } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useTheme } from "next-themes";
@@ -143,9 +144,7 @@ export default function UserTopBar({
           <button
             type="button"
             onClick={() =>
-              signOut({
-                callbackUrl: "/",
-              })
+              handleSecureLogout(session?.backendJwt)
             }
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:hover:border-purple-400 dark:hover:text-purple-400"
             aria-label="Cerrar sesión"

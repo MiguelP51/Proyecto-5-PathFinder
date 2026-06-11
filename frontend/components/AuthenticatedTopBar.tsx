@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
@@ -29,6 +30,7 @@ export default function AuthenticatedTopBar({
   onMenuClick,
 }: Props) {
   const { data: session } = useSession();
+  const [imageError, setImageError] = useState(false);
 
   const name =
     session?.user?.name ||
@@ -85,10 +87,11 @@ export default function AuthenticatedTopBar({
           {/* USER */}
           <div className="flex min-w-0 items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
 
-            {image ? (
+            {image && !imageError ? (
               <img
                 src={image}
                 alt={name}
+                onError={() => setImageError(true)}
                 className="h-8 w-8 rounded-full object-cover"
               />
             ) : (

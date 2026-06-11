@@ -21,9 +21,27 @@ export async function apiFetch<T = unknown>(
   token?: string | null
 ): Promise<T> {
   const isServer = typeof window === "undefined";
-  const baseUrl = isServer
+  const rawBaseUrl = isServer
     ? (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080")
-    : (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080");
+    : (process.env.NEXT_PUBLIC_BACKEND_URL || "");
+
+  let baseUrl = rawBaseUrl;
+  if (rawBaseUrl.endsWith("/api") && path.startsWith("/api/")) {
+    baseUrl = rawBaseUrl.slice(0, -4);
+  } else if (rawBaseUrl.endsWith("/api/") && path.startsWith("/api/")) {
+    baseUrl = rawBaseUrl.slice(0, -5);
+  }
+
+  // Align protocol with current window location to prevent HTTP/HTTPS mismatch
+  if (!isServer && typeof window !== "undefined" && baseUrl.startsWith("http")) {
+    const currentProtocol = window.location.protocol; // "http:" or "https:"
+    if (baseUrl.startsWith("http:") && currentProtocol === "https:") {
+      baseUrl = baseUrl.replace(/^http:/, "https:");
+    } else if (baseUrl.startsWith("https:") && currentProtocol === "http:") {
+      baseUrl = baseUrl.replace(/^https:/, "http:");
+    }
+  }
+
   const headers: Record<string, string> = {
     ...(options.body instanceof FormData
       ? {} // No pongas Content-Type en multipart, el browser lo hace solo
@@ -47,5 +65,5 @@ export async function apiFetch<T = unknown>(
 
   const json = await res.json();
   // El backend envuelve todo en { success, message, data }
-  return json.data ?? json;
+  return json.data !== undefined ? json.data : json;
 }
