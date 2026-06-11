@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CVUploadSectionProps {
   onCVUpload: (file: File) => void;
@@ -28,6 +29,11 @@ export function CVUploadSection({
     if (disabled) return;
     const file = e.target.files?.[0];
     if (file) {
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        toast.error("Formato no válido. Solo se permiten archivos PDF para el CV.");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
       onCVUpload(file);
     }
   };
@@ -48,7 +54,11 @@ export function CVUploadSection({
     if (disabled) return;
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.type === "application/pdf" || file.name.endsWith(".pdf"))) {
+    if (file) {
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        toast.error("Formato no válido. Solo se permiten archivos PDF para el CV.");
+        return;
+      }
       onCVUpload(file);
     }
   };
@@ -71,7 +81,7 @@ export function CVUploadSection({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx"
+        accept=".pdf"
         disabled={disabled}
         onChange={handleFileChange}
         className="hidden"
@@ -164,8 +174,11 @@ export function CVUploadSection({
             <p className="text-sm text-slate-500">
               Arrastra y suelta tu archivo o haz clic para seleccionar
             </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Formatos aceptados: PDF, DOC, DOCX
+            <p className="mt-1 text-xs text-slate-400 font-medium">
+              Formatos aceptados: Solo PDF
+            </p>
+            <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2 max-w-sm mx-auto font-medium">
+              ⚠️ Nota: El CV es analizado automáticamente para extraer tu perfil. Solo se admite PDF.
             </p>
           </div>
           <Button

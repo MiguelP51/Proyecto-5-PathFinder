@@ -68,6 +68,25 @@ interface InsigniaResponse {
   fechaObtenida: string;
 }
 
+const formatFecha = (fechaStr: string) => {
+  try {
+    const parts = fechaStr.split("-");
+    if (parts.length === 3) {
+      const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const formatted = date.toLocaleDateString("es-ES", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    return fechaStr;
+  } catch {
+    return fechaStr;
+  }
+};
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -617,8 +636,8 @@ export default function ExploracionDashboardPage() {
                           <Users className="h-4 w-4 text-[#7447D7]" />
                           <p className="font-semibold">{e.mentorNombre}</p>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">{e.fecha}</p>
-                        <p className="text-xs text-slate-500">{e.hora}</p>
+                        <p className="mt-1 text-xs text-slate-600 font-medium">{formatFecha(e.fecha)}</p>
+                        <p className="text-xs text-slate-500">{e.hora} hs</p>
                       </div>
                     ))
                   )}

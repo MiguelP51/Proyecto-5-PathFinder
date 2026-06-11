@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -18,11 +19,28 @@ interface Props {
   onClose: () => void;
 }
 
+function getInitials(
+  name?: string | null,
+  email?: string | null
+) {
+  const source =
+    name?.trim() ||
+    email?.split("@")[0] ||
+    "Usuario";
+
+  return source
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 export default function AuthenticatedSidebar({
   open,
   onClose,
 }: Props) {
   const { data: session } = useSession();
+  const [imageError, setImageError] = useState(false);
 
   const image =
     session?.user?.image ||
@@ -51,15 +69,16 @@ export default function AuthenticatedSidebar({
 
           <div className="flex items-center gap-3">
 
-            {image ? (
+            {image && !imageError ? (
               <img
                 src={image}
                 alt="avatar"
+                onError={() => setImageError(true)}
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white">
-                U
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white font-bold">
+                {getInitials(session?.user?.name, session?.user?.email)}
               </div>
             )}
 

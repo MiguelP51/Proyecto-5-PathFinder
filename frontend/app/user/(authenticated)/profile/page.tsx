@@ -388,7 +388,22 @@ export default function ProfileSetupPage() {
   const handleDownloadCV = async (download: boolean) => {
     if (!session?.backendJwt) return;
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const rawBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+      let backendUrl = rawBackendUrl;
+      if (rawBackendUrl.endsWith("/api")) {
+        backendUrl = rawBackendUrl.slice(0, -4);
+      } else if (rawBackendUrl.endsWith("/api/")) {
+        backendUrl = rawBackendUrl.slice(0, -5);
+      }
+      if (typeof window !== "undefined" && backendUrl.startsWith("http")) {
+        const currentProtocol = window.location.protocol;
+        if (backendUrl.startsWith("http:") && currentProtocol === "https:") {
+          backendUrl = backendUrl.replace(/^http:/, "https:");
+        } else if (backendUrl.startsWith("https:") && currentProtocol === "http:") {
+          backendUrl = backendUrl.replace(/^https:/, "http:");
+        }
+      }
+
       const response = await fetch(`${backendUrl}/api/cv/download`, {
         headers: {
           'Authorization': `Bearer ${session.backendJwt}`

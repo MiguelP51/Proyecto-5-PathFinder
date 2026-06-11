@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
@@ -37,6 +40,21 @@ public class AuthController {
             log.error("Error procesando login/registro: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error procesando el login/registro"));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            if (userDetails != null) {
+                authService.logout(userDetails.getUsername());
+            }
+            return ResponseEntity.ok(ApiResponse.success("Sesión cerrada correctamente en backend", null));
+        } catch (Exception e) {
+            log.error("Error procesando logout: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al procesar el cierre de sesión"));
         }
     }
 }
