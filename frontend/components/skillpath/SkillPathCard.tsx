@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { ArrowRight, Award, Clock, Star } from "lucide-react";
+import { SkillPathActionButton } from "@/components/skillpath/SkillPathActionButton";
 
 import { SkillPath } from "@/lib/skillpath/types";
 import {
-    getSkillPathActionLabel,
     getSkillPathDifficultyClasses,
     getSkillPathDifficultyLabel,
-    getSkillPathProgressLabel,
     getSkillPathStatusClasses,
     getSkillPathStatusLabel,
 } from "@/lib/skillpath/display";
@@ -71,20 +69,6 @@ export function SkillPathCard({ skillPath }: SkillPathCardProps) {
                 </div>
             </div>
 
-            <div className="mb-4">
-                <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500">
-                    <span>Progreso</span>
-                    <span>{getSkillPathProgressLabel(skillPath.progressPercentage)}</span>
-                </div>
-
-                <div className="h-2 rounded-full bg-slate-100">
-                    <div
-                        className="h-2 rounded-full bg-[#7447D7]"
-                        style={{ width: `${skillPath.progressPercentage}%` }}
-                    />
-                </div>
-            </div>
-
             <div className="mb-5 flex flex-wrap gap-2">
                 {skillPath.skills.slice(0, 3).map((skill) => (
                     <span
@@ -97,13 +81,7 @@ export function SkillPathCard({ skillPath }: SkillPathCardProps) {
             </div>
 
             <div className="mt-auto">
-                <Link
-                    href={`/user/app/skillpaths/${skillPath.id}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6036c2]"
-                >
-                    {getSkillPathActionLabel(skillPath.status)}
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
+                <SkillPathActionButton skillPath={skillPath} />
             </div>
         </article>
     );

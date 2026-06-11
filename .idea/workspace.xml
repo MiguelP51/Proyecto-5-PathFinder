@@ -5,17 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="94e60a67-cb2e-4b3e-a475-8f2783ca0f88" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/dto/response/SkillPathEstudianteResponseDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/UsuarioSkillPath.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/UsuarioSkillPathRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/SkillPathService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/impl/SkillPathServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/EvidenciaSkillPath.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/EvidenciaSkillPathRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathActionButton.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathStatusSummary.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/controller/SkillPathController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/controller/SkillPathController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/SkillPath.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/model/entity/SkillPath.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/SkillPathRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/repository/SkillPathRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/SkillPathService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/SkillPathService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/impl/SkillPathServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/pathfinder/service/impl/SkillPathServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/app/user/(authenticated)/app/skillpaths/[skillPathId]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/user/(authenticated)/app/skillpaths/[skillPathId]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/user/(authenticated)/app/skillpaths/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/user/(authenticated)/app/skillpaths/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathEvidenceSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/skillpath/SkillPathEvidenceSection.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/skillpath/service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/skillpath/service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -106,7 +106,9 @@
       <workItem from="1780464970935" duration="5377000" />
       <workItem from="1780549201291" duration="9172000" />
       <workItem from="1780613195318" duration="4252000" />
-      <workItem from="1780874158487" duration="9362000" />
+      <workItem from="1780874158487" duration="10012000" />
+      <workItem from="1780972156152" duration="790000" />
+      <workItem from="1781103617104" duration="12520000" />
     </task>
     <servers />
   </component>

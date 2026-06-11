@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
 import { SkillPathEvidenceSection } from "@/components/skillpath/SkillPathEvidenceSection";
 import { SkillPathRewardSummary } from "@/components/skillpath/SkillPathRewardSummary";
+import { SkillPathStatusSummary } from "@/components/skillpath/SkillPathStatusSummary";
+
 import {
     ArrowLeft,
     Award,
@@ -33,6 +36,7 @@ export default async function SkillPathDetailPage({
                                                       params,
                                                   }: SkillPathDetailPageProps) {
     const { skillPathId } = await params;
+
     const session = await getServerSession(authOptions);
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
 
@@ -42,7 +46,7 @@ export default async function SkillPathDetailPage({
         notFound();
     }
 
-    const evidenceStatus = skillPath.evidence?.status ?? "SIN_EVIDENCIA";
+    const hasSkills = skillPath.skills.length > 0;
 
     return (
         <main className="min-h-screen bg-slate-50">
@@ -100,7 +104,6 @@ export default async function SkillPathDetailPage({
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </section>
 
@@ -140,55 +143,72 @@ export default async function SkillPathDetailPage({
                 </section>
 
                 <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-950">Tu progreso</h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Avance registrado para este SkillPath.
-                            </p>
-                        </div>
-
-                        <p className="text-lg font-bold text-[#7447D7]">
-                            {skillPath.progressPercentage}%
-                        </p>
-                    </div>
-
-                    <div className="h-3 rounded-full bg-slate-100">
-                        <div
-                            className="h-3 rounded-full bg-[#7447D7]"
-                            style={{ width: `${skillPath.progressPercentage}%` }}
-                        />
-                    </div>
-                </section>
-                <SkillPathRewardSummary skillPath={skillPath} />
-
-                <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                            <Layers className="h-5 w-5" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                            <CheckCircle2 className="h-5 w-5" />
                         </div>
 
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-950">
-                                Habilidades que desarrollarás
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Al completar este SkillPath, fortalecerás estas habilidades.
-                            </p>
-                        </div>
+                        <h2 className="text-lg font-bold text-slate-950">
+                            ¿Cómo funciona?
+                        </h2>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        {skillPath.skills.map((skill) => (
-                            <span
-                                key={skill.id}
-                                className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
-                            >
-                {skill.name}
-              </span>
-                        ))}
-                    </div>
+                    <ol className="space-y-3 text-sm leading-6 text-slate-600">
+                        <li>
+                            <span className="font-semibold text-[#7447D7]">1.</span> Revisa
+                            la información del SkillPath y abre el recurso externo desde esta
+                            página.
+                        </li>
+                        <li>
+                            <span className="font-semibold text-[#7447D7]">2.</span> Completa
+                            el curso o actividad en la plataforma correspondiente.
+                        </li>
+                        <li>
+                            <span className="font-semibold text-[#7447D7]">3.</span> Descarga
+                            tu certificado o evidencia de finalización.
+                        </li>
+                        <li>
+                            <span className="font-semibold text-[#7447D7]">4.</span> Regresa
+                            a PathFinder y sube el archivo en formato PDF.
+                        </li>
+                        <li>
+                            <span className="font-semibold text-[#7447D7]">5.</span> Cuando la
+                            evidencia sea validada, se actualizarán tu XP e insignias.
+                        </li>
+                    </ol>
                 </section>
+
+                <SkillPathStatusSummary skillPath={skillPath} />
+
+                {hasSkills && (
+                    <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                                <Layers className="h-5 w-5" />
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-950">
+                                    Habilidades que desarrollarás
+                                </h2>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Al completar este SkillPath, fortalecerás estas habilidades.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {skillPath.skills.map((skill) => (
+                                <span
+                                    key={skill.id}
+                                    className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
+                                >
+                  {skill.name}
+                </span>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <section className="mb-6 rounded-2xl border border-purple-200 bg-purple-50 p-6 shadow-sm">
                     <h2 className="text-lg font-bold text-slate-950">
@@ -219,41 +239,7 @@ export default async function SkillPathDetailPage({
                     initialEvidence={skillPath.evidence}
                 />
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                            <CheckCircle2 className="h-5 w-5" />
-                        </div>
-
-                        <h2 className="text-lg font-bold text-slate-950">
-                            ¿Cómo funciona?
-                        </h2>
-                    </div>
-
-                    <ol className="space-y-3 text-sm leading-6 text-slate-600">
-                        <li>
-                            <span className="font-semibold text-[#7447D7]">1.</span> Haz clic
-                            en “Continuar” para abrir el recurso externo.
-                        </li>
-                        <li>
-                            <span className="font-semibold text-[#7447D7]">2.</span> Completa
-                            el curso o actividad en la plataforma correspondiente.
-                        </li>
-                        <li>
-                            <span className="font-semibold text-[#7447D7]">3.</span> Obtén tu
-                            certificado o evidencia de finalización.
-                        </li>
-                        <li>
-                            <span className="font-semibold text-[#7447D7]">4.</span> Regresa
-                            a PathFinder y sube el archivo para validación.
-                        </li>
-                        <li>
-                            <span className="font-semibold text-[#7447D7]">5.</span> Si la
-                            evidencia es aceptada, se actualizarán tu XP, habilidades e
-                            insignias.
-                        </li>
-                    </ol>
-                </section>
+                <SkillPathRewardSummary skillPath={skillPath} />
             </section>
         </main>
     );
