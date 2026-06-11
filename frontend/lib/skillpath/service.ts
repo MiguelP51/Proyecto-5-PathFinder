@@ -10,7 +10,7 @@ function getSkillPathBackendUrl() {
     const isServer = typeof window === "undefined";
 
     if (isServer) {
-        return process.env.SKILLPATH_BACKEND_URL || "http://host.docker.internal:8080";
+        return process.env.SKILLPATH_BACKEND_URL || process.env.BACKEND_URL || "http://backend:8080";
     }
 
     return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";

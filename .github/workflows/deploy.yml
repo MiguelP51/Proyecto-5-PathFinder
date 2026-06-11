@@ -15,34 +15,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detectar cambios
-        id: changes
-        run: |
-
-          echo "Detectando cambios..."
-
-          FRONT_CHANGED=false
-          BACK_CHANGED=false
-
-          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-tree -r --name-only HEAD)
-          fi
-
-          echo "$CHANGED_FILES"
-
-          if echo "$CHANGED_FILES" | grep '^frontend/'; then
-            FRONT_CHANGED=true
-          fi
-
-          if echo "$CHANGED_FILES" | grep '^backend/'; then
-            BACK_CHANGED=true
-          fi
-
-          echo "FRONT_CHANGED=$FRONT_CHANGED" >> $GITHUB_ENV
-          echo "BACK_CHANGED=$BACK_CHANGED" >> $GITHUB_ENV
-
       - name: Configurar variables
         run: |
           echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
@@ -53,15 +25,11 @@ jobs:
 
       - name: Deploy en EC2
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          FRONT_CHANGED: ${{ env.FRONT_CHANGED }}
-          BACK_CHANGED: ${{ env.BACK_CHANGED }}
         with:
           host: ${{ env.HOST }}
           username: ${{ env.USER }}
           key: ${{ env.KEY }}
           command_timeout: 20m
-          envs: FRONT_CHANGED,BACK_CHANGED
           script: |
 
             echo "================================="
@@ -75,24 +43,10 @@ jobs:
             git reset --hard origin/develop
 
             echo "Deteniendo contenedores..."
-            docker-compose down
+            docker compose down
 
-            if [ "${FRONT_CHANGED}" = "true" ]; then
-              echo "Rebuild frontend..."
-              docker-compose build frontend
-            else
-              echo "Frontend sin cambios"
-            fi
-
-            if [ "${BACK_CHANGED}" = "true" ]; then
-              echo "Rebuild backend..."
-              docker-compose build backend
-            else
-              echo "Backend sin cambios"
-            fi
-
-            echo "Levantando servicios..."
-            docker-compose up -d
+            echo "Construyendo y levantando servicios..."
+            docker compose up -d --build
 
             echo "Limpiando imágenes huérfanas..."
             docker image prune -f
