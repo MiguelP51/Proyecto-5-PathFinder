@@ -15,34 +15,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detectar cambios
-        id: changes
-        run: |
-
-          echo "Detectando cambios..."
-
-          FRONT_CHANGED=false
-          BACK_CHANGED=false
-
-          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-tree -r --name-only HEAD)
-          fi
-
-          echo "$CHANGED_FILES"
-
-          if echo "$CHANGED_FILES" | grep '^frontend/'; then
-            FRONT_CHANGED=true
-          fi
-
-          if echo "$CHANGED_FILES" | grep '^backend/'; then
-            BACK_CHANGED=true
-          fi
-
-          echo "FRONT_CHANGED=$FRONT_CHANGED" >> $GITHUB_ENV
-          echo "BACK_CHANGED=$BACK_CHANGED" >> $GITHUB_ENV
-
       - name: Configurar variables
         run: |
           echo "HOST=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_ENV
@@ -59,6 +31,7 @@ jobs:
           key: ${{ env.KEY }}
           command_timeout: 20m
           script: |
+            set -e
 
             echo "================================="
             echo " INICIANDO DEPLOY DEVELOP "
@@ -71,27 +44,34 @@ jobs:
             git reset --hard origin/develop
 
             echo "Deteniendo contenedores..."
-            docker-compose down
+            docker compose down
 
-            if [ "${FRONT_CHANGED}" = "true" ]; then
-              echo "Rebuild frontend..."
-              docker-compose build frontend
-            else
-              echo "Frontend sin cambios"
+            echo "Construyendo y levantando servicios..."
+            # Intentamos levantar. Si falla (retorna código no-cero), ejecutamos la auto-limpieza
+            if ! docker compose up -d --build; then
+              echo " Falló la reconstrucción inicial. Ejecutando limpieza profunda de Docker para liberar espacio..."
+              
+              # Ejecutamos system prune para limpiar toda la caché de docker
+              docker system prune -af
+              
+              echo "Reintentando construcción por segunda vez..."
+              if ! docker compose up -d --build; then
+                echo " DEPLOY INCOMPLETO: Falló la reconstrucción por segunda vez (revisa si es falta de espacio o un error de compilación)."
+                exit 1
+              fi
             fi
-
-            if [ "${BACK_CHANGED}" = "true" ]; then
-              echo "Rebuild backend..."
-              docker-compose build backend
-            else
-              echo "Backend sin cambios"
-            fi
-
-            echo "Levantando servicios..."
-            docker-compose up -d
 
             echo "Limpiando imágenes huérfanas..."
             docker image prune -f
+
+            echo "Verificando contenedores activos..."
+            RUNNING_CONTAINERS=$(docker ps --filter "status=running" --format "{{.Names}}")
+            
+            if ! echo "$RUNNING_CONTAINERS" | grep -q "frontend" || ! echo "$RUNNING_CONTAINERS" | grep -q "backend"; then
+              echo " DEPLOY INCOMPLETO: Los contenedores principales (frontend/backend) no se iniciaron correctamente."
+              docker ps
+              exit 1
+            fi
 
             echo "Contenedores activos:"
             docker ps

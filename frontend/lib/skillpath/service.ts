@@ -10,7 +10,7 @@ function getSkillPathBackendUrl() {
     const isServer = typeof window === "undefined";
 
     if (isServer) {
-        return process.env.SKILLPATH_BACKEND_URL || "http://host.docker.internal:8080";
+        return process.env.SKILLPATH_BACKEND_URL || process.env.BACKEND_URL || "http://backend:8080";
     }
 
     return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
@@ -19,10 +19,15 @@ function getSkillPathBackendUrl() {
 async function skillPathFetch<T>(
     path: string,
     token?: string | null,
+    options: RequestInit = {},
 ): Promise<T> {
     const response = await fetch(`${getSkillPathBackendUrl()}${path}`, {
+        ...options,
         headers: {
-            "Content-Type": "application/json",
+            ...(options.body instanceof FormData
+                ? {}
+                : { "Content-Type": "application/json" }),
+            ...(options.headers as Record<string, string>),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         cache: "no-store",
@@ -46,7 +51,7 @@ async function skillPathFetch<T>(
         throw new Error("La respuesta del backend no es JSON");
     }
 
-    const json = (await response.json()) as BackendApiResponse<T>;
+    const json = await response.json();
 
     return json.data;
 }
@@ -83,4 +88,48 @@ export async function getSkillPathById(
         console.error("Error obteniendo SkillPath:", error);
         return null;
     }
+}
+
+export async function startSkillPath(
+    skillPathId: string,
+    token?: string | null,
+): Promise<SkillPath> {
+    return skillPathFetch<SkillPath>(
+        `/api/skillpaths/estudiante/${skillPathId}/iniciar`,
+        token,
+        {
+            method: "POST",
+        },
+    );
+}
+
+export async function uploadSkillPathEvidence(
+    skillPathId: string,
+    file: File,
+    token?: string | null,
+): Promise<SkillPath> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return skillPathFetch<SkillPath>(
+        `/api/skillpaths/estudiante/${skillPathId}/evidencia`,
+        token,
+        {
+            method: "POST",
+            body: formData,
+        },
+    );
+}
+
+export async function deleteSkillPathEvidence(
+    skillPathId: string,
+    token?: string | null,
+): Promise<SkillPath> {
+    return skillPathFetch<SkillPath>(
+        `/api/skillpaths/estudiante/${skillPathId}/evidencia`,
+        token,
+        {
+            method: "DELETE",
+        },
+    );
 }

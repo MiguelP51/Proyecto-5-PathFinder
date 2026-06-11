@@ -6,4 +6,5 @@ import com.pathfinder.dto.auth.UsuarioAuthResponseDTO;
 public interface AuthService {
 
     UsuarioAuthResponseDTO login(LoginRequestDTO request);
+    void logout(String correo);
 }

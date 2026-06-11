@@ -14,4 +14,8 @@ public class MentorDisponibilidadDTO {
     private String nombreCompleto;
     private String correo;
     private String avatarUrl;
+    private String linkedinUrl;
+    private String perfilProfesional;
+    private String celular;
+    private String correoContacto;
 }

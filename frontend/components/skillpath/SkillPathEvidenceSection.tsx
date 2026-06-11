@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     AlertCircle,
     CheckCircle2,
     FileText,
     Loader2,
+    Trash2,
     Upload,
 } from "lucide-react";
 
@@ -14,38 +16,61 @@ import {
     getSkillPathEvidenceStatusClasses,
     getSkillPathEvidenceStatusLabel,
 } from "@/lib/skillpath/display";
+import {
+    deleteSkillPathEvidence,
+    uploadSkillPathEvidence,
+} from "@/lib/skillpath/service";
 
 interface SkillPathEvidenceSectionProps {
     skillPathId: string;
-    initialEvidence?: SkillPathEvidence;
+    initialEvidence?: SkillPathEvidence | null;
 }
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+async function getBackendJwtFromSession() {
+    const response = await fetch("/api/auth/session");
+    const session = await response.json();
+
+    if (!session.backendJwt) {
+        throw new Error("No se encontró backendJwt en la sesión");
+    }
+
+    return session.backendJwt as string;
+}
+
 export function SkillPathEvidenceSection({
                                              skillPathId,
                                              initialEvidence,
                                          }: SkillPathEvidenceSectionProps) {
+    const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const [evidence, setEvidence] = useState<SkillPathEvidence | undefined>(
-        initialEvidence,
+        initialEvidence ?? undefined,
     );
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const evidenceStatus = evidence?.status ?? "SIN_EVIDENCIA";
+    const isBusy = isUploading || isDeleting;
 
     const handleSelectFile = (file: File | undefined) => {
         setErrorMessage(null);
+        setSuccessMessage(null);
 
         if (!file) {
             return;
         }
 
-        if (file.type !== "application/pdf") {
+        const isPdfByType = file.type === "application/pdf";
+        const isPdfByName = file.name.toLowerCase().endsWith(".pdf");
+
+        if (!isPdfByType && !isPdfByName) {
             setSelectedFile(null);
             setErrorMessage("El archivo debe estar en formato PDF.");
             return;
@@ -66,23 +91,91 @@ export function SkillPathEvidenceSection({
             return;
         }
 
-        setIsUploading(true);
-        setErrorMessage(null);
+        try {
+            setIsUploading(true);
+            setErrorMessage(null);
+            setSuccessMessage(null);
 
-        await new Promise((resolve) => setTimeout(resolve, 700));
+            const token = await getBackendJwtFromSession();
 
-        setEvidence({
-            id: `mock-evidence-${skillPathId}`,
-            fileName: selectedFile.name,
-            status: "PENDIENTE",
-            uploadedAt: new Date().toLocaleDateString("es-PE"),
-        });
+            const updatedSkillPath = await uploadSkillPathEvidence(
+                skillPathId,
+                selectedFile,
+                token,
+            );
 
-        setSelectedFile(null);
-        setIsUploading(false);
+            setEvidence(updatedSkillPath.evidence ?? undefined);
+            setSelectedFile(null);
+            setSuccessMessage(
+                evidence
+                    ? "Evidencia reemplazada correctamente. Quedó pendiente de validación."
+                    : "Evidencia enviada correctamente. Quedó pendiente de validación.",
+            );
 
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+            router.refresh();
+        } catch (error) {
+            console.error("Error subiendo evidencia:", error);
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo subir la evidencia. Verifica el archivo e intenta nuevamente.";
+
+            setErrorMessage(message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDeleteEvidence = async () => {
+        if (!evidence) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "¿Seguro que deseas eliminar la evidencia subida?",
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setIsDeleting(true);
+            setErrorMessage(null);
+            setSuccessMessage(null);
+
+            const token = await getBackendJwtFromSession();
+
+            const updatedSkillPath = await deleteSkillPathEvidence(
+                skillPathId,
+                token,
+            );
+
+            setEvidence(updatedSkillPath.evidence ?? undefined);
+            setSelectedFile(null);
+            setSuccessMessage("Evidencia eliminada correctamente.");
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+            router.refresh();
+        } catch (error) {
+            console.error("Error eliminando evidencia:", error);
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo eliminar la evidencia. Intenta nuevamente.";
+
+            setErrorMessage(message);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -117,26 +210,47 @@ export function SkillPathEvidenceSection({
 
             {evidence && (
                 <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-start gap-3">
-                        <FileText className="mt-0.5 h-5 w-5 text-[#7447D7]" />
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="flex items-start gap-3">
+                            <FileText className="mt-0.5 h-5 w-5 text-[#7447D7]" />
 
-                        <div>
-                            <p className="text-sm font-semibold text-slate-900">
-                                {evidence.fileName}
-                            </p>
-
-                            {evidence.uploadedAt && (
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Subido el {evidence.uploadedAt}
+                            <div>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {evidence.fileName}
                                 </p>
-                            )}
 
-                            {evidence.reviewerComment && (
-                                <p className="mt-3 text-sm text-slate-600">
-                                    Comentario: {evidence.reviewerComment}
-                                </p>
-                            )}
+                                {evidence.uploadedAt && (
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Subido el {evidence.uploadedAt}
+                                    </p>
+                                )}
+
+                                {evidence.reviewerComment && (
+                                    <p className="mt-3 text-sm text-slate-600">
+                                        Comentario: {evidence.reviewerComment}
+                                    </p>
+                                )}
+                            </div>
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={handleDeleteEvidence}
+                            disabled={isBusy}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Eliminando...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="h-4 w-4" />
+                                    Eliminar
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             )}
@@ -145,7 +259,7 @@ export function SkillPathEvidenceSection({
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <p className="text-sm font-semibold text-slate-900">
-                            {evidence ? "Reemplazar evidencia" : "Subir nueva evidencia"}
+                            {evidence ? "Cambiar evidencia" : "Subir nueva evidencia"}
                         </p>
 
                         <p className="mt-1 text-sm text-slate-500">
@@ -165,7 +279,8 @@ export function SkillPathEvidenceSection({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            disabled={isBusy}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <FileText className="h-4 w-4" />
                             Seleccionar PDF
@@ -173,7 +288,7 @@ export function SkillPathEvidenceSection({
 
                         <button
                             type="button"
-                            disabled={isUploading}
+                            disabled={isBusy}
                             onClick={handleUpload}
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6036c2] disabled:cursor-not-allowed disabled:opacity-60"
                         >
@@ -185,7 +300,7 @@ export function SkillPathEvidenceSection({
                             ) : (
                                 <>
                                     <Upload className="h-4 w-4" />
-                                    Enviar evidencia
+                                    {evidence ? "Reemplazar evidencia" : "Enviar evidencia"}
                                 </>
                             )}
                         </button>
@@ -196,6 +311,13 @@ export function SkillPathEvidenceSection({
                     <div className="mt-4 flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         Archivo seleccionado: {selectedFile.name}
+                    </div>
+                )}
+
+                {successMessage && (
+                    <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        {successMessage}
                     </div>
                 )}
 

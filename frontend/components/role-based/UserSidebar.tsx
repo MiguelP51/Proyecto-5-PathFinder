@@ -4,7 +4,8 @@ import React from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { handleSecureLogout } from "@/lib/auth-utils";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import {
@@ -271,7 +272,7 @@ export default function UserSidebar({ open, onClose }: Props) {
                     { href: "/user/profile", label: "Mi Perfil", icon: <User className="h-5 w-5" />, isLocked: false },
                     { href: "/user/app/exploracion/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, isLocked: false },
                     { href: "/user/explore", label: "Explorar", icon: <Compass className="h-5 w-5" />, isLocked: !isProfileConfirmed },
-                    { href: "/user/skillpaths", label: "SkillPaths", icon: <BookOpen className="h-5 w-5" />, isLocked: !isProfileConfirmed },
+                    { href: "/user/app/skillpaths", label: "SkillPaths", icon: <BookOpen className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { href: "/user/challenges", label: "Challenges", icon: <Trophy className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { 
                       href: statusData?.etapas?.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
@@ -321,7 +322,7 @@ export default function UserSidebar({ open, onClose }: Props) {
         {/* Footer items */}
         <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-1">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => handleSecureLogout(session?.backendJwt)}
             className="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-red-500 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950/20"
           >
             <LogOut className="h-5 w-5" />

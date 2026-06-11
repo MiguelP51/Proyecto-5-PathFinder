@@ -124,4 +124,23 @@ public class AuthServiceImpl implements AuthService {
     private RolUsuario resolveRole(String correoNormalizado) {
         return adminEmail.equalsIgnoreCase(correoNormalizado) ? RolUsuario.ADMIN : RolUsuario.USER;
     }
+
+    @Override
+    @Transactional
+    public void logout(String correo) {
+        if (!StringUtils.hasText(correo)) {
+            return;
+        }
+        String correoNormalizado = correo.trim().toLowerCase();
+        Optional<SesionAutenticacion> sesionOpt = sesionAutenticacionRepository
+                .findFirstByUsuario_CorreoAndEstadoSesionAndFechaFinIsNullAndActivoTrueOrderByFechaInicioDesc(
+                        correoNormalizado, EstadoSesion.EXITOSA);
+
+        sesionOpt.ifPresent(sesion -> {
+            sesion.setFechaFin(LocalDateTime.now());
+            sesion.setEstadoSesion(EstadoSesion.CERRADA);
+            sesion.setFechaModificacion(LocalDateTime.now());
+            sesionAutenticacionRepository.save(sesion);
+        });
+    }
 }

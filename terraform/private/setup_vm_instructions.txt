@@ -1,0 +1,261 @@
+==========================================================================
+INSTRUCCIONES PARA RECREAR EL SCRIPT DE DEPLOY DE MANERA MANUAL
+==========================================================================
+
+Si Kaspersky vuelve a eliminar o enviar a cuarentena el archivo 'setup_vm.ps1', puedes volver a crearlo tú mismo manualmente:
+
+1. Crea un nuevo archivo de texto en esta carpeta y nómbralo exactamente:
+   setup_vm.ps1
+
+2. Abre ese archivo con el Bloc de notas o VS Code.
+3. Copia todo el código que aparece a continuación (debajo de la línea divisoria) y pégalo dentro del archivo.
+4. Guarda los cambios.
+5. Recuerda excluir esta carpeta en tu Antivirus Kaspersky o pausar la protección por 5 minutos antes de volver a ejecutarlo.
+
+----------------------- COPIAR DESDE AQUÍ --------------------------------
+
+# Simplified Automated VM Setup for PathFinder (Production VM)
+# Run this from the terraform/private directory:
+# PowerShell -ExecutionPolicy Bypass -File .\setup_vm.ps1
+
+$ErrorActionPreference = "Stop"
+
+# Clear screen and show header
+Clear-Host
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "             PATHFINDER PRODUCTION VM DEPLOYMENT UTILITY                 " -ForegroundColor Cyan
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# 1. Verify SSH Key
+Write-Host "[-] Step 1: Checking SSH private key..." -ForegroundColor Yellow
+$pemFile = ".\PathFinder_prod.pem"
+if (-not (Test-Path $pemFile)) {
+    Write-Error "Error: Private key '$pemFile' not found. Please place your PathFinder_prod.pem key inside the terraform/private directory."
+}
+Write-Host "[OK] SSH key file found: $pemFile" -ForegroundColor Green
+
+# Note about permissions instead of running icacls programmatically (avoids antivirus triggers)
+Write-Host "[!] Note: If you get a 'permissions are too open' SSH error, run this manually once in another terminal:" -ForegroundColor Yellow
+Write-Host "    icacls .\PathFinder_prod.pem /inheritance:r" -ForegroundColor Gray
+Write-Host "    icacls .\PathFinder_prod.pem /grant:r `"`$(`$env:USERNAME):R`"" -ForegroundColor Gray
+Write-Host ""
+
+# 2. Extract Terraform Outputs
+Write-Host "[-] Step 2: Fetching VM IP from Terraform..." -ForegroundColor Yellow
+if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
+    Write-Error "Error: Terraform CLI not found in your PATH."
+}
+
+# Change directory to the terraform folder (parent) to read outputs
+Push-Location ..
+try {
+    $tfOutputs = terraform output -json | ConvertFrom-Json
+} catch {
+    Pop-Location
+    Write-Error "Failed to retrieve terraform outputs. Ensure you have run 'terraform apply' first."
+}
+Pop-Location
+
+$vmIp = $tfOutputs.ec2_elastic_ip.value
+if (-not $vmIp) {
+    Write-Error "Missing 'ec2_elastic_ip' output from Terraform state."
+}
+
+Write-Host "[OK] Target VM IP: $vmIp" -ForegroundColor Green
+Write-Host ""
+
+# Setup SSH arguments
+$sshArgs = "-i", $pemFile, "-o", "StrictHostKeyChecking=no"
+
+# 3. Install Dependencies and Configure Swap on the VM
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "          STEP 3: INSTALLING DEPENDENCIES AND CONFIGURING SWAP            " -ForegroundColor Cyan
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "Connecting to VM to install Docker, Docker-Compose, Certbot, and Swap..." -ForegroundColor Yellow
+Write-Host ""
+
+$installScript = @'
+set -e
+echo "Updating packages..."
+sudo apt-get update -y
+
+echo "Installing Docker..."
+if ! command -v docker &> /dev/null; then
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo usermod -aG docker ubuntu
+    echo "Docker installed successfully."
+else
+    echo "Docker is already installed."
+fi
+
+echo "Installing Docker-Compose..."
+if ! command -v docker-compose &> /dev/null; then
+    sudo apt-get install -y docker-compose
+    echo "Docker-Compose installed successfully."
+else
+    echo "Docker-Compose is already installed."
+fi
+
+echo "Installing Certbot..."
+if ! command -v certbot &> /dev/null; then
+    sudo apt-get install -y certbot
+    echo "Certbot installed successfully."
+else
+    echo "Certbot is already installed."
+fi
+
+echo "Configuring Swap space (2GB)..."
+if [ ! -f /swapfile ]; then
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    echo "Swap space successfully created and enabled."
+else
+    echo "Swap space is already configured."
+fi
+'@
+
+# Save to temporary local file
+$tempInstallPath = ".\temp_install.sh"
+Set-Content -Path $tempInstallPath -Value $installScript -NoNewline
+
+# Copy and execute script via files
+scp @sshArgs $tempInstallPath "ubuntu@${vmIp}:/home/ubuntu/temp_install.sh" | Out-Null
+ssh @sshArgs "ubuntu@$vmIp" "bash /home/ubuntu/temp_install.sh"
+
+# Clean up
+ssh @sshArgs "ubuntu@$vmIp" "rm -f /home/ubuntu/temp_install.sh" | Out-Null
+Remove-Item -Path $tempInstallPath -Force
+
+Write-Host ""
+Write-Host "[OK] Dependencies and Swap configured on the VM." -ForegroundColor Green
+Write-Host ""
+
+# 4. Generate and display VM's SSH public key
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "          STEP 4: GENERATING SSH PUBLIC KEY FOR GITHUB ACCESS            " -ForegroundColor Cyan
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "Generating SSH key on the VM (if not exists)..." -ForegroundColor Yellow
+
+$keyGenScript = @'
+if [ ! -f ~/.ssh/id_ed25519 ]; then
+    ssh-keygen -t ed25519 -C "ubuntu@pathfinder-prod" -N "" -f ~/.ssh/id_ed25519
+fi
+cat ~/.ssh/id_ed25519.pub
+'@
+
+# Save to temporary local file
+$tempKeyGenPath = ".\temp_keygen.sh"
+Set-Content -Path $tempKeyGenPath -Value $keyGenScript -NoNewline
+
+# Copy and execute keygen script
+scp @sshArgs $tempKeyGenPath "ubuntu@${vmIp}:/home/ubuntu/temp_keygen.sh" | Out-Null
+$publicKey = ssh @sshArgs "ubuntu@$vmIp" "bash /home/ubuntu/temp_keygen.sh"
+
+# Clean up
+ssh @sshArgs "ubuntu@$vmIp" "rm -f /home/ubuntu/temp_keygen.sh" | Out-Null
+Remove-Item -Path $tempKeyGenPath -Force
+
+Write-Host ""
+Write-Host "--------------------------------------------------------------------------" -ForegroundColor Gray
+Write-Host $publicKey -ForegroundColor Green
+Write-Host "--------------------------------------------------------------------------" -ForegroundColor Gray
+Write-Host ""
+Write-Host "1. COPIA la llave SSH que aparece arriba en verde." -ForegroundColor Yellow
+Write-Host "2. Pegala en tu GitHub de la siguiente manera:" -ForegroundColor Yellow
+Write-Host "   - Ve a: https://github.com/settings/ssh/new" -ForegroundColor Yellow
+Write-Host "   - Escribe un Titulo (ej: 'VM PathFinder Prod')" -ForegroundColor Yellow
+Write-Host "   - Pega la llave en 'Key' y presiona 'Add SSH Key'" -ForegroundColor Yellow
+Write-Host ""
+
+# Wait for user confirmation
+$null = Read-Host "Presiona [ENTER] una vez que hayas agregado la llave a GitHub para continuar"
+Write-Host ""
+
+# 5. Clone Repository (develop branch)
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "                 STEP 5: CLONING DEVELOP BRANCH                           " -ForegroundColor Cyan
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "Cloning branch 'develop' from GitHub..." -ForegroundColor Yellow
+Write-Host ""
+
+$cloneScript = @'
+set -e
+# Add github.com to known hosts to avoid prompt
+mkdir -p ~/.ssh
+ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+PROJECT_DIR="/home/ubuntu/Proyecto-5-PathFinder"
+
+# If the directory exists but is not a git repo, remove it
+if [ -d "$PROJECT_DIR" ]; then
+    if [ ! -d "$PROJECT_DIR/.git" ]; then
+        echo "Removing existing empty or non-git project directory..."
+        sudo rm -rf "$PROJECT_DIR"
+    fi
+fi
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo "Cloning the repository (branch develop)..."
+    git clone -b develop git@github.com:MiguelP51/Proyecto-5-PathFinder.git "$PROJECT_DIR"
+else
+    echo "Repository already cloned. Pulling latest develop changes..."
+    cd "$PROJECT_DIR"
+    git fetch origin
+    git checkout -f develop
+    git pull origin develop
+fi
+
+# Ensure directories exist
+mkdir -p certbot/www
+mkdir -p nginx
+
+echo "Configuring SSL Certificate fallback..."
+CERT_PATH="/etc/letsencrypt/live/pathfinder.2bd.net/fullchain.pem"
+if [ -f "$CERT_PATH" ]; then
+    echo "SSL mode enabled. Using SSL Nginx configuration."
+else
+    echo "Falling back to HTTP (non-SSL) configuration..."
+    # Copy local.conf configuration to Nginx configuration
+    cp nginx/local.conf nginx/nginx.prod.conf
+    # Replace localhost server name with current domain
+    sed -i 's/server_name localhost;/server_name pathfinder.2bd.net www.pathfinder.2bd.net;/g' nginx/nginx.prod.conf
+fi
+
+echo "Building and launching Docker containers..."
+docker-compose -f docker-compose.prod.yml down
+docker system prune -af
+docker-compose -f docker-compose.prod.yml up -d --build
+
+echo ""
+echo "=== Project Directory Content === "
+ls -la "$PROJECT_DIR"
+'@
+
+# Save to temporary local file
+$tempClonePath = ".\temp_clone.sh"
+Set-Content -Path $tempClonePath -Value $cloneScript -NoNewline
+
+# Copy and execute clone script
+scp @sshArgs $tempClonePath "ubuntu@${vmIp}:/home/ubuntu/temp_clone.sh" | Out-Null
+ssh @sshArgs "ubuntu@$vmIp" "bash /home/ubuntu/temp_clone.sh"
+
+# Clean up
+ssh @sshArgs "ubuntu@$vmIp" "rm -f /home/ubuntu/temp_clone.sh" | Out-Null
+Remove-Item -Path $tempClonePath -Force
+
+Write-Host ""
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "                  CONFIGURATION COMPLETED SUCCESSFULLY                   " -ForegroundColor Cyan
+Write-Host "==========================================================================" -ForegroundColor Cyan
+Write-Host "The VM is now prepared, packages are installed, and branch 'develop' has"
+Write-Host "been cloned to /home/ubuntu/Proyecto-5-PathFinder."
+Write-Host "You are ready to configure the .env and run 'docker-compose -f docker-compose.prod.yml up -d --build'."
+Write-Host ""

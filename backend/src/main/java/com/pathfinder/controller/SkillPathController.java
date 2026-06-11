@@ -2,6 +2,7 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.SkillPathActivoDTO;
+import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
 import com.pathfinder.model.entity.SkillPath;
 import com.pathfinder.repository.SkillPathRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
 import com.pathfinder.service.SkillPathService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -135,6 +138,94 @@ public class SkillPathController {
             log.error("Error obteniendo detalle de SkillPath del estudiante: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error al obtener detalle del SkillPath"));
+        }
+    }
+
+    // POST /api/skillpaths/estudiante/{idSkillPath}/iniciar
+// Crea o actualiza el avance del estudiante sobre un SkillPath.
+    @PostMapping("/estudiante/{idSkillPath}/iniciar")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<SkillPathEstudianteResponseDTO>> iniciarSkillPathEstudiante(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idSkillPath
+    ) {
+        try {
+            SkillPathEstudianteResponseDTO skillPath =
+                    skillPathService.iniciarSkillPathEstudiante(
+                            userDetails.getUsername(),
+                            idSkillPath
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("SkillPath iniciado correctamente", skillPath)
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo iniciar SkillPath: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error iniciando SkillPath: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al iniciar SkillPath"));
+        }
+    }
+
+    @PostMapping(
+            value = "/estudiante/{idSkillPath}/evidencia",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<SkillPathEstudianteResponseDTO>> subirEvidenciaSkillPath(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idSkillPath,
+            @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            SkillPathEstudianteResponseDTO skillPath =
+                    skillPathService.subirEvidenciaSkillPath(
+                            userDetails.getUsername(),
+                            idSkillPath,
+                            file
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("Evidencia enviada correctamente", skillPath)
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo subir evidencia: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error subiendo evidencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al subir la evidencia"));
+        }
+    }
+
+    @DeleteMapping("/estudiante/{idSkillPath}/evidencia")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<SkillPathEstudianteResponseDTO>> eliminarEvidenciaSkillPath(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idSkillPath
+    ) {
+        try {
+            SkillPathEstudianteResponseDTO skillPath =
+                    skillPathService.eliminarEvidenciaSkillPath(
+                            userDetails.getUsername(),
+                            idSkillPath
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("Evidencia eliminada correctamente", skillPath)
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo eliminar evidencia: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error eliminando evidencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al eliminar la evidencia"));
         }
     }
 }

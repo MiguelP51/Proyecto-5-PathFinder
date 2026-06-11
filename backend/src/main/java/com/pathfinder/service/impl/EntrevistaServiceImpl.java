@@ -7,6 +7,7 @@ import com.pathfinder.model.enums.*;
 import com.pathfinder.repository.*;
 import com.pathfinder.service.EmailService;
 import com.pathfinder.service.EntrevistaService;
+import com.pathfinder.service.NotificacionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     private final PerfilCVRepository perfilCVRepository;
     private final EmailService emailService;
     private final FeriadoRepository feriadoRepository;
+    private final NotificacionService notificacionService;
 
 
     @Override
@@ -82,8 +84,17 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.COMPLETADA);
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
 
+        // Notificación al mentor
+        String fechaStr = request.getFecha();
+        notificacionService.crearNotificacion(
+                "NUEVA_ENTREVISTA",
+                estudiante.getNombreCompleto() + " agendó una entrevista para el " + fechaStr + " a las " + request.getHora(),
+                mentor.getCorreo(),
+                guardada.getIdEntrevista()
+        );
+
         // Enviar correo de confirmación (inicialmente sin enlace)
-        emailService.enviarCorreoConfirmacion(
+        boolean emailSent = emailService.enviarCorreoConfirmacion(
                 estudiante.getCorreo(),
                 estudiante.getNombreCompleto(),
                 mentor.getNombreCompleto(),
@@ -94,7 +105,9 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         );
 
         log.info("Entrevista agendada con éxito para estudiante {} con mentor {}", correoEstudiante, mentor.getCorreo());
-        return mapToDTO(guardada);
+        EntrevistaResponseDTO dto = mapToDTO(guardada);
+        dto.setEmailEnviado(emailSent);
+        return dto;
     }
 
     @Override
@@ -113,7 +126,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
     @Override
     @Transactional
-    public void guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink) {
+    public boolean guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink) {
         Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
                 .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada"));
 
@@ -144,7 +157,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevistaRepository.save(entrevista);
 
         // Notificar al estudiante por correo
-        emailService.enviarCorreoConfirmacion(
+        boolean emailSent = emailService.enviarCorreoConfirmacion(
                 entrevista.getEstudiante().getCorreo(),
                 entrevista.getEstudiante().getNombreCompleto(),
                 entrevista.getMentor().getNombreCompleto(),
@@ -155,6 +168,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         );
 
         log.info("Enlace virtual guardado para entrevista ID {}", idEntrevista);
+        return emailSent;
     }
 
     @Override
@@ -181,6 +195,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         // Actualizar etapa de evaluación del estudiante como COMPLETADA
         actualizarProgreso(entrevista.getEstudiante(), NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.COMPLETADA);
 
+        // Notificación al mentor (feedback completado)
+        notificacionService.crearNotificacion(
+                "ENTREVISTA_COMPLETADA",
+                "Entrevista completada con " + entrevista.getEstudiante().getNombreCompleto(),
+                correoMentor,
+                idEntrevista
+        );
+
         log.info("Feedback registrado para entrevista ID {}", idEntrevista);
     }
 
@@ -194,6 +216,11 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             throw new IllegalStateException("Solo puedes cancelar o reagendar una entrevista que esté en estado 'Programada'");
         }
 
+        java.time.LocalDateTime fechaHoraCita = java.time.LocalDateTime.of(entrevista.getFecha(), java.time.LocalTime.parse(entrevista.getHora()));
+        if (java.time.LocalDateTime.now().isAfter(fechaHoraCita.minusHours(24))) {
+            throw new IllegalStateException("Solo puedes cancelar o reagendar la cita con un mínimo de 24 horas de anticipación.");
+        }
+
         String nuevoEstado = esReagendado ? "Reagendada" : "Cancelada";
         entrevista.setEstado(nuevoEstado);
         entrevista.setActivo(false);
@@ -205,6 +232,18 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         Usuario estudiante = entrevista.getEstudiante();
         actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.PENDIENTE);
+
+        // Notificación al mentor
+        String tipoNotif = esReagendado ? "REAGENDACION" : "CANCELACION";
+        String mensajeNotif = esReagendado
+                ? estudiante.getNombreCompleto() + " reagendó la entrevista del " + entrevista.getFecha()
+                : estudiante.getNombreCompleto() + " canceló la entrevista del " + entrevista.getFecha();
+        notificacionService.crearNotificacion(
+                tipoNotif,
+                mensajeNotif,
+                entrevista.getMentor().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
 
         // Notificar por correo real tanto al estudiante como al mentor
         emailService.enviarCorreoCancelacionOReagendacion(

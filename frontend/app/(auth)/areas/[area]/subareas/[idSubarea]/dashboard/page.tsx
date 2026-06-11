@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, BookOpen, Target, Award, TrendingUp } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Target, Award, TrendingUp, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
 
@@ -83,6 +83,15 @@ export default function DashboardSubareaPage({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
+
+  // función para ir al dashboard individual de cada SkillPath
+  const goToSkillPathDashboard = (skillPathId: string) => {
+    const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
+
+    router.push(
+        `/user/app/skillpaths/${skillPathId}?returnTo=${encodeURIComponent(returnTo)}`,
+    );
+  };
 
   const [area, setArea] = useState("");
   const [idSubarea, setIdSubarea] = useState("");
@@ -237,6 +246,18 @@ export default function DashboardSubareaPage({
                             style={{ width: `${sp.progressPercentage}%` }}
                           />
                         </div>
+                      </div>
+
+                      {/* botón individual para abrir el dashboard de este SkillPath */}
+                      <div className="ml-11 mt-4">
+                        <button
+                            type="button"
+                            onClick={() => goToSkillPathDashboard(sp.id)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df]"
+                        >
+                          {sp.status === "DISPONIBLE" ? "Iniciar SkillPath" : "Continuar SkillPath"}
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   ))}

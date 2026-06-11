@@ -313,6 +313,8 @@
     color: #334155;
     line-height: 1.7;
     margin: 0 0 24px 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 /* SPECIALIZATIONS tag list */

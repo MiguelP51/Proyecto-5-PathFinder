@@ -15,7 +15,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Override
-    public void enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String tipo, String enlace) {
+    public boolean enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String tipo, String enlace) {
         log.info("Enviando correo real de confirmación de entrevista para: {}", destinatario);
         
         try {
@@ -44,13 +44,15 @@ public class EmailServiceImpl implements EmailService {
             message.setText(text.toString());
             mailSender.send(message);
             log.info("Correo de confirmación enviado exitosamente a {}", destinatario);
+            return true;
         } catch (Exception e) {
             log.error("Fallo al enviar el correo real de confirmación a {}: {}", destinatario, e.getMessage());
+            return false;
         }
     }
 
     @Override
-    public void enviarCorreoCancelacionOReagendacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String nuevoEstado, String motivo) {
+    public boolean enviarCorreoCancelacionOReagendacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String nuevoEstado, String motivo) {
         log.info("Enviando correo real de {} para: {}", nuevoEstado, destinatario);
         
         try {
@@ -74,8 +76,10 @@ public class EmailServiceImpl implements EmailService {
             message.setText(text.toString());
             mailSender.send(message);
             log.info("Correo de {} enviado exitosamente a {}", nuevoEstado, destinatario);
+            return true;
         } catch (Exception e) {
             log.error("Fallo al enviar el correo real de {} a {}: {}", nuevoEstado, destinatario, e.getMessage());
+            return false;
         }
     }
 }

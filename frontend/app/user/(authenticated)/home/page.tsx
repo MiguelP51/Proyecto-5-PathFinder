@@ -32,6 +32,25 @@ interface EstadoEstudianteResponse {
   };
 }
 
+const formatFecha = (fechaStr: string) => {
+  try {
+    const parts = fechaStr.split("-");
+    if (parts.length === 3) {
+      const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const formatted = date.toLocaleDateString("es-ES", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    return fechaStr;
+  } catch {
+    return fechaStr;
+  }
+};
+
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -173,7 +192,7 @@ export default function StudentDashboard() {
                   Tienes una entrevista programada con <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span>.
                 </p>
                 <p className="text-xs text-slate-600 mt-1">
-                  Fecha: <span className="font-semibold">{activeInterview.fecha}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span> ({activeInterview.tipo === "virtual" ? "Virtual" : "Presencial"}).
+                  Fecha: <span className="font-semibold">{formatFecha(activeInterview.fecha)}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span> ({activeInterview.tipo === "virtual" ? "Virtual" : "Presencial"}).
                 </p>
                 <p className="text-xs font-semibold text-amber-600 mt-2 flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
@@ -202,7 +221,7 @@ export default function StudentDashboard() {
                   ¡El enlace de tu entrevista con <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ya está disponible!
                 </p>
                 <p className="text-xs text-slate-600 mt-1">
-                  Fecha: <span className="font-semibold">{activeInterview.fecha}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span>.
+                  Fecha: <span className="font-semibold">{formatFecha(activeInterview.fecha)}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span>.
                 </p>
                 <p className="text-xs font-semibold text-emerald-700 mt-2">
                   Haz clic en el botón de la derecha para unirte directamente a la simulación.

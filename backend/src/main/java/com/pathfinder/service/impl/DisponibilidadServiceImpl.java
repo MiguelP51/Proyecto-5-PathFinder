@@ -13,6 +13,8 @@ import com.pathfinder.repository.ConfiguracionDisponibilidadMentorRepository;
 import com.pathfinder.repository.EntrevistaRepository;
 import com.pathfinder.repository.UsuarioRepository;
 import com.pathfinder.repository.FeriadoRepository;
+import com.pathfinder.repository.PerfilCVRepository;
+import com.pathfinder.model.entity.PerfilCV;
 
 import com.pathfinder.service.DisponibilidadService;
 import jakarta.transaction.Transactional;
@@ -36,6 +38,7 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
     private final EntrevistaRepository entrevistaRepository;
     private final UsuarioRepository usuarioRepository;
     private final FeriadoRepository feriadoRepository;
+    private final PerfilCVRepository perfilCVRepository;
 
 
     @Override
@@ -102,12 +105,20 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
         List<Usuario> mentores = usuarioRepository.findByRolAndActivoTrue(RolUsuario.MENTOR);
 
         return mentores.stream()
-                .map(m -> MentorDisponibilidadDTO.builder()
-                        .idUsuario(m.getIdUsuario())
-                        .nombreCompleto(m.getNombreCompleto())
-                        .correo(m.getCorreo())
-                        .avatarUrl(m.getAvatarUrl())
-                        .build())
+                .filter(m -> !disponibilidadRepository.findByMentor_IdUsuarioAndActivoTrue(m.getIdUsuario()).isEmpty())
+                .map(m -> {
+                    Optional<PerfilCV> perfilOpt = perfilCVRepository.findByUsuario_IdUsuario(m.getIdUsuario());
+                    return MentorDisponibilidadDTO.builder()
+                            .idUsuario(m.getIdUsuario())
+                            .nombreCompleto(m.getNombreCompleto())
+                            .correo(m.getCorreo())
+                            .avatarUrl(m.getAvatarUrl())
+                            .linkedinUrl(perfilOpt.map(PerfilCV::getLinkedinUrl).orElse(null))
+                            .perfilProfesional(perfilOpt.map(PerfilCV::getPerfilProfesional).orElse(null))
+                            .celular(perfilOpt.map(PerfilCV::getCelular).orElse(null))
+                            .correoContacto(perfilOpt.map(PerfilCV::getCorreoContacto).orElse(null))
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 

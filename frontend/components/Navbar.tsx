@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { handleSecureLogout } from "@/lib/auth-utils";
 import { Menu, X, LogOut, Sun, Moon } from "lucide-react";
 import { useUserRole } from "@/hooks/use-role";
 import { useTheme } from "next-themes";
@@ -180,9 +181,7 @@ export default function Navbar() {
                   {/* LOGOUT */}
                   <button
                     onClick={() =>
-                      signOut({
-                        callbackUrl: "/",
-                      })
+                      handleSecureLogout(session?.backendJwt)
                     }
                     className="rounded-full border border-slate-200 dark:border-slate-800 p-3 transition text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500"
                     aria-label="Cerrar sesión"
@@ -316,7 +315,7 @@ export default function Navbar() {
               <button
                 onClick={() => {
                   setMobileOpen(false);
-                  signOut({ callbackUrl: "/" });
+                  handleSecureLogout(session?.backendJwt);
                 }}
                 className="mt-8 flex items-center gap-3 rounded-xl px-4 py-3 text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
               >
