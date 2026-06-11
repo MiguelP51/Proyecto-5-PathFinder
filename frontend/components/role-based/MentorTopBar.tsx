@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, Sun, Moon, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import NotificationBell from "./NotificationBell";
 import styles from "../../styles/PathMentorTopbar.module.css";
 
 interface Props {
@@ -59,10 +60,7 @@ export default function MentorTopBar({ onMenuClick }: Props) {
         )}
 
         {/* Notification Bell */}
-        <div className={styles.notification}>
-          🔔
-          <span className={styles.badge}>3</span>
-        </div>
+        <NotificationBell />
 
         {/* User Card */}
         <div className={styles.userSection}>

@@ -7,6 +7,7 @@ import com.pathfinder.model.enums.*;
 import com.pathfinder.repository.*;
 import com.pathfinder.service.EmailService;
 import com.pathfinder.service.EntrevistaService;
+import com.pathfinder.service.NotificacionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     private final PerfilCVRepository perfilCVRepository;
     private final EmailService emailService;
     private final FeriadoRepository feriadoRepository;
+    private final NotificacionService notificacionService;
 
 
     @Override
@@ -81,6 +83,15 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         // Actualizar progreso del estudiante
         actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.COMPLETADA);
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
+
+        // Notificación al mentor
+        String fechaStr = request.getFecha();
+        notificacionService.crearNotificacion(
+                "NUEVA_ENTREVISTA",
+                estudiante.getNombreCompleto() + " agendó una entrevista para el " + fechaStr + " a las " + request.getHora(),
+                mentor.getCorreo(),
+                guardada.getIdEntrevista()
+        );
 
         // Enviar correo de confirmación (inicialmente sin enlace)
         emailService.enviarCorreoConfirmacion(
@@ -181,6 +192,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         // Actualizar etapa de evaluación del estudiante como COMPLETADA
         actualizarProgreso(entrevista.getEstudiante(), NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.COMPLETADA);
 
+        // Notificación al mentor (feedback completado)
+        notificacionService.crearNotificacion(
+                "ENTREVISTA_COMPLETADA",
+                "Entrevista completada con " + entrevista.getEstudiante().getNombreCompleto(),
+                correoMentor,
+                idEntrevista
+        );
+
         log.info("Feedback registrado para entrevista ID {}", idEntrevista);
     }
 
@@ -205,6 +224,18 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         Usuario estudiante = entrevista.getEstudiante();
         actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.PENDIENTE);
+
+        // Notificación al mentor
+        String tipoNotif = esReagendado ? "REAGENDACION" : "CANCELACION";
+        String mensajeNotif = esReagendado
+                ? estudiante.getNombreCompleto() + " reagendó la entrevista del " + entrevista.getFecha()
+                : estudiante.getNombreCompleto() + " canceló la entrevista del " + entrevista.getFecha();
+        notificacionService.crearNotificacion(
+                tipoNotif,
+                mensajeNotif,
+                entrevista.getMentor().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
 
         // Notificar por correo real tanto al estudiante como al mentor
         emailService.enviarCorreoCancelacionOReagendacion(
