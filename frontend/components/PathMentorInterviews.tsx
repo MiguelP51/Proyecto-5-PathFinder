@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import styles from '../styles/PathMentorInterviews.module.css';
 import { toast } from 'sonner';
@@ -151,6 +152,8 @@ const ChartIcon = () => (
 
 export default function PathMentorInterviews() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -177,12 +180,6 @@ export default function PathMentorInterviews() {
   const [loadingDISC, setLoadingDISC] = useState(false);
   const [showDISCDetails, setShowDISCDetails] = useState(false);
 
-  useEffect(() => {
-    if (status === 'authenticated' && session?.backendJwt) {
-      loadInterviews();
-    }
-  }, [status, session]);
-
   const loadInterviews = async () => {
     try {
       setLoading(true);
@@ -207,6 +204,52 @@ export default function PathMentorInterviews() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.backendJwt) return;
+    let cancelled = false;
+
+    const doFetch = async () => {
+      try {
+        const data = await apiFetch<any[]>("/api/entrevistas/mentor", {}, session?.backendJwt);
+        if (cancelled) return;
+        const mapped = data.map(item => ({
+          id: item.idEntrevista,
+          idEstudiante: item.idEstudiante,
+          studentName: item.estudianteNombre,
+          studentEmail: item.estudianteEmail,
+          date: item.fecha,
+          time: item.hora,
+          status: item.estado,
+          link: item.virtualLink,
+          discResult: item.discNombrePerfil,
+          cvAvailable: item.cvAvailable,
+          motivoCancelacion: item.motivoCancelacion
+        }));
+        setInterviews(mapped);
+
+        const idParam = searchParams.get('id');
+        if (idParam) {
+          const id = parseInt(idParam, 10);
+          if (!isNaN(id)) {
+            const found = mapped.find((iv) => iv.id === id);
+            if (found) {
+              setSelectedDetailInterview(found);
+              setIsDetailModalOpen(true);
+              router.replace('/mentor/interviews');
+            }
+          }
+        }
+      } catch (err) {
+        if (!cancelled) console.error("Error cargando entrevistas:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doFetch();
+
+    return () => { cancelled = true; };
+  }, [status, session, searchParams, router]);
 
   const loadStudentProfile = async (email: string) => {
     if (!session?.backendJwt) return;
@@ -638,17 +681,11 @@ export default function PathMentorInterviews() {
             {isProfileModalOpen ? (
               <div>
                 {/* Cabecera */}
-                <div className="flex items-center justify-between pb-5 mb-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                <div className="flex items-center pb-5 mb-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                   <div className="text-left">
                     <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] dark:text-purple-400 block mb-0.5">Perfil del Estudiante</span>
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">{selectedDetailInterview.studentName}</h2>
                   </div>
-                  <button 
-                    onClick={() => setIsProfileModalOpen(false)}
-                    className="flex h-11 px-5 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold transition text-sm cursor-pointer"
-                  >
-                    Volver
-                  </button>
                 </div>
 
                 {/* Contenido Desplazable del Perfil */}
@@ -793,6 +830,14 @@ export default function PathMentorInterviews() {
                   ) : (
                     <p className="text-center text-slate-500 dark:text-slate-400 py-12">No se pudo cargar la información del perfil del estudiante.</p>
                   )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+                  <button 
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="flex h-11 px-5 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold transition text-sm cursor-pointer"
+                  >
+                    Volver
+                  </button>
                 </div>
               </div>
             ) : (

@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { apiFetch } from '@/lib/api';
+import { Loader2 } from 'lucide-react';
 import styles from '../styles/PathMentorProfile.module.css';
 
-// SVG Icons
 const PencilIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 20h9" />
@@ -76,136 +78,167 @@ const CalendarIcon = () => (
   </svg>
 );
 
-interface Certification {
-  title: string;
-  issuer: string;
-  year: string;
+interface ProfileData {
+  nombreCompleto: string;
+  correo: string;
+  avatarUrl?: string;
+  titulo?: string;
+  telefono?: string;
+  ubicacion?: string;
+  linkedinUrl?: string;
+  bio?: string;
+  areasExpertise: AreaExpertiseItem[];
+  certificaciones: CertificacionItem[];
+  especialidades: string[];
+  metrics: MentorMetrics;
+}
+
+interface AreaExpertiseItem {
+  id?: number;
+  nombre: string;
+  aniosExperiencia: number;
+}
+
+interface CertificacionItem {
+  id?: number;
+  titulo: string;
+  emisor: string;
+  anio: string;
+}
+
+interface MentorMetrics {
+  totalEntrevistas: number;
+  tasaAprobacion: number;
+  calificacionPromedio: number;
+  aniosExperiencia: number;
 }
 
 export default function PathMentorProfile() {
+  const { data: session } = useSession();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Profile text states
-  const [name, setName] = useState('Dr. Roberto Martínez');
-  const [role, setRole] = useState('PathMentor Senior - Tecnología');
-  const [email, setEmail] = useState('roberto.martinez@pathfinder.com');
-  const [phone, setPhone] = useState('+52 55 1234 5678');
-  const [location, setLocation] = useState('Ciudad de México, México');
-  const [linkedin, setLinkedin] = useState('linkedin.com/in/roberto-martinez');
-  const [bio, setBio] = useState(
-    'PathMentor con más de 10 años de experiencia en tecnología y desarrollo de talento. Especializado en entrevistas técnicas para roles de desarrollo de software, UX/UI y ciencia de datos. Apasionado por ayudar a estudiantes a alcanzar su máximo potencial profesional.'
-  );
-  const [expertise, setExpertise] = useState('Desarrollo de Software, UX/UI, Ciencia de Datos');
-  const [languages, setLanguages] = useState('Español (Nativo), Inglés (Fluido)');
+  const [profile, setProfile] = useState<ProfileData>({
+    nombreCompleto: '',
+    correo: '',
+    titulo: '',
+    telefono: '',
+    ubicacion: '',
+    linkedinUrl: '',
+    bio: '',
+    areasExpertise: [],
+    certificaciones: [],
+    especialidades: [],
+    metrics: { totalEntrevistas: 0, tasaAprobacion: 0, calificacionPromedio: 0, aniosExperiencia: 0 },
+  });
 
-  // Temporary edit states to support "Cancelar" without saving
-  const [editName, setEditName] = useState('');
-  const [editRole, setEditRole] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editLocation, setEditLocation] = useState('');
-  const [editLinkedin, setEditLinkedin] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [editExpertise, setEditExpertise] = useState('');
-  const [editLanguages, setEditLanguages] = useState('');
+  const [editFields, setEditFields] = useState(profile);
+
+  useEffect(() => {
+    if (!session?.backendJwt) return;
+    setLoading(true);
+    apiFetch<ProfileData>('/api/mentor/profile', {}, session.backendJwt)
+      .then((data) => {
+        setProfile(data);
+        setEditFields(data);
+      })
+      .catch(() => {
+        setProfile((prev) => ({
+          ...prev,
+          nombreCompleto: session?.user?.name || '',
+          correo: session?.user?.email || '',
+        }));
+        setEditFields((prev) => ({
+          ...prev,
+          nombreCompleto: session?.user?.name || '',
+          correo: session?.user?.email || '',
+        }));
+      })
+      .finally(() => setLoading(false));
+  }, [session]);
 
   const handleStartEdit = () => {
-    setEditName(name);
-    setEditRole(role);
-    setEditEmail(email);
-    setEditPhone(phone);
-    setEditLocation(location);
-    setEditLinkedin(linkedin);
-    setEditBio(bio);
-    setEditExpertise(expertise);
-    setEditLanguages(languages);
+    setEditFields(profile);
     setIsEditing(true);
   };
 
-  const handleSaveChanges = () => {
-    setName(editName);
-    setRole(editRole);
-    setEmail(editEmail);
-    setPhone(editPhone);
-    setLocation(editLocation);
-    setLinkedin(editLinkedin);
-    setBio(editBio);
-    setExpertise(editExpertise);
-    setLanguages(editLanguages);
-    setIsEditing(false);
+  const handleSaveChanges = async () => {
+    if (!session?.backendJwt) return;
+    setSaving(true);
+    try {
+      const updated = await apiFetch<ProfileData>('/api/mentor/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          titulo: editFields.titulo,
+          telefono: editFields.telefono,
+          ubicacion: editFields.ubicacion,
+          linkedinUrl: editFields.linkedinUrl,
+          bio: editFields.bio,
+          areasExpertise: editFields.areasExpertise.map((a) => ({ nombre: a.nombre, aniosExperiencia: a.aniosExperiencia })),
+          certificaciones: editFields.certificaciones,
+          especialidades: editFields.especialidades.map((nombre) => ({ nombre })),
+        }),
+      }, session.backendJwt);
+      setProfile(updated);
+      setEditFields(updated);
+      setIsEditing(false);
+    } catch (e) {
+      console.error('Error saving profile:', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const certifications: Certification[] = [
-    { title: 'Certified Technical Interviewer', issuer: 'Tech Interview Academy', year: '2024' },
-    { title: 'Advanced UX/UI Evaluation', issuer: 'Design Institute', year: '2023' },
-    { title: 'Data Science Assessment', issuer: 'Analytics Academy', year: '2022' },
-  ];
+  if (loading) {
+    return (
+      <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <Loader2 className="animate-spin" style={{ width: '48px', height: '48px', color: '#7447D7' }} />
+          <p style={{ color: '#64748b', fontWeight: '500' }}>Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const specializations = [
-    'Desarrollo Frontend (React, Vue, Angular)',
-    'Desarrollo Backend (Node.js, Python, Java)',
-    'Diseño UX/UI',
-    'Ciencia de Datos y Machine Learning',
-    'Arquitectura de Software',
-    'Entrevistas Comportamentales',
-  ];
+  const p = isEditing ? editFields : profile;
+  const metrics = profile.metrics;
 
   return (
     <div className={styles.page}>
-      {/* CONTENT */}
       <main className={styles.container}>
-        {/* HEADER */}
         <div className={styles.headerContainer}>
           <div className={styles.header}>
             <h1>Mi Perfil</h1>
-            <p>Información personal y profesional</p>
+            <p>Información Personal y Profesional</p>
           </div>
           {isEditing ? (
             <div>
-              <button 
-                className={styles.btnCancel}
-                onClick={() => setIsEditing(false)}
-              >
+              <button className={styles.btnCancel} onClick={() => setIsEditing(false)}>
                 Cancelar
               </button>
-              <button 
-                className={styles.btnSave}
-                onClick={handleSaveChanges}
-              >
+              <button className={styles.btnSave} onClick={handleSaveChanges} disabled={saving}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                   <polyline points="17 21 17 13 7 13 7 21" />
                   <polyline points="7 3 7 8 15 8" />
                 </svg>
-                Guardar Cambios
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           ) : (
-            <button 
-              className={styles.btnEdit}
-              onClick={handleStartEdit}
-            >
+            <button className={styles.btnEdit} onClick={handleStartEdit}>
               <PencilIcon /> Editar Perfil
             </button>
           )}
         </div>
 
-        {/* MAIN PROFILE DETAILS CARD */}
         <section className={styles.profileCard}>
           <div className={styles.profileAvatarContainer}>
             <div className={styles.profileAvatar}>
-              {isEditing 
-                ? (editName ? editName.split(' ').map(w => w.charAt(0)).join('').substring(0, 2).toUpperCase() : 'RM')
-                : (name ? name.split(' ').map(w => w.charAt(0)).join('').substring(0, 2).toUpperCase() : 'RM')
-              }
+              {(p.nombreCompleto ? p.nombreCompleto : 'M').split(' ').map(w => w.charAt(0)).join('').substring(0, 2).toUpperCase()}
             </div>
-            {isEditing && (
-              <button className={styles.btnChangePhoto}>
-                Cambiar Foto
-              </button>
-            )}
           </div>
-          
           <div className={styles.profileInfo} style={{ width: '100%' }}>
             {isEditing ? (
               <div className={styles.editForm}>
@@ -214,8 +247,8 @@ export default function PathMentorProfile() {
                   <input
                     type="text"
                     className={styles.inputField}
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    value={editFields.nombreCompleto}
+                    onChange={(e) => setEditFields({ ...editFields, nombreCompleto: e.target.value })}
                   />
                 </div>
                 <div className={styles.formGroup}>
@@ -223,74 +256,63 @@ export default function PathMentorProfile() {
                   <input
                     type="text"
                     className={styles.inputField}
-                    value={editRole}
-                    onChange={(e) => setEditRole(e.target.value)}
+                    value={editFields.titulo || ''}
+                    onChange={(e) => setEditFields({ ...editFields, titulo: e.target.value })}
                   />
                 </div>
               </div>
             ) : (
               <>
-                <h2 className={styles.profileName}>{name}</h2>
-                <p className={styles.profileRole}>{role}</p>
+                <h2 className={styles.profileName}>{p.nombreCompleto}</h2>
+                <p className={styles.profileRole}>{p.titulo || 'PathMentor'}</p>
                 <div className={styles.badgeRow}>
                   <span className={styles.profileBadge}>
                     <span className={styles.profileBadgeIcon}><BriefcaseIcon /></span>
                     PathFinder
                   </span>
-                  <span className={styles.profileBadge}>
-                    <span className={styles.profileBadgeIcon}><MapPinIcon /></span>
-                    {location}
-                  </span>
+                  {p.ubicacion && (
+                    <span className={styles.profileBadge}>
+                      <span className={styles.profileBadgeIcon}><MapPinIcon /></span>
+                      {p.ubicacion}
+                    </span>
+                  )}
                 </div>
               </>
             )}
           </div>
         </section>
 
-        {/* METRICS ROW */}
         <section className={styles.metricsRow}>
           <div className={styles.metricCard}>
-            <div className={styles.metricIcon}>
-              <CalendarIcon />
-            </div>
+            <div className={styles.metricIcon}><CalendarIcon /></div>
             <div className={styles.metricInfo}>
-              <span className={styles.metricVal}>74</span>
+              <span className={styles.metricVal}>{metrics.totalEntrevistas}</span>
               <span className={styles.metricLabel}>Entrevistas Totales</span>
             </div>
           </div>
-
           <div className={styles.metricCard}>
-            <div className={styles.metricIcon}>
-              <AwardIcon />
-            </div>
+            <div className={styles.metricIcon}><AwardIcon /></div>
             <div className={styles.metricInfo}>
-              <span className={styles.metricVal}>92%</span>
+              <span className={styles.metricVal}>{metrics.tasaAprobacion}%</span>
               <span className={styles.metricLabel}>Tasa de Aprobación</span>
             </div>
           </div>
-
           <div className={styles.metricCard}>
-            <div className={styles.metricIcon}>
-              <BriefcaseIcon />
-            </div>
+            <div className={styles.metricIcon}><BriefcaseIcon /></div>
             <div className={styles.metricInfo}>
-              <span className={styles.metricVal}>10+</span>
+              <span className={styles.metricVal}>{metrics.aniosExperiencia}+</span>
               <span className={styles.metricLabel}>Años de Experiencia</span>
             </div>
           </div>
-
           <div className={styles.metricCard}>
-            <div className={styles.metricIcon}>
-              <AwardIcon />
-            </div>
+            <div className={styles.metricIcon}><AwardIcon /></div>
             <div className={styles.metricInfo}>
-              <span className={styles.metricVal}>4.3/5</span>
+              <span className={styles.metricVal}>{metrics.calificacionPromedio}/5</span>
               <span className={styles.metricLabel}>Calificación Promedio</span>
             </div>
           </div>
         </section>
 
-        {/* CONTACT INFO */}
         <section className={styles.infoCard}>
           <div className={styles.cardHeader}>
             <span className={styles.cardIcon}><UserIcon /></span>
@@ -300,20 +322,15 @@ export default function PathMentorProfile() {
             <div className={styles.cardGrid}>
               <div className={styles.cardCol}>
                 <label className={styles.inputLabel}>Email</label>
-                <input
-                  type="email"
-                  className={styles.inputField}
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                />
+                <input type="email" className={styles.inputField} value={editFields.correo} disabled />
               </div>
               <div className={styles.cardCol}>
                 <label className={styles.inputLabel}>Teléfono</label>
                 <input
                   type="text"
                   className={styles.inputField}
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
+                  value={editFields.telefono || ''}
+                  onChange={(e) => setEditFields({ ...editFields, telefono: e.target.value })}
                 />
               </div>
               <div className={styles.cardCol}>
@@ -321,8 +338,8 @@ export default function PathMentorProfile() {
                 <input
                   type="text"
                   className={styles.inputField}
-                  value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
+                  value={editFields.ubicacion || ''}
+                  onChange={(e) => setEditFields({ ...editFields, ubicacion: e.target.value })}
                 />
               </div>
               <div className={styles.cardCol}>
@@ -330,8 +347,8 @@ export default function PathMentorProfile() {
                 <input
                   type="text"
                   className={styles.inputField}
-                  value={editLinkedin}
-                  onChange={(e) => setEditLinkedin(e.target.value)}
+                  value={editFields.linkedinUrl || ''}
+                  onChange={(e) => setEditFields({ ...editFields, linkedinUrl: e.target.value })}
                 />
               </div>
             </div>
@@ -341,42 +358,38 @@ export default function PathMentorProfile() {
                 <span className={styles.cardLabel}>Email</span>
                 <span className={styles.cardVal}>
                   <span className={styles.cardValIcon}><MailIcon /></span>
-                  {email}
+                  {p.correo}
                 </span>
               </div>
               <div className={styles.cardCol}>
                 <span className={styles.cardLabel}>Teléfono</span>
                 <span className={styles.cardVal}>
                   <span className={styles.cardValIcon}><PhoneIcon /></span>
-                  {phone}
+                  {p.telefono || '—'}
                 </span>
               </div>
               <div className={styles.cardCol}>
                 <span className={styles.cardLabel}>Ubicación</span>
                 <span className={styles.cardVal}>
                   <span className={styles.cardValIcon}><MapPinIcon /></span>
-                  {location}
+                  {p.ubicacion || '—'}
                 </span>
               </div>
               <div className={styles.cardCol}>
                 <span className={styles.cardLabel}>LinkedIn</span>
                 <span className={styles.cardVal}>
                   <span className={styles.cardValIcon}><GlobeIcon /></span>
-                  <a
-                    href={`https://${linkedin}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.cardLink}
-                  >
-                    {linkedin}
-                  </a>
+                  {p.linkedinUrl ? (
+                    <a href={`https://${p.linkedinUrl}`} target="_blank" rel="noopener noreferrer" className={styles.cardLink}>
+                      {p.linkedinUrl}
+                    </a>
+                  ) : '—'}
                 </span>
               </div>
             </div>
           )}
         </section>
 
-        {/* PROFESSIONAL INFO */}
         <section className={styles.infoCard}>
           <div className={styles.cardHeader}>
             <span className={styles.cardIcon}><BriefcaseIcon /></span>
@@ -388,86 +401,174 @@ export default function PathMentorProfile() {
                 <label className={styles.inputLabel}>Biografía</label>
                 <textarea
                   className={styles.textareaField}
-                  value={editBio}
-                  onChange={(e) => setEditBio(e.target.value)}
+                  value={editFields.bio || ''}
+                  onChange={(e) => setEditFields({ ...editFields, bio: e.target.value })}
                 />
               </div>
-              <div className={styles.cardGrid}>
-                <div className={styles.cardCol}>
-                  <label className={styles.inputLabel}>Áreas de Expertise</label>
-                  <input
-                    type="text"
-                    className={styles.inputField}
-                    value={editExpertise}
-                    onChange={(e) => setEditExpertise(e.target.value)}
-                  />
+              <div className={styles.formGroup} style={{ marginBottom: '20px' }}>
+                <label className={styles.inputLabel}>Áreas de Expertise</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {editFields.areasExpertise.map((area, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className={styles.inputField}
+                        placeholder="Nombre del área"
+                        value={area.nombre}
+                        style={{ flex: 1 }}
+                        onChange={(e) => {
+                          const updated = [...editFields.areasExpertise];
+                          updated[idx] = { ...updated[idx], nombre: e.target.value };
+                          setEditFields({ ...editFields, areasExpertise: updated });
+                        }}
+                      />
+                      <input
+                        type="number"
+                        className={styles.inputField}
+                        placeholder="Años"
+                        value={area.aniosExperiencia || ''}
+                        style={{ width: '100px' }}
+                        onChange={(e) => {
+                          const updated = [...editFields.areasExpertise];
+                          updated[idx] = { ...updated[idx], aniosExperiencia: Number(e.target.value) };
+                          setEditFields({ ...editFields, areasExpertise: updated });
+                        }}
+                      />
+                      <span style={{ color: '#64748b', fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>años</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = editFields.areasExpertise.filter((_, i) => i !== idx);
+                          setEditFields({ ...editFields, areasExpertise: updated });
+                        }}
+                        style={{
+                          background: '#fee2e2',
+                          border: 'none',
+                          borderRadius: '10px',
+                          width: '36px',
+                          height: '36px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ef4444',
+                          fontWeight: 700,
+                          fontSize: '18px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <div className={styles.cardCol}>
-                  <label className={styles.inputLabel}>Idiomas</label>
-                  <input
-                    type="text"
-                    className={styles.inputField}
-                    value={editLanguages}
-                    onChange={(e) => setEditLanguages(e.target.value)}
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditFields({
+                      ...editFields,
+                      areasExpertise: [...editFields.areasExpertise, { nombre: '', aniosExperiencia: 0 }],
+                    });
+                  }}
+                  style={{
+                    background: 'none',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    padding: '10px 20px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    color: '#64748b',
+                    marginTop: '12px',
+                    width: '100%',
+                  }}
+                >
+                  + Agregar Área de Expertise
+                </button>
               </div>
             </div>
           ) : (
             <div>
-              <span className={styles.cardLabel} style={{ display: 'block', marginBottom: '8px' }}>Biografía</span>
-              <p className={styles.cardText}>{bio}</p>
-              <div className={styles.cardGrid}>
-                <div className={styles.cardCol}>
-                  <span className={styles.cardLabel}>Áreas de Expertise</span>
-                  <span className={styles.cardVal}>{expertise}</span>
-                </div>
-                <div className={styles.cardCol}>
-                  <span className={styles.cardLabel}>Idiomas</span>
-                  <span className={styles.cardVal}>{languages}</span>
-                </div>
-              </div>
+              {p.bio && (
+                <>
+                  <span className={styles.cardLabel} style={{ display: 'block', marginBottom: '8px' }}>Biografía</span>
+                  <p className={styles.cardText}>{p.bio}</p>
+                </>
+              )}
             </div>
           )}
         </section>
 
-        {/* SPECIALIZATIONS */}
-        <section className={styles.infoCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardIcon}><TagIcon /></span>
-            <span>Especializaciones</span>
-          </div>
-          <p className={styles.specSubHeader}>Áreas en las que puedes realizar entrevistas</p>
-          <div className={styles.specializationList}>
-            {specializations.map((spec, idx) => (
-              <span key={idx} className={styles.specTag}>
-                {spec}
-              </span>
-            ))}
-          </div>
-        </section>
+        {p.areasExpertise.length > 0 && (
+          <section className={styles.infoCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}><BriefcaseIcon /></span>
+              <span>Áreas de Expertise</span>
+            </div>
+            <div className={styles.certList}>
+              {p.areasExpertise.map((area, idx) => (
+                <div key={idx} className={styles.certRow}>
+                  <div className={styles.certBadgeIcon}><BriefcaseIcon /></div>
+                  <div className={styles.certInfo}>
+                    <span className={styles.certTitle}>{area.nombre}</span>
+                    <span className={styles.certIssuer}>{area.aniosExperiencia} {area.aniosExperiencia === 1 ? 'año' : 'años'} de experiencia</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* CERTIFICATIONS */}
-        <section className={styles.infoCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardIcon}><AwardIcon /></span>
-            <span>Certificaciones</span>
-          </div>
-          <div className={styles.certList}>
-            {certifications.map((cert, idx) => (
-              <div key={idx} className={styles.certRow}>
-                <div className={styles.certBadgeIcon}>
-                  <AwardIcon />
+        {p.especialidades.length > 0 && (
+          <section className={styles.infoCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}><TagIcon /></span>
+              <span>Especializaciones</span>
+            </div>
+            <p className={styles.specSubHeader}>Áreas en las que puedes realizar entrevistas</p>
+            <div className={styles.specializationList}>
+              {p.especialidades.map((spec, idx) => (
+                <span key={idx} className={styles.specTag}>{spec}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {p.certificaciones.length > 0 && (
+          <section className={styles.infoCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}><AwardIcon /></span>
+              <span>Certificaciones</span>
+            </div>
+            <div className={styles.certList}>
+              {p.certificaciones.map((cert, idx) => (
+                <div key={idx} className={styles.certRow}>
+                  <div className={styles.certBadgeIcon}><AwardIcon /></div>
+                  <div className={styles.certInfo}>
+                    <span className={styles.certTitle}>{cert.titulo}</span>
+                    <span className={styles.certIssuer}>{cert.emisor}</span>
+                    <span className={styles.certYear}>{cert.anio}</span>
+                  </div>
                 </div>
-                <div className={styles.certInfo}>
-                  <span className={styles.certTitle}>{cert.title}</span>
-                  <span className={styles.certIssuer}>{cert.issuer}</span>
-                  <span className={styles.certYear}>{cert.year}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </section>
+        )}
+        {isEditing && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px', marginBottom: '16px' }}>
+            <button className={styles.btnCancel} onClick={() => setIsEditing(false)}>
+              Cancelar
+            </button>
+            <button className={styles.btnSave} onClick={handleSaveChanges} disabled={saving}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              {saving ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
           </div>
-        </section>
+        )}
       </main>
     </div>
   );
