@@ -53,11 +53,15 @@ jobs:
 
       - name: Deploy en EC2
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          FRONT_CHANGED: ${{ env.FRONT_CHANGED }}
+          BACK_CHANGED: ${{ env.BACK_CHANGED }}
         with:
           host: ${{ env.HOST }}
           username: ${{ env.USER }}
           key: ${{ env.KEY }}
           command_timeout: 20m
+          envs: FRONT_CHANGED,BACK_CHANGED
           script: |
 
             echo "================================="
