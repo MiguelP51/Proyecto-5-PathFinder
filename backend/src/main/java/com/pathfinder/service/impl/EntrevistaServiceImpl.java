@@ -197,6 +197,11 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             throw new IllegalStateException("Solo puedes cancelar o reagendar una entrevista que esté en estado 'Programada'");
         }
 
+        java.time.LocalDateTime fechaHoraCita = java.time.LocalDateTime.of(entrevista.getFecha(), java.time.LocalTime.parse(entrevista.getHora()));
+        if (java.time.LocalDateTime.now().isAfter(fechaHoraCita.minusHours(24))) {
+            throw new IllegalStateException("Solo puedes cancelar o reagendar la cita con un mínimo de 24 horas de anticipación.");
+        }
+
         String nuevoEstado = esReagendado ? "Reagendada" : "Cancelada";
         entrevista.setEstado(nuevoEstado);
         entrevista.setActivo(false);

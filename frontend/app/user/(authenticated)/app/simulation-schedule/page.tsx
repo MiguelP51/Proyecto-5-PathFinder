@@ -23,6 +23,10 @@ interface Mentor {
   nombreCompleto: string;
   correo: string;
   avatarUrl: string;
+  linkedinUrl?: string | null;
+  perfilProfesional?: string | null;
+  celular?: string | null;
+  correoContacto?: string | null;
 }
 
 interface HolidayDTO {
@@ -69,12 +73,13 @@ export default function SimulationSchedulePage() {
   const formatSpanishDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr + "T00:00:00");
-      return date.toLocaleDateString("es-ES", {
+      const formatted = date.toLocaleDateString("es-ES", {
         weekday: "long",
         day: "numeric",
         month: "long",
         year: "numeric"
       });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
     } catch {
       return dateStr;
     }
@@ -377,6 +382,35 @@ export default function SimulationSchedulePage() {
                     </button>
                   ))}
                 </div>
+                {selectedMentor && (selectedMentor.perfilProfesional || selectedMentor.linkedinUrl || selectedMentor.correoContacto || selectedMentor.celular) && (
+                  <div className="mt-6 p-4 rounded-xl bg-purple-50/30 border border-purple-100/50 space-y-3 animate-fade-in">
+                    <h4 className="text-xs font-bold text-[#7447D7] uppercase tracking-wider">Acerca del PathMentor</h4>
+                    {selectedMentor.perfilProfesional && (
+                      <p className="text-xs text-slate-600 leading-relaxed italic">
+                        "{selectedMentor.perfilProfesional}"
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 pt-2 border-t border-purple-100/30">
+                      {selectedMentor.linkedinUrl && (
+                        <a 
+                          href={selectedMentor.linkedinUrl.startsWith("http") ? selectedMentor.linkedinUrl : `https://${selectedMentor.linkedinUrl}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex items-center gap-1 text-[#0077B5] hover:underline font-semibold"
+                        >
+                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                          LinkedIn
+                        </a>
+                      )}
+                      {selectedMentor.correoContacto && (
+                        <span>📧 {selectedMentor.correoContacto}</span>
+                      )}
+                      {selectedMentor.celular && (
+                        <span>📞 {selectedMentor.celular}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. Seleccionar Rango de Fechas */}

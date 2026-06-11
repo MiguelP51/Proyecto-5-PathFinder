@@ -162,12 +162,13 @@ export default function SimulationDetailsPage() {
       const parts = fechaStr.split("-");
       if (parts.length === 3) {
         const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        return date.toLocaleDateString("es-ES", {
+        const formatted = date.toLocaleDateString("es-ES", {
           weekday: "long",
           year: "numeric",
           month: "long",
           day: "numeric",
         });
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
       }
       return fechaStr;
     } catch {
@@ -185,6 +186,20 @@ export default function SimulationDetailsPage() {
       </div>
     );
   }
+
+  const isLessThan24Hours = (fechaStr: string, horaStr: string) => {
+    try {
+      const [year, month, day] = fechaStr.split("-").map(Number);
+      const [hours, minutes] = horaStr.split(":").map(Number);
+      const appointmentTime = new Date(year, month - 1, day, hours, minutes);
+      const now = new Date();
+      return (appointmentTime.getTime() - now.getTime()) < 24 * 60 * 60 * 1000;
+    } catch {
+      return false;
+    }
+  };
+
+  const disableActions = entrevista ? isLessThan24Hours(entrevista.fecha, entrevista.hora) : false;
 
   // Parse feedback if it is JSON
   let parsedFeedback = {
@@ -293,51 +308,60 @@ export default function SimulationDetailsPage() {
               </div>
 
               {entrevista.estado === "Programada" && (
-                <div className="flex flex-wrap gap-2 items-center">
-                  {entrevista.tipo === "virtual" && entrevista.virtualLink ? (
-                    <a
-                      href={entrevista.virtualLink.startsWith("http") ? entrevista.virtualLink : `https://${entrevista.virtualLink}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-6 text-sm font-bold text-white transition hover:opacity-95 shadow-md shadow-purple-200/30 cursor-pointer"
-                    >
-                      <Video className="h-4 w-4" />
-                      Unirse a la Reunión
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : (
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {entrevista.tipo === "virtual" && entrevista.virtualLink ? (
+                      <a
+                        href={entrevista.virtualLink.startsWith("http") ? entrevista.virtualLink : `https://${entrevista.virtualLink}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-6 text-sm font-bold text-white transition hover:opacity-95 shadow-md shadow-purple-200/30 cursor-pointer"
+                      >
+                        <Video className="h-4 w-4" />
+                        Unirse a la Reunión
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-6 text-sm font-bold text-slate-400 cursor-not-allowed"
+                      >
+                        <Video className="h-4 w-4" />
+                        Enlace Pendiente
+                      </button>
+                    )}
+
                     <button
-                      disabled
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-6 text-sm font-bold text-slate-400 cursor-not-allowed"
+                      onClick={() => {
+                        setIsRescheduleAction(true);
+                        setMotiveText("");
+                        setShowMotiveModal(true);
+                      }}
+                      disabled={canceling || disableActions}
+                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#7447D7] text-[#7447D7] hover:bg-purple-50 px-6 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                        !disableActions ? "animate-pulse" : ""
+                      }`}
                     >
-                      <Video className="h-4 w-4" />
-                      Enlace Pendiente
+                      Reagendar Cita
                     </button>
+
+                    <button
+                      onClick={() => {
+                        setIsRescheduleAction(false);
+                        setMotiveText("");
+                        setShowMotiveModal(true);
+                      }}
+                      disabled={canceling || disableActions}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 px-6 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Cancelar Cita
+                    </button>
+                  </div>
+                  {disableActions && (
+                    <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mt-1">
+                      ⚠️ Ya no puedes reagendar ni cancelar la cita (límite de 24 horas antes del evento).
+                    </p>
                   )}
-
-                  <button
-                    onClick={() => {
-                      setIsRescheduleAction(true);
-                      setMotiveText("");
-                      setShowMotiveModal(true);
-                    }}
-                    disabled={canceling}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#7447D7] text-[#7447D7] hover:bg-purple-50 px-6 text-sm font-bold transition disabled:opacity-50 cursor-pointer animate-pulse"
-                  >
-                    Reagendar Cita
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsRescheduleAction(false);
-                      setMotiveText("");
-                      setShowMotiveModal(true);
-                    }}
-                    disabled={canceling}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 px-6 text-sm font-bold transition disabled:opacity-50 cursor-pointer"
-                  >
-                    Cancelar Cita
-                  </button>
                 </div>
               )}
             </section>
