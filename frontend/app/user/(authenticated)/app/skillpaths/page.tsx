@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, BookOpen, GraduationCap, Sparkles } from "lucide-react";
 
-import { getSkillPaths } from "@/lib/skillpath/service";
+import { getStartedSkillPaths } from "@/lib/skillpath/service";
 import { SkillPathListClient } from "@/components/skillpath/SkillPathListClient";
 
 import { getServerSession } from "next-auth";
@@ -21,20 +21,17 @@ export default async function SkillPathsPage({
     const session = await getServerSession(authOptions);
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
 
-    const skillPaths = await getSkillPaths(
-        {
-            subareaId,
-        },
-        backendJwt,
-    );
+    const skillPaths = await getStartedSkillPaths(backendJwt);
 
     const isSubareaView = Boolean(subareaId);
     const currentSubareaName = skillPaths[0]?.subareaName;
 
-    const totalXp = skillPaths.reduce(
-        (total, skillPath) => total + skillPath.xp,
-        0,
-    );
+    const earnedXp = skillPaths
+        .filter(
+            (skillPath) =>
+                skillPath.status === "VALIDADO" || skillPath.status === "COMPLETADO",
+        )
+        .reduce((sum, skillPath) => sum + skillPath.xp, 0);
 
     const completedCount = skillPaths.filter(
         (skillPath) =>
@@ -101,8 +98,8 @@ export default async function SkillPathsPage({
 
                             <div className="rounded-xl bg-white/15 p-4">
                                 <GraduationCap className="mb-2 h-5 w-5" />
-                                <p className="text-2xl font-bold">{totalXp}</p>
-                                <p className="text-xs text-white/80">XP disponibles</p>
+                                <p className="text-2xl font-bold">{earnedXp}</p>
+                                <p className="text-xs text-white/80">XP obtenidos</p>
                             </div>
                         </div>
                     </div>

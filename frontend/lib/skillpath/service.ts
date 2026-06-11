@@ -75,6 +75,15 @@ export async function getSkillPaths(
     return skillPathFetch<SkillPath[]>(path, token);
 }
 
+export async function getStartedSkillPaths(
+    token?: string | null,
+): Promise<SkillPath[]> {
+    return skillPathFetch<SkillPath[]>(
+        "/api/skillpaths/estudiante/iniciados",
+        token,
+    );
+}
+
 export async function getSkillPathById(
     skillPathId: string,
     token?: string | null,

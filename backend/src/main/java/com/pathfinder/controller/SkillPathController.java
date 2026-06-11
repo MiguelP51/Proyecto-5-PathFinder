@@ -111,6 +111,29 @@ public class SkillPathController {
         }
     }
 
+    @GetMapping("/estudiante/iniciados")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<List<SkillPathEstudianteResponseDTO>>> listarSkillPathsIniciadosEstudiante(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            List<SkillPathEstudianteResponseDTO> skillPaths =
+                    skillPathService.listarSkillPathsIniciadosEstudiante(
+                            userDetails.getUsername()
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            "SkillPaths iniciados del estudiante obtenidos",
+                            skillPaths
+                    )
+            );
+        } catch (Exception e) {
+            log.error("Error listando SkillPaths iniciados: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al obtener SkillPaths iniciados"));
+        }
+    }
 
     // GET /api/skillpaths/estudiante/{idSkillPath}
 // Endpoint usado por la pantalla de detalle del nuevo frontend.

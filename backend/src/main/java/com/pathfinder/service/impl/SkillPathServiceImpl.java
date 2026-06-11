@@ -367,6 +367,32 @@ public class SkillPathServiceImpl implements SkillPathService {
         }
     }
 
+    @Override
+    public List<SkillPathEstudianteResponseDTO> listarSkillPathsIniciadosEstudiante(
+            String correo
+    ) {
+        List<UsuarioSkillPath> avances =
+                usuarioSkillPathRepository.findSkillPathsIniciadosByUsuarioCorreo(
+                        correo
+                );
+
+        return avances.stream()
+                .map(avance -> {
+                    EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
+                            .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                                    avance.getIdUsuarioSkillPath()
+                            )
+                            .orElse(null);
+
+                    return mapToSkillPathEstudianteResponse(
+                            avance.getSkillPath(),
+                            avance,
+                            evidencia
+                    );
+                })
+                .toList();
+    }
+
     private String valorPorDefecto(String valor, String defecto) {
         return StringUtils.hasText(valor) ? valor : defecto;
     }

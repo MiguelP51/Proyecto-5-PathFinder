@@ -32,4 +32,8 @@ public interface SkillPathService {
             String correo,
             Integer idSkillPath
     );
+
+    List<SkillPathEstudianteResponseDTO> listarSkillPathsIniciadosEstudiante(
+            String correo
+    );
 }
