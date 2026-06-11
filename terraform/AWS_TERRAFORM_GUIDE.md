@@ -94,11 +94,11 @@ terraform -v
    ```bash
    cd terraform
    ```
-2. Copia el archivo de ejemplo para crear tu archivo de configuración real:
+2. Copia el archivo de ejemplo dentro de la carpeta privada `private/` (que está ignorada en Git) para evitar subir contraseñas sensibles a GitHub:
    ```bash
-   cp terraform.tfvars.example terraform.tfvars
+   cp terraform.tfvars.example private/terraform.tfvars
    ```
-3. Edita `terraform.tfvars` con tus credenciales y preferencias:
+3. Edita `private/terraform.tfvars` con tus credenciales y preferencias:
    - Ingresa el nombre de tu par de claves SSH (`ec2_key_name`) que ya tengas en AWS (necesaria para conectarte por SSH a la VM).
    - Elige una contraseña segura para la base de datos RDS (`db_password`).
    - Define el nombre único de tu bucket de S3 (`s3_bucket_name`).
@@ -107,6 +107,7 @@ terraform -v
 ---
 
 ### Paso B: Ejecutar Terraform
+Como el archivo `terraform.tfvars` ahora se encuentra resguardado dentro de la carpeta privada `private/`, debes indicarle a Terraform que lo lea utilizando el parámetro `-var-file`:
 
 1. **Inicializar el proyecto** (descarga los proveedores necesarios):
    ```bash
@@ -118,14 +119,14 @@ terraform -v
    terraform validate
    ```
 
-3. **Ver el plan de ejecución** (muestra los recursos que se van a crear sin realizar cambios reales):
+3. **Ver el plan de ejecución** (muestra los recursos a crear leyendo las variables de la carpeta privada):
    ```bash
-   terraform plan
+   terraform plan -var-file="private/terraform.tfvars"
    ```
 
 4. **Aplicar los cambios** (crea la infraestructura en AWS, te solicitará escribir `yes` para confirmar):
    ```bash
-   terraform apply
+   terraform apply -var-file="private/terraform.tfvars"
    ```
 
 *Nota: La creación de la base de datos RDS PostgreSQL puede tardar entre 5 y 10 minutos. Una vez completado, verás las salidas (Outputs) en la consola con la IP de tu EC2 y el Endpoint de tu RDS.*
@@ -139,6 +140,31 @@ El output de Terraform te dará el comando de conexión exacto:
 ```bash
 ssh -i "~/.ssh/tu-clave-ssh-aws.pem" ubuntu@IP_PUBLICA_EC2
 ```
+
+### Inicialización Automatizada del Servidor (Recomendado)
+Para agilizar la instalación de Docker, Docker-Compose, Certbot, la configuración de memoria Swap y la clonación del repositorio de la rama `develop`, se ha creado un script automatizado en la carpeta privada `terraform/private/setup_vm.ps1`.
+
+> [!IMPORTANT]
+> **Nota de Seguridad:** La carpeta `terraform/private/` está añadida al `.gitignore` del proyecto para evitar subir archivos sensibles (como tu llave privada `.pem` y scripts con lógica de conexión) a GitHub.
+
+#### Pasos para ejecutar la inicialización:
+1. Coloca tu llave privada de producción `PathFinder_prod.pem` dentro de la carpeta `terraform/private/`.
+2. Para evitar que Windows bloquee la conexión SSH debido a permisos muy abiertos de la llave `.pem`, ejecuta estos dos comandos en tu terminal de PowerShell dentro de `terraform/private/`:
+   ```powershell
+   icacls .\PathFinder_prod.pem /inheritance:r
+   icacls .\PathFinder_prod.pem /grant:r "$($env:USERNAME):R"
+   ```
+3. Abre una terminal de **PowerShell** en tu máquina y navega a la carpeta:
+   ```powershell
+   cd terraform/private
+   ```
+4. Ejecuta el script con:
+   ```powershell
+   PowerShell -ExecutionPolicy Bypass -File .\setup_vm.ps1
+   ```
+5. El script se conectará al servidor por SSH, instalará Docker, Docker Compose, Certbot, habilitará un Swap de 2GB y luego generará una **llave SSH pública** dentro de la VM.
+6. Copia la llave pública que saldrá en la terminal en color verde y regístrala en tus configuraciones de GitHub (`https://github.com/settings/ssh/new`) para dar acceso al repositorio.
+7. Presiona **Enter** en la terminal y el script completará el proceso clonando automáticamente el repositorio de la rama `develop` en la VM.
 
 ### Configuración del `.env` en la VM
 En la nueva máquina virtual creada, los contenedores correrán mediante `docker-compose`. Debes crear un archivo `/home/ubuntu/Proyecto-5-PathFinder/.env` con la siguiente estructura adaptada a producción:
@@ -184,6 +210,9 @@ AWS_BUCKET_NAME=pathfinder-storage-prod  # Tu bucket de producción
 1. Configura tus DNS (ej. apuntando `www.pathfinder.com` y `pathfinder.com` a la IP elástica pública provista por el output de Terraform).
 2. Conéctate a la VM y una vez que los dominios propaguen, genera tu certificado SSL de Let's Encrypt ejecutando:
    ```bash
-   sudo certbot certonly --webroot -w /home/ubuntu/Proyecto-5-PathFinder/certbot/www -d pathfinder.com -d www.pathfinder.com
+   sudo certbot certonly --webroot \
+-w /home/ubuntu/Proyecto-5-PathFinder/certbot/www \
+-d pathfinder.2bd.net \
+-d www.pathfinder.2bd.net
    ```
 3. Nginx estará listo para servir a través de HTTPS automáticamente usando el archivo `nginx.conf` que proveerá el GitHub Action de despliegue.

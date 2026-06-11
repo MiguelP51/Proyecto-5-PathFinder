@@ -68,27 +68,27 @@ jobs:
             git reset --hard origin/main
 
             echo "Deteniendo contenedores..."
-            docker-compose down
+            docker-compose -f docker-compose.prod.yml down
 
             echo "Limpiando Docker..."
             docker system prune -af
 
             if [ "${FRONT_CHANGED}" = "true" ]; then
               echo "Rebuild frontend..."
-              docker-compose build frontend
+              docker-compose -f docker-compose.prod.yml build frontend
             else
               echo "Frontend sin cambios"
             fi
 
             if [ "${BACK_CHANGED}" = "true" ]; then
               echo "Rebuild backend..."
-              docker-compose build backend
+              docker-compose -f docker-compose.prod.yml build backend
             else
               echo "Backend sin cambios"
             fi
 
             echo "Levantando servicios..."
-            docker-compose up -d
+            docker-compose -f docker-compose.prod.yml up -d
 
             echo "Contenedores activos:"
             docker ps

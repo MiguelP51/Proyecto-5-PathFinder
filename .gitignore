@@ -35,3 +35,15 @@ certbot/
 # ======================
 scripts/
 db_schema/
+
+# Carpetas privadas/sensibles de despliegue
+terraform/private/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.tfvars
+terraform/temp_env
+terraform/temp_nginx.conf
+terraform/temp_setup.sh
