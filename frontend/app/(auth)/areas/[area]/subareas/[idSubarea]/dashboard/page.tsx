@@ -86,7 +86,11 @@ export default function DashboardSubareaPage({
 
   // función para ir al dashboard individual de cada SkillPath
   const goToSkillPathDashboard = (skillPathId: string) => {
-    router.push(`/user/app/skillpaths/${skillPathId}`);
+    const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
+
+    router.push(
+        `/user/app/skillpaths/${skillPathId}?returnTo=${encodeURIComponent(returnTo)}`,
+    );
   };
 
   const [area, setArea] = useState("");

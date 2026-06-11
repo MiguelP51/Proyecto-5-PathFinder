@@ -30,12 +30,28 @@ interface SkillPathDetailPageProps {
     params: Promise<{
         skillPathId: string;
     }>;
+
+    // CAMBIO: ahora recibimos searchParams para leer ?returnTo=...
+    searchParams?: Promise<{
+        returnTo?: string;
+    }>;
 }
 
 export default async function SkillPathDetailPage({
                                                       params,
+                                                      searchParams, // CAMBIO
                                                   }: SkillPathDetailPageProps) {
     const { skillPathId } = await params;
+
+    // CAMBIO: definimos a dónde debe regresar el botón superior.
+    // Si viene desde el dashboard de subárea, usa returnTo.
+    // Si no viene returnTo, vuelve al dashboard general de SkillPaths.
+    const resolvedSearchParams = searchParams ? await searchParams : {};
+    const returnTo = resolvedSearchParams.returnTo ?? "/user/app/skillpaths";
+
+    const returnLabel = returnTo.startsWith("/areas/")
+        ? "Volver a la subárea"
+        : "Volver a SkillPaths";
 
     const session = await getServerSession(authOptions);
     const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
@@ -53,11 +69,13 @@ export default async function SkillPathDetailPage({
             <section className="mx-auto max-w-6xl px-6 py-8 lg:px-8">
                 <div className="mb-6">
                     <Link
-                        href={`/user/app/skillpaths?subareaId=${skillPath.subareaId}`}
+                        // CAMBIO: antes iba a /user/app/skillpaths?subareaId=...
+                        // Ahora usa returnTo para volver al lugar correcto.
+                        href={returnTo}
                         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-[#7447D7]"
                     >
                         <ArrowLeft className="h-4 w-4" />
-                        Volver a SkillPaths
+                        {returnLabel}
                     </Link>
                 </div>
 
@@ -82,25 +100,25 @@ export default async function SkillPathDetailPage({
                                 </p>
 
                                 <div className="mt-5 flex flex-wrap gap-2">
-                  <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${getSkillPathDifficultyClasses(
-                          skillPath.difficulty,
-                      )}`}
-                  >
-                    {getSkillPathDifficultyLabel(skillPath.difficulty)}
-                  </span>
+                                    <span
+                                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${getSkillPathDifficultyClasses(
+                                            skillPath.difficulty,
+                                        )}`}
+                                    >
+                                        {getSkillPathDifficultyLabel(skillPath.difficulty)}
+                                    </span>
 
                                     <span
                                         className={`rounded-full border px-3 py-1 text-xs font-semibold ${getSkillPathStatusClasses(
                                             skillPath.status,
                                         )}`}
                                     >
-                    {getSkillPathStatusLabel(skillPath.status)}
-                  </span>
+                                        {getSkillPathStatusLabel(skillPath.status)}
+                                    </span>
 
                                     <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {skillPath.subareaName}
-                  </span>
+                                        {skillPath.subareaName}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -203,8 +221,8 @@ export default async function SkillPathDetailPage({
                                     key={skill.id}
                                     className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
                                 >
-                  {skill.name}
-                </span>
+                                    {skill.name}
+                                </span>
                             ))}
                         </div>
                     </section>
