@@ -65,5 +65,5 @@ export async function apiFetch<T = unknown>(
 
   const json = await res.json();
   // El backend envuelve todo en { success, message, data }
-  return json.data ?? json;
+  return json.data !== undefined ? json.data : json;
 }
