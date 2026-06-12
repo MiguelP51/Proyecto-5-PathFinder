@@ -16,6 +16,7 @@ import {
   FileText,
   LogOut,
   X,
+  MessageSquare,
 } from "lucide-react";
 
 interface Props {
@@ -146,6 +147,10 @@ export default function AdminSidebar({
               <Link href="/admin/pathchallenges" className={linkClass("/admin/pathchallenges")}>
                 <Target className="h-5 w-5" />
                 PathChallenges
+              </Link>
+              <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
+                <MessageSquare className="h-5 w-5" />
+                Encuestas de Satisfacción
               </Link>
             </div>
           </div>
