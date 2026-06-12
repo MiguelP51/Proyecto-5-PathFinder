@@ -31,6 +31,16 @@ interface SkillPathDTO {
   isRecommended: boolean;
 }
 
+interface DiagnosticoEstadoDTO {
+  idDiagnostico?: number | null;
+  estado?: string | null;
+  puntaje?: number | null;
+  totalPreguntas?: number | null;
+  respuestasCorrectas?: number | null;
+  nivelRecomendado?: string | null;
+  completado?: boolean | null;
+}
+
 // PathChallenges mockeados por ahora (HU-29)
 const MOCK_CHALLENGES = [
   {
@@ -93,11 +103,52 @@ export default function DashboardSubareaPage({
     );
   };
 
+  const handleSkillPathAction = async (sp: SkillPathDTO) => {
+    const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
+
+    if (sp.status !== "DISPONIBLE") {
+      router.push(
+          `/user/app/skillpaths/${sp.id}?returnTo=${encodeURIComponent(returnTo)}`,
+      );
+      return;
+    }
+
+    if (!session?.backendJwt) {
+      alert("No se encontró la sesión del usuario. Vuelve a iniciar sesión.");
+      return;
+    }
+
+    try {
+      setStartingSkillPathId(sp.id);
+
+      const updatedSkillPath = await apiFetch<SkillPathDTO>(
+          `/api/skillpaths/estudiante/${sp.id}/iniciar`,
+          { method: "POST" },
+          session.backendJwt,
+      );
+
+      setSkillPaths((prev) =>
+          prev.map((item) => (item.id === sp.id ? updatedSkillPath : item)),
+      );
+
+      router.push(
+          `/user/app/skillpaths/${sp.id}?returnTo=${encodeURIComponent(returnTo)}`,
+      );
+    } catch (error) {
+      console.error("Error iniciando SkillPath:", error);
+      alert("No se pudo iniciar el SkillPath. Intenta nuevamente.");
+    } finally {
+      setStartingSkillPathId(null);
+    }
+  };
+
   const [area, setArea] = useState("");
   const [idSubarea, setIdSubarea] = useState("");
   const [subarea, setSubarea] = useState<SubAreaDTO | null>(null);
   const [skillPaths, setSkillPaths] = useState<SkillPathDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startingSkillPathId, setStartingSkillPathId] = useState<string | null>(null);
+  const [ultimoDiagnostico, setUltimoDiagnostico] = useState<DiagnosticoEstadoDTO | null>(null);
 
   useEffect(() => {
     params.then(({ area, idSubarea }) => {
@@ -110,23 +161,34 @@ export default function DashboardSubareaPage({
     if (!idSubarea || !session?.backendJwt) return;
 
     Promise.all([
-      apiFetch<SubAreaDTO>(`/api/exploracion/subareas/${idSubarea}`, {}, session.backendJwt),
+      apiFetch<SubAreaDTO>(
+          `/api/exploracion/subareas/${idSubarea}`,
+          {},
+          session.backendJwt
+      ),
+      apiFetch<DiagnosticoEstadoDTO>(
+          `/api/diagnostico/subarea/${idSubarea}/ultimo`,
+          {},
+          session.backendJwt
+      ).catch(() => null),
     ])
-      .then(([subareaData]) => {
-        setSubarea(subareaData);
-        // Cargar SkillPaths usando el slug de la subárea
-        if (subareaData.slug) {
-          return apiFetch<SkillPathDTO[]>(
-            `/api/skillpaths/estudiante?subareaId=${subareaData.slug}`,
-            {},
-            session.backendJwt
-          );
-        }
-        return [];
-      })
-      .then((spData) => setSkillPaths(spData as SkillPathDTO[]))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+        .then(([subareaData, diagnosticoData]) => {
+          setSubarea(subareaData);
+          setUltimoDiagnostico(diagnosticoData);
+
+          if (subareaData.slug) {
+            return apiFetch<SkillPathDTO[]>(
+                `/api/skillpaths/estudiante?subareaId=${subareaData.slug}`,
+                {},
+                session.backendJwt
+            );
+          }
+
+          return [];
+        })
+        .then((spData) => setSkillPaths(spData as SkillPathDTO[]))
+        .catch(console.error)
+        .finally(() => setLoading(false));
   }, [idSubarea, session]);
 
   if (loading) return (
@@ -150,6 +212,11 @@ export default function DashboardSubareaPage({
   const progresoGeneral = skillPaths.length > 0
     ? Math.round(skillPaths.reduce((acc, sp) => acc + sp.progressPercentage, 0) / skillPaths.length)
     : 0;
+  const puntajeDiagnostico = ultimoDiagnostico?.puntaje ?? 0;
+  const respuestasCorrectas = ultimoDiagnostico?.respuestasCorrectas ?? 0;
+  const totalPreguntas = ultimoDiagnostico?.totalPreguntas ?? 0;
+  const nivelRecomendado = ultimoDiagnostico?.nivelRecomendado ?? "Sin nivel";
+  const tieneDiagnosticoCompletado = Boolean(ultimoDiagnostico?.completado);
 
   return (
     <div className="min-h-screen bg-[#f9f9fb]">
@@ -252,11 +319,21 @@ export default function DashboardSubareaPage({
                       <div className="ml-11 mt-4">
                         <button
                             type="button"
-                            onClick={() => goToSkillPathDashboard(sp.id)}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df]"
+                            onClick={() => handleSkillPathAction(sp)}
+                            disabled={startingSkillPathId === sp.id}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {sp.status === "DISPONIBLE" ? "Iniciar SkillPath" : "Continuar SkillPath"}
-                          <ArrowRight className="h-4 w-4" />
+                          {startingSkillPathId === sp.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Iniciando...
+                              </>
+                          ) : (
+                              <>
+                                {sp.status === "DISPONIBLE" ? "Iniciar SkillPath" : "Continuar SkillPath"}
+                                <ArrowRight className="h-4 w-4" />
+                              </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -305,19 +382,63 @@ export default function DashboardSubareaPage({
               <p className="text-sm text-slate-400 text-center py-4">Sin habilidades registradas aún</p>
             </div>
 
-            {/* Actualiza diagnóstico */}
+            {/* Último diagnóstico */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-center">
               <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
                 <Target className="h-5 w-5 text-blue-500" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-1 text-sm">Actualiza tu diagnóstico</h3>
-              <p className="text-xs text-slate-400 mb-4">Realiza el diagnóstico nuevamente para ver tu progreso</p>
-              <button
-                onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`)}
-                className="w-full rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:border-[#6f63ff] hover:text-[#6f63ff] transition"
-              >
-                Realizar diagnóstico
-              </button>
+
+              <h3 className="font-bold text-slate-900 mb-1 text-sm">
+                Último diagnóstico
+              </h3>
+
+              {tieneDiagnosticoCompletado ? (
+                  <>
+                    <p className="text-xs text-slate-400 mb-3">
+                      Resultado obtenido en esta subárea
+                    </p>
+
+                    <p className="text-4xl font-black text-[#6f63ff] mb-3">
+                      {puntajeDiagnostico}%
+                    </p>
+
+                    <div className="rounded-xl bg-slate-50 p-3 text-left mb-4">
+                      <div className="flex justify-between gap-3 text-xs">
+                        <span className="text-slate-500">Correctas:</span>
+                        <span className="font-bold text-slate-900">
+            {respuestasCorrectas}/{totalPreguntas}
+          </span>
+                      </div>
+
+                      <div className="mt-2 flex justify-between gap-3 text-xs">
+                        <span className="text-slate-500">Nivel:</span>
+                        <span className="font-bold text-[#6f63ff]">
+            {nivelRecomendado}
+          </span>
+                      </div>
+                    </div>
+
+                    <button
+                        onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`)}
+                        className="w-full rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:border-[#6f63ff] hover:text-[#6f63ff] transition"
+                    >
+                      Actualizar diagnóstico
+                    </button>
+                  </>
+              ) : (
+                  <>
+                    <p className="text-xs text-slate-400 mb-4">
+                      Aún no has completado el diagnóstico de esta subárea.
+                    </p>
+
+                    <button
+                        onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`)}
+                        className="w-full rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:border-[#6f63ff] hover:text-[#6f63ff] transition"
+                    >
+                      Realizar diagnóstico
+                    </button>
+                  </>
+              )}
             </div>
 
             {/* Progreso General */}

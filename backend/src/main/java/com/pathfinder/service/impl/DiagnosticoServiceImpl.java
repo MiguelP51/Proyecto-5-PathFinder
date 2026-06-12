@@ -11,6 +11,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.pathfinder.dto.response.DiagnosticoEstadoDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -163,5 +164,26 @@ public class DiagnosticoServiceImpl implements DiagnosticoService {
             .nivelRecomendado(diagnostico.getNivelRecomendado())
             .estado(diagnostico.getEstado())
             .build();
+    }
+
+    @Override
+    public DiagnosticoEstadoDTO obtenerUltimoDiagnosticoSubarea(Integer idSubarea, Integer idUsuario) {
+        return diagnosticoRepo
+                .findTopByUsuario_IdUsuarioAndSubArea_IdSubareaOrderByFechaInicioDesc(idUsuario, idSubarea)
+                .map(diagnostico -> DiagnosticoEstadoDTO.builder()
+                        .idDiagnostico(diagnostico.getIdDiagnostico())
+                        .estado(diagnostico.getEstado())
+                        .puntaje(diagnostico.getPuntaje())
+                        .totalPreguntas(diagnostico.getTotalPreguntas())
+                        .respuestasCorrectas(diagnostico.getRespuestasCorrectas())
+                        .nivelRecomendado(diagnostico.getNivelRecomendado())
+                        .completado("COMPLETADO".equalsIgnoreCase(diagnostico.getEstado()))
+                        .build()
+                )
+                .orElse(
+                        DiagnosticoEstadoDTO.builder()
+                                .completado(false)
+                                .build()
+                );
     }
 }
