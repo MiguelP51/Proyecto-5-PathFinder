@@ -180,10 +180,7 @@ export default function UsuariosPage() {
             Consulte la lista completa de personas inscritas a través de Google y asigne los accesos de administradores y Path Mentors del sistema.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-sm text-xs font-bold text-slate-500">
-          <Calendar className="h-4 w-4 text-[#0E3E66]" />
-          <span>Seguridad activa</span>
-        </div>
+
       </section>
 
       {/* Alertas de Notificación de Éxito */}
@@ -279,11 +276,10 @@ export default function UsuariosPage() {
             <button
               key={tab.id}
               onClick={() => setRoleFilter(tab.id)}
-              className={`h-9 px-4 text-xs font-bold rounded-xl transition cursor-pointer ${
-                roleFilter === tab.id
+              className={`h-9 px-4 text-xs font-bold rounded-xl transition cursor-pointer ${roleFilter === tab.id
                   ? "bg-white text-[#0E3E66] shadow-sm"
                   : "text-slate-500 hover:text-[#0E3E66]"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -335,30 +331,28 @@ export default function UsuariosPage() {
                     <td className="px-6 py-4 text-slate-500 text-xs">
                       {usuario.fechaRegistro
                         ? new Date(usuario.fechaRegistro).toLocaleDateString("es-ES", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
                         : "No registrada"}
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold border ${
-                          usuario.rol === "ADMIN"
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold border ${usuario.rol === "ADMIN"
                             ? "bg-rose-50 text-rose-700 border-rose-200"
                             : usuario.rol === "MENTOR"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : "bg-purple-50 text-purple-700 border-purple-200"
-                        }`}
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-purple-50 text-purple-700 border-purple-200"
+                          }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            usuario.rol === "ADMIN"
+                          className={`h-1.5 w-1.5 rounded-full ${usuario.rol === "ADMIN"
                               ? "bg-rose-500"
                               : usuario.rol === "MENTOR"
-                              ? "bg-blue-500"
-                              : "bg-purple-500"
-                          }`}
+                                ? "bg-blue-500"
+                                : "bg-purple-500"
+                            }`}
                         />
                         {getRoleDisplayName(usuario.rol)}
                       </span>
@@ -489,4 +483,4 @@ export default function UsuariosPage() {
       )}
     </div>
   );
-}
+}
