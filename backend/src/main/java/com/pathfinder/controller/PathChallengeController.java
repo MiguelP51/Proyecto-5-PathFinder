@@ -3,6 +3,7 @@ package com.pathfinder.controller;
 import com.pathfinder.dto.admin.pathchallenge.PathChallengeRequestDTO;
 import com.pathfinder.dto.admin.pathchallenge.PathChallengeResponseDTO;
 import com.pathfinder.service.PathChallengeService;
+import com.pathfinder.audit.annotation.Audit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,16 +29,19 @@ public class PathChallengeController {
     }
 
     @PostMapping
+    @Audit(modulo = "CHALLENGES", accion = "CREACION_CHALLENGE")
     public ResponseEntity<PathChallengeResponseDTO> createPathChallenge(@RequestBody PathChallengeRequestDTO request) {
         return new ResponseEntity<>(pathChallengeService.createPathChallenge(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @Audit(modulo = "CHALLENGES", accion = "EDICION_CHALLENGE")
     public ResponseEntity<PathChallengeResponseDTO> updatePathChallenge(@PathVariable Integer id, @RequestBody PathChallengeRequestDTO request) {
         return ResponseEntity.ok(pathChallengeService.updatePathChallenge(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @Audit(modulo = "CHALLENGES", accion = "ELIMINACION_CHALLENGE")
     public ResponseEntity<Void> deletePathChallenge(@PathVariable Integer id) {
         pathChallengeService.deletePathChallenge(id);
         return ResponseEntity.noContent().build();

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api";
 import {
   FileText,
   Users,
@@ -14,59 +17,120 @@ import {
 } from "lucide-react";
 
 export default function AuditLogsPage() {
-  // Datos hardcodeados basados en el PDF
-  const logs = [
-    {
-      id: 1,
-      fechaHora: "2026-06-01 14:23:45",
-      usuario: "admin@pathfinder.com",
-      accion: "UPDATE",
-      recurso: "User",
-      detalles: "Cambió rol de usuario ID 1247 de Student a PathMentor",
-      estado: "Éxito",
-      ip: "192.168.1.100"
-    },
-    {
-      id: 2,
-      fechaHora: "2026-06-01 13:15:22",
-      usuario: "admin@pathfinder.com",
-      accion: "CREATE",
-      recurso: "PsychometricQuestion",
-      detalles: "Creó nueva pregunta DISC: \"¿Cómo prefieres trabajar?\"",
-      estado: "Éxito",
-      ip: "192.168.1.100"
-    },
-    {
-      id: 3,
-      fechaHora: "2026-06-01 12:47:10",
-      usuario: "moderator@pathfinder.com",
-      accion: "APPROVE",
-      recurso: "CommunityMission",
-      detalles: "Aprobó misión \"Crear landing page con React\"",
-      estado: "Éxito",
-      ip: "192.168.1.105"
-    },
-    {
-      id: 4,
-      fechaHora: "2026-06-01 11:32:18",
-      usuario: "admin@pathfinder.com",
-      accion: "DELETE",
-      recurso: "SkillPath",
-      detalles: "Intentó eliminar SkillPath ID 45",
-      estado: "Error",
-      ip: "192.168.1.100"
-    },
-    {
-      id: 5,
-      fechaHora: "2026-06-01 10:05:33",
-      usuario: "admin@pathfinder.com",
-      accion: "UPDATE",
-      recurso: "Area",
-      detalles: "Actualizó descripción del área \"Tecnología\"",
-      estado: "Éxito",
-      ip: "192.168.1.100"
+  const { data: session, status } = useSession();
+
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAction, setSelectedAction] = useState("Todas");
+  const [selectedUser, setSelectedUser] = useState("Todos");
+
+  const cargarLogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiFetch<any[]>("/api/admin/audit-logs", {}, session?.backendJwt);
+      setLogs(data || []);
+    } catch (err: any) {
+      console.error("Error al cargar los logs de auditoría:", err);
+      setError(err instanceof Error ? err.message : "No se pudieron recuperar los logs de auditoría");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.backendJwt) {
+      cargarLogs();
+    }
+  }, [status, session]);
+
+  // Formato YYYY-MM-DD HH:mm:ss
+  const formatFecha = (fechaStr: string) => {
+    if (!fechaStr) return "";
+    try {
+      const d = new Date(fechaStr);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    } catch (e) {
+      return fechaStr;
+    }
+  };
+
+  // Filtrado de logs en cliente
+  const filteredLogs = logs.filter((log) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      !searchTerm ||
+      (log.usuarioCorreo?.toLowerCase().includes(term) || false) ||
+      (log.accion?.toLowerCase().includes(term) || false) ||
+      (log.modulo?.toLowerCase().includes(term) || false) ||
+      (log.detalles?.toLowerCase().includes(term) || false) ||
+      (log.ipOrigen?.toLowerCase().includes(term) || false);
+
+    const matchesAction = selectedAction === "Todas" || log.accion === selectedAction;
+    const matchesUser = selectedUser === "Todos" || log.usuarioCorreo === selectedUser;
+
+    return matchesSearch && matchesAction && matchesUser;
+  });
+
+  // Catálogos dinámicos para filtros
+  const uniqueUsers = Array.from(new Set(logs.map((l) => l.usuarioCorreo).filter(Boolean)));
+  const uniqueActions = Array.from(new Set(logs.map((l) => l.accion).filter(Boolean)));
+
+  // Cálculos estadísticos
+  const totalAcciones = logs.length;
+  const usuariosActivos = new Set(logs.map((l) => l.usuarioCorreo).filter(Boolean)).size;
+  const totalExitosas = logs.filter((l) => l.resultado === "EXITO").length;
+  const porcentajeExito = logs.length > 0 ? ((totalExitosas / logs.length) * 100).toFixed(1) + "%" : "100%";
+  
+  const erroresHoy = logs.filter((l) => {
+    if (l.resultado !== "FALLO") return false;
+    const dateEvent = new Date(l.fechaEvento).toDateString();
+    const today = new Date().toDateString();
+    return dateEvent === today;
+  }).length;
+
+  // Exportar logs a CSV
+  const exportarCSV = () => {
+    if (filteredLogs.length === 0) {
+      alert("No hay registros filtrados para exportar.");
+      return;
+    }
+
+    const headers = ["Fecha y Hora", "Usuario", "Rol", "Módulo", "Acción", "Detalles", "Resultado", "IP", "Mensaje Error"];
+    const rows = filteredLogs.map((log) => [
+      formatFecha(log.fechaEvento),
+      log.usuarioCorreo || "",
+      log.rol || "",
+      log.modulo || "",
+      log.accion || "",
+      `"${(log.detalles || "").replace(/"/g, '""')}"`,
+      log.resultado || "",
+      log.ipOrigen || "",
+      `"${(log.mensajeError || "").replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(","))
+    ].join("\n");
+
+    // Incorporar UTF-8 BOM para soporte nativo de caracteres en Microsoft Excel
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bitacora_auditoria_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/30 p-6 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -80,11 +144,20 @@ export default function AuditLogsPage() {
             Registro de acciones y cambios en la plataforma
           </p>
         </div>
-        <button className="flex items-center gap-2 self-start rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 shadow-md shadow-purple-200 transition text-sm font-bold">
+        <button
+          onClick={exportarCSV}
+          className="flex items-center gap-2 self-start rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 shadow-md shadow-purple-200 transition text-sm font-bold"
+        >
           <Download className="h-4 w-4" />
           <span>Exportar Logs</span>
         </button>
       </section>
+
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-sm font-medium">
+          {error}
+        </div>
+      )}
 
       {/* Tarjetas de Estadísticas */}
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -93,7 +166,9 @@ export default function AuditLogsPage() {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-2xl font-black text-slate-800">8,742</span>
+            <span className="text-2xl font-black text-slate-800">
+              {loading ? "..." : totalAcciones.toLocaleString()}
+            </span>
             <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Acciones Registradas</span>
           </div>
         </article>
@@ -103,7 +178,9 @@ export default function AuditLogsPage() {
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-2xl font-black text-slate-800">12</span>
+            <span className="text-2xl font-black text-slate-800">
+              {loading ? "..." : usuariosActivos}
+            </span>
             <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Usuarios Activos</span>
           </div>
         </article>
@@ -113,7 +190,9 @@ export default function AuditLogsPage() {
             <CheckCircle className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-2xl font-black text-slate-800">99.2%</span>
+            <span className="text-2xl font-black text-slate-800">
+              {loading ? "..." : porcentajeExito}
+            </span>
             <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Acciones Exitosas</span>
           </div>
         </article>
@@ -123,7 +202,9 @@ export default function AuditLogsPage() {
             <AlertOctagon className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-2xl font-black text-slate-800">3</span>
+            <span className="text-2xl font-black text-slate-800">
+              {loading ? "..." : erroresHoy}
+            </span>
             <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Errores (Hoy)</span>
           </div>
         </article>
@@ -178,7 +259,9 @@ export default function AuditLogsPage() {
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Q Buscar por usuario, acción o recurso..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por usuario, acción o módulo..."
                 className="w-full h-11 rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50"
               />
             </div>
@@ -187,11 +270,15 @@ export default function AuditLogsPage() {
           <div className="relative">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Acción</label>
             <div className="relative">
-              <select className="w-full h-11 rounded-xl border border-slate-200 pl-4 pr-10 text-sm outline-none appearance-none cursor-pointer hover:border-purple-500 transition text-slate-700 bg-slate-50/50 font-medium">
-                <option>Todas</option>
-                <option>CREATE</option>
-                <option>UPDATE</option>
-                <option>DELETE</option>
+              <select
+                value={selectedAction}
+                onChange={(e) => setSelectedAction(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 pl-4 pr-10 text-sm outline-none appearance-none cursor-pointer hover:border-purple-500 transition text-slate-700 bg-slate-50/50 font-medium"
+              >
+                <option value="Todas">Todas</option>
+                {uniqueActions.map((action) => (
+                  <option key={action} value={action}>{action}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -200,10 +287,15 @@ export default function AuditLogsPage() {
           <div className="relative">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Usuario</label>
             <div className="relative">
-              <select className="w-full h-11 rounded-xl border border-slate-200 pl-4 pr-10 text-sm outline-none appearance-none cursor-pointer hover:border-purple-500 transition text-slate-700 bg-slate-50/50 font-medium">
-                <option>Todos</option>
-                <option>admin@pathfinder.com</option>
-                <option>moderator@pathfinder.com</option>
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 pl-4 pr-10 text-sm outline-none appearance-none cursor-pointer hover:border-purple-500 transition text-slate-700 bg-slate-50/50 font-medium"
+              >
+                <option value="Todos">Todos</option>
+                {uniqueUsers.map((user) => (
+                  <option key={user} value={user}>{user}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -218,54 +310,70 @@ export default function AuditLogsPage() {
           <p className="text-xs text-slate-500">Historial completo de acciones realizadas por administradores</p>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="bg-slate-50/50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] uppercase tracking-wider">
-              <tr>
-                <th className="px-6 py-4">Fecha y Hora</th>
-                <th className="px-6 py-4">Usuario</th>
-                <th className="px-6 py-4">Acción</th>
-                <th className="px-6 py-4">Recurso</th>
-                <th className="px-6 py-4">Detalles</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4">IP</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/40 transition">
-                  <td className="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">{log.fechaHora}</td>
-                  <td className="px-6 py-4 text-slate-600 text-xs">{log.usuario}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${
-                      log.accion === 'UPDATE' ? 'bg-blue-50 text-blue-600' :
-                      log.accion === 'CREATE' ? 'bg-emerald-50 text-emerald-600' :
-                      log.accion === 'DELETE' ? 'bg-rose-50 text-rose-600' :
-                      'bg-purple-50 text-purple-600'
-                    }`}>
-                      {log.accion}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-500 font-mono">{log.recurso}</td>
-                  <td className="px-6 py-4 text-xs text-slate-600 max-w-[300px] truncate" title={log.detalles}>
-                    {log.detalles}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${
-                      log.estado === 'Éxito' ? 'text-emerald-600' : 'text-rose-600'
-                    }`}>
-                      {log.estado === 'Éxito' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                      {log.estado}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-400 font-mono">{log.ip}</td>
+        {loading ? (
+          <div className="p-8 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span>Cargando logs de auditoría...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm text-slate-700">
+              <thead className="bg-slate-50/50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-4">Fecha y Hora</th>
+                  <th className="px-6 py-4">Usuario</th>
+                  <th className="px-6 py-4">Acción</th>
+                  <th className="px-6 py-4">Módulo</th>
+                  <th className="px-6 py-4">Detalles</th>
+                  <th className="px-6 py-4">Estado</th>
+                  <th className="px-6 py-4">IP</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filteredLogs.map((log) => (
+                  <tr key={log.idAuditoria} className="hover:bg-slate-50/40 transition">
+                    <td className="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">
+                      {formatFecha(log.fechaEvento)}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 text-xs">{log.usuarioCorreo}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${
+                        log.accion?.includes('EDICION') || log.accion?.includes('UPDATE') || log.accion?.includes('CAMBIO') ? 'bg-blue-50 text-blue-600' :
+                        log.accion?.includes('CREACION') || log.accion?.includes('CREATE') ? 'bg-emerald-50 text-emerald-600' :
+                        log.accion?.includes('ELIMINACION') || log.accion?.includes('DELETE') ? 'bg-rose-50 text-rose-600' :
+                        'bg-purple-50 text-purple-600'
+                      }`}>
+                        {log.accion}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500 font-mono">{log.modulo}</td>
+                    <td className="px-6 py-4 text-xs text-slate-600 max-w-[300px] truncate" title={log.detalles}>
+                      {log.detalles}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+                        log.resultado === 'EXITO' ? 'text-emerald-600' : 'text-rose-600'
+                      }`}>
+                        {log.resultado === 'EXITO' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                        {log.resultado === 'EXITO' ? 'Éxito' : 'Error'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-400 font-mono">{log.ipOrigen}</td>
+                  </tr>
+                ))}
+                {filteredLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                      No se encontraron registros de auditoría.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
-
     </div>
   );
 }
+

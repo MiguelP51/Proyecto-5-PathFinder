@@ -4,6 +4,7 @@ import com.pathfinder.dto.admin.user.AdminUserResponseDTO;
 import com.pathfinder.dto.admin.user.UpdateUserRoleRequestDTO;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.service.UserService;
+import com.pathfinder.audit.annotation.Audit;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{idUsuario}/role")
+    @Audit(modulo = "SEGURIDAD", accion = "CAMBIO_ROL")
     public ResponseEntity<ApiResponse<AdminUserResponseDTO>> actualizarRol(
             @PathVariable Integer idUsuario,
             @Valid @RequestBody UpdateUserRoleRequestDTO request,
