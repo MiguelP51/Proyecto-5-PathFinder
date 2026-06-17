@@ -172,12 +172,18 @@ public class SkillPathServiceImpl implements SkillPathService {
             return null;
         }
 
+        String fileUrl = null;
+
+        if (StringUtils.hasText(evidencia.getRutaArchivo())) {
+            fileUrl = "/api/skillpaths/estudiante/"
+                    + evidencia.getUsuarioSkillPath().getSkillPath().getIdSkillPath()
+                    + "/evidencia/download";
+        }
+
         return SkillPathEstudianteResponseDTO.SkillPathEvidenceDTO.builder()
                 .id(String.valueOf(evidencia.getIdEvidenciaSkillPath()))
                 .fileName(evidencia.getNombreArchivo())
-                .fileUrl("/api/skillpaths/estudiante/"
-                + evidencia.getUsuarioSkillPath().getSkillPath().getIdSkillPath()
-                + "/evidencia/download")
+                .fileUrl(fileUrl)
                 .validationMethod(evidencia.getMetodoValidacion())
                 .verificationUrl(evidencia.getUrlVerificacion())
                 .verificationCode(evidencia.getCodigoVerificacion())
