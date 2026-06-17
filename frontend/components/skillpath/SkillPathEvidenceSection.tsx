@@ -4,12 +4,14 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     AlertCircle,
+    AlertTriangle,
     CheckCircle2,
     Eye,
     FileText,
     Loader2,
     Trash2,
     Upload,
+    X,
 } from "lucide-react";
 
 import { SkillPathEvidence } from "@/lib/skillpath/types";
@@ -59,6 +61,7 @@ export function SkillPathEvidenceSection({
     const [isUploading, setIsUploading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isViewing, setIsViewing] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const evidenceStatus = evidence?.status ?? "SIN_EVIDENCIA";
     const isBusy = isUploading || isDeleting || isViewing;
@@ -222,14 +225,6 @@ export function SkillPathEvidenceSection({
             return;
         }
 
-        const confirmed = window.confirm(
-            "¿Seguro que deseas eliminar la evidencia subida?",
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
         try {
             setIsDeleting(true);
             setErrorMessage(null);
@@ -245,6 +240,7 @@ export function SkillPathEvidenceSection({
             setEvidence(updatedSkillPath.evidence ?? undefined);
             setSelectedFile(null);
             setVerificationUrl("");
+            setShowDeleteModal(false);
             setSuccessMessage("Evidencia eliminada correctamente.");
 
             if (fileInputRef.current) {
@@ -361,21 +357,12 @@ export function SkillPathEvidenceSection({
 
                             <button
                                 type="button"
-                                onClick={handleDeleteEvidence}
+                                onClick={() => setShowDeleteModal(true)}
                                 disabled={isBusy}
                                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isDeleting ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Eliminando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 className="h-4 w-4" />
-                                        Eliminar
-                                    </>
-                                )}
+                                <Trash2 className="h-4 w-4" />
+                                Eliminar
                             </button>
                         </div>
                     </div>
@@ -482,6 +469,74 @@ export function SkillPathEvidenceSection({
                     <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                         <AlertCircle className="h-4 w-4" />
                         {errorMessage}
+                    </div>
+                )}
+
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
+                                        <AlertTriangle className="h-6 w-6 text-red-500" />
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-lg font-extrabold text-[#020B2D]">
+                                            Eliminar evidencia
+                                        </h3>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                            Esta acción quitará el certificado o enlace enviado.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    disabled={isDeleting}
+                                    className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                                <p className="text-sm text-red-700">
+                                    ¿Seguro que deseas eliminar esta evidencia? Luego podrás subir una nueva si lo necesitas.
+                                </p>
+                            </div>
+
+                            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    disabled={isDeleting}
+                                    className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteEvidence}
+                                    disabled={isDeleting}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isDeleting ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Eliminando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="h-4 w-4" />
+                                            Sí, eliminar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
