@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -37,11 +38,11 @@ public class MentorProfile extends AuditoriaBase {
     private String bio;
 
     @OneToMany(mappedBy = "mentorProfile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MentorAreaExpertise> areasExpertise;
+    private List<MentorAreaExpertise> areasExpertise = new ArrayList<>();
 
     @OneToMany(mappedBy = "mentorProfile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MentorCertificacion> certificaciones;
+    private List<MentorCertificacion> certificaciones = new ArrayList<>();
 
     @OneToMany(mappedBy = "mentorProfile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MentorEspecialidad> especialidades;
+    private List<MentorEspecialidad> especialidades = new ArrayList<>();
 }
