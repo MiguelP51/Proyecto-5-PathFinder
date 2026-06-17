@@ -3,6 +3,7 @@ package com.pathfinder.controller;
 import com.pathfinder.dto.admin.manage_skillpath.*;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.service.AdminManageSkillPathService;
+import com.pathfinder.audit.annotation.Audit;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -30,6 +31,7 @@ public class AdminManageSkillPathController {
     }
 
     @PostMapping
+    @Audit(modulo = "SKILLPATH", accion = "CREACION_SKILLPATH")
     public ResponseEntity<ApiResponse<AdminManageSkillPathResponseDTO>> crear(
             @Valid @RequestBody CreateAdminManageSkillPathRequestDTO request) {
         return ResponseEntity.ok(
@@ -38,6 +40,7 @@ public class AdminManageSkillPathController {
     }
 
     @PutMapping("/{id}")
+    @Audit(modulo = "SKILLPATH", accion = "EDICION_SKILLPATH")
     public ResponseEntity<ApiResponse<AdminManageSkillPathResponseDTO>> actualizar(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAdminManageSkillPathRequestDTO request) {
@@ -47,6 +50,7 @@ public class AdminManageSkillPathController {
     }
 
     @PatchMapping("/{id}/estado")
+    @Audit(modulo = "SKILLPATH", accion = "CAMBIO_ESTADO_SKILLPATH")
     public ResponseEntity<ApiResponse<AdminManageSkillPathResponseDTO>> actualizarEstado(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAdminManageSkillPathStatusRequestDTO request) {
@@ -56,12 +60,14 @@ public class AdminManageSkillPathController {
     }
 
     @DeleteMapping("/{id}")
+    @Audit(modulo = "SKILLPATH", accion = "ELIMINACION_SKILLPATH")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Integer id) {
         adminManageSkillPathService.eliminarSkillPath(id);
         return ResponseEntity.ok(ApiResponse.success("SkillPath eliminado", null));
     }
 
     @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Audit(modulo = "SKILLPATH", accion = "IMPORTACION_MASIVA_SKILLPATH")
     public ResponseEntity<ApiResponse<BulkAdminManageSkillPathResultDTO>> importarCsv(
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(

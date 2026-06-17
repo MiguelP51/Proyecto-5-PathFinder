@@ -99,6 +99,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "https://pathfinder.work.gd",
+                "https://www.pathfinder.work.gd",
                 "http://localhost:8080",
                 "http://localhost:3000",
                 "http://localhost"
