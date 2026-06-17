@@ -202,14 +202,16 @@ public class SkillPathController {
     public ResponseEntity<ApiResponse<SkillPathEstudianteResponseDTO>> subirEvidenciaSkillPath(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Integer idSkillPath,
-            @RequestParam("file") MultipartFile file
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "urlVerificacion", required = false) String urlVerificacion
     ) {
         try {
             SkillPathEstudianteResponseDTO skillPath =
                     skillPathService.subirEvidenciaSkillPath(
                             userDetails.getUsername(),
                             idSkillPath,
-                            file
+                            file,
+                            urlVerificacion
                     );
 
             return ResponseEntity.ok(

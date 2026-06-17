@@ -30,17 +30,29 @@ public class EvidenciaSkillPath {
     @JoinColumn(name = "id_usuario_skill_path", nullable = false)
     private UsuarioSkillPath usuarioSkillPath;
 
-    @Column(name = "nombre_archivo", nullable = false, length = 255)
+    @Column(name = "nombre_archivo", length = 255)
     private String nombreArchivo;
 
-    @Column(name = "content_type", nullable = false, length = 100)
+    @Column(name = "content_type", length = 100)
     private String contentType;
 
-    @Column(name = "tamanio_bytes", nullable = false)
+    @Column(name = "tamanio_bytes")
     private Long tamanioBytes;
 
-    @Column(name = "ruta_archivo", nullable = false, length = 500)
+    @Column(name = "ruta_archivo", length = 500)
     private String rutaArchivo;
+
+    @Column(name = "metodo_validacion", length = 30)
+    private String metodoValidacion;
+
+    @Column(name = "url_verificacion", length = 500)
+    private String urlVerificacion;
+
+    @Column(name = "codigo_verificacion", length = 120)
+    private String codigoVerificacion;
+
+    @Column(name = "plataforma_emisora", length = 30)
+    private String plataformaEmisora;
 
     @Column(name = "estado_validacion", nullable = false, length = 30)
     private String estadoValidacion = "PENDIENTE";

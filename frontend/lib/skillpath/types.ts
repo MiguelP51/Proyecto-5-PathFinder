@@ -22,8 +22,14 @@ export interface SkillPathSkill {
 
 export interface SkillPathEvidence {
     id: string;
-    fileName: string;
-    fileUrl?: string;
+    fileName?: string | null;
+    fileUrl?: string | null;
+
+    validationMethod?: string | null;
+    verificationUrl?: string | null;
+    verificationCode?: string | null;
+    issuingPlatform?: string | null;
+
     status: SkillPathEvidenceStatus;
     uploadedAt?: string;
     reviewedAt?: string;

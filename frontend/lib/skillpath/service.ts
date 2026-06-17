@@ -37,12 +37,24 @@ async function skillPathFetch<T>(
 
     if (!response.ok) {
         const errorText = await response.text();
+
+        let backendMessage = `Error ${response.status} al consumir SkillPath API`;
+
+        try {
+            const parsed = JSON.parse(errorText);
+            backendMessage = parsed.message ?? backendMessage;
+        } catch {
+            if (errorText) {
+                backendMessage = errorText;
+            }
+        }
+
         console.error("Error consumiendo SkillPath API:", {
             status: response.status,
             body: errorText,
         });
 
-        throw new Error(`Error ${response.status} al consumir SkillPath API`);
+        throw new Error(backendMessage);
     }
 
     if (!contentType?.includes("application/json")) {
@@ -114,11 +126,21 @@ export async function startSkillPath(
 
 export async function uploadSkillPathEvidence(
     skillPathId: string,
-    file: File,
+    params: {
+        file?: File | null;
+        verificationUrl?: string | null;
+    },
     token?: string | null,
 ): Promise<SkillPath> {
     const formData = new FormData();
-    formData.append("file", file);
+
+    if (params.file) {
+        formData.append("file", params.file);
+    }
+
+    if (params.verificationUrl?.trim()) {
+        formData.append("urlVerificacion", params.verificationUrl.trim());
+    }
 
     return skillPathFetch<SkillPath>(
         `/api/skillpaths/estudiante/${skillPathId}/evidencia`,

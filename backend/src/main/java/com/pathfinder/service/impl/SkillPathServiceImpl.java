@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.net.URI;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -176,6 +178,10 @@ public class SkillPathServiceImpl implements SkillPathService {
                 .fileUrl("/api/skillpaths/estudiante/"
                 + evidencia.getUsuarioSkillPath().getSkillPath().getIdSkillPath()
                 + "/evidencia/download")
+                .validationMethod(evidencia.getMetodoValidacion())
+                .verificationUrl(evidencia.getUrlVerificacion())
+                .verificationCode(evidencia.getCodigoVerificacion())
+                .issuingPlatform(evidencia.getPlataformaEmisora())
                 .status(evidencia.getEstadoValidacion())
                 .uploadedAt(evidencia.getFechaSubida() != null
                         ? evidencia.getFechaSubida().toLocalDate().toString()
@@ -240,15 +246,47 @@ public class SkillPathServiceImpl implements SkillPathService {
     public SkillPathEstudianteResponseDTO subirEvidenciaSkillPath(
             String correo,
             Integer idSkillPath,
-            MultipartFile file
+            MultipartFile file,
+            String urlVerificacion
     ) {
-        validarArchivoEvidencia(file);
+        validarArchivoEvidenciaOpcional(file);
+
+        String urlVerificacionLimpia = urlVerificacion != null
+                ? urlVerificacion.trim()
+                : null;
+
+        boolean tieneArchivo = file != null && !file.isEmpty();
+        boolean tieneUrlVerificacion = StringUtils.hasText(urlVerificacionLimpia);
+
+        if (!tieneArchivo && !tieneUrlVerificacion) {
+            throw new IllegalArgumentException(
+                    "Debes ingresar el enlace de verificación o subir un PDF de respaldo."
+            );
+        }
 
         SkillPath skillPath = skillPathRepository
                 .findByIdSkillPathAndUsuarioIsNullAndActivoTrue(idSkillPath)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "SkillPath no encontrado o no está disponible"
                 ));
+
+        String plataformaNormalizada = normalizarPlataforma(skillPath.getPlataforma());
+
+        String codigoVerificacion = null;
+
+        if (requiereUrlVerificable(plataformaNormalizada)) {
+            if (!tieneUrlVerificacion) {
+                throw new IllegalArgumentException(
+                        "Para SkillPaths de " + plataformaNormalizada
+                                + ", debes ingresar el enlace oficial del certificado."
+                );
+            }
+
+            codigoVerificacion = validarUrlCertificado(
+                    plataformaNormalizada,
+                    urlVerificacionLimpia
+            );
+        }
 
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -287,33 +325,54 @@ public class SkillPathServiceImpl implements SkillPathService {
                 avanceGuardado.getIdUsuarioSkillPath()
         );
 
-        String s3Key = "skillpath-evidencias/usuario_"
-                + usuario.getIdUsuario()
-                + "/skillpath_"
-                + skillPath.getIdSkillPath()
-                + "_"
-                + System.currentTimeMillis()
-                + ".pdf";
+        String s3Key = null;
 
-        try {
-            s3Client.putObject(
-                    PutObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(s3Key)
-                            .contentType("application/pdf")
-                            .build(),
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Error al almacenar la evidencia en S3: " + e.getMessage(), e);
+        if (tieneArchivo) {
+            s3Key = "skillpath-evidencias/usuario_"
+                    + usuario.getIdUsuario()
+                    + "/skillpath_"
+                    + skillPath.getIdSkillPath()
+                    + "_"
+                    + System.currentTimeMillis()
+                    + ".pdf";
+
+            try {
+                s3Client.putObject(
+                        PutObjectRequest.builder()
+                                .bucket(bucketName)
+                                .key(s3Key)
+                                .contentType("application/pdf")
+                                .build(),
+                        RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                );
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Error al almacenar la evidencia en S3: " + e.getMessage(),
+                        e
+                );
+            }
         }
 
         EvidenciaSkillPath evidencia = new EvidenciaSkillPath();
         evidencia.setUsuarioSkillPath(avanceGuardado);
-        evidencia.setNombreArchivo(file.getOriginalFilename());
-        evidencia.setContentType("application/pdf");
-        evidencia.setTamanioBytes(file.getSize());
-        evidencia.setRutaArchivo(s3Key);
+
+        if (tieneArchivo) {
+            evidencia.setNombreArchivo(file.getOriginalFilename());
+            evidencia.setContentType("application/pdf");
+            evidencia.setTamanioBytes(file.getSize());
+            evidencia.setRutaArchivo(s3Key);
+        }
+
+        evidencia.setPlataformaEmisora(plataformaNormalizada);
+
+        if (tieneUrlVerificacion) {
+            evidencia.setMetodoValidacion("URL_OFICIAL");
+            evidencia.setUrlVerificacion(urlVerificacionLimpia);
+            evidencia.setCodigoVerificacion(codigoVerificacion);
+        } else {
+            evidencia.setMetodoValidacion("PDF");
+        }
+
         evidencia.setEstadoValidacion("PENDIENTE");
         evidencia.setFechaSubida(LocalDateTime.now());
 
@@ -374,9 +433,9 @@ public class SkillPathServiceImpl implements SkillPathService {
         );
     }
 
-    private void validarArchivoEvidencia(MultipartFile file) {
+    private void validarArchivoEvidenciaOpcional(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Debe seleccionar un archivo PDF.");
+            return;
         }
 
         long maxSizeBytes = 10L * 1024L * 1024L;
@@ -397,6 +456,128 @@ public class SkillPathServiceImpl implements SkillPathService {
             throw new IllegalArgumentException("Solo se permiten archivos PDF.");
         }
     }
+
+    private String normalizarPlataforma(String plataforma) {
+        if (!StringUtils.hasText(plataforma)) {
+            return "DESCONOCIDA";
+        }
+
+        String valor = plataforma.trim().toUpperCase(Locale.ROOT);
+
+        if (valor.contains("COURSERA")) {
+            return "COURSERA";
+        }
+
+        if (valor.contains("UDEMY")) {
+            return "UDEMY";
+        }
+
+        return valor;
+    }
+
+    private boolean requiereUrlVerificable(String plataforma) {
+        return "COURSERA".equals(plataforma)
+                || "UDEMY".equals(plataforma);
+    }
+
+    private String validarUrlCertificado(String plataforma, String urlVerificacion) {
+        URI uri;
+
+        try {
+            uri = URI.create(urlVerificacion.trim());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("El enlace del certificado no tiene un formato válido.");
+        }
+
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        String path = uri.getPath();
+
+        if (!"https".equalsIgnoreCase(scheme)) {
+            throw new IllegalArgumentException("El enlace del certificado debe iniciar con https://");
+        }
+
+        if (!StringUtils.hasText(host) || !StringUtils.hasText(path)) {
+            throw new IllegalArgumentException("El enlace del certificado no está completo.");
+        }
+
+        String hostNormalizado = host.toLowerCase(Locale.ROOT);
+        String pathNormalizado = path.toLowerCase(Locale.ROOT);
+
+        if ("COURSERA".equals(plataforma)) {
+            return validarUrlCoursera(hostNormalizado, pathNormalizado);
+        }
+
+        if ("UDEMY".equals(plataforma)) {
+            return validarUrlUdemy(hostNormalizado, pathNormalizado);
+        }
+
+        throw new IllegalArgumentException(
+                "La plataforma del SkillPath no permite validación por enlace."
+        );
+    }
+
+    private String validarUrlCoursera(String host, String path) {
+        boolean hostValido = "coursera.org".equals(host)
+                || "www.coursera.org".equals(host);
+
+        boolean pathValido = path.startsWith("/verify/")
+                || path.startsWith("/share/")
+                || path.startsWith("/account/accomplishments/verify/")
+                || path.startsWith("/account/accomplishments/certificate/")
+                || path.startsWith("/account/accomplishments/specialization/")
+                || path.startsWith("/account/accomplishments/professional-cert/");
+
+        if (!hostValido || !pathValido) {
+            throw new IllegalArgumentException(
+                    "Para Coursera, ingresa un enlace válido de verificación o certificado."
+            );
+        }
+
+        return extraerUltimoSegmento(path);
+    }
+
+    private String validarUrlUdemy(String host, String path) {
+        boolean hostValido = "udemy.com".equals(host)
+                || "www.udemy.com".equals(host);
+
+        boolean pathValido = path.startsWith("/certificate/");
+
+        if (!hostValido || !pathValido) {
+            throw new IllegalArgumentException(
+                    "Para Udemy, ingresa un enlace válido del certificado."
+            );
+        }
+
+        return extraerUltimoSegmento(path);
+    }
+
+    private String extraerUltimoSegmento(String path) {
+        if (!StringUtils.hasText(path)) {
+            throw new IllegalArgumentException("No se pudo identificar el código del certificado.");
+        }
+
+        String limpio = path.trim();
+
+        if (limpio.endsWith("/")) {
+            limpio = limpio.substring(0, limpio.length() - 1);
+        }
+
+        int ultimoSlash = limpio.lastIndexOf("/");
+
+        if (ultimoSlash < 0 || ultimoSlash == limpio.length() - 1) {
+            throw new IllegalArgumentException("No se pudo identificar el código del certificado.");
+        }
+
+        String codigo = limpio.substring(ultimoSlash + 1);
+
+        if (!StringUtils.hasText(codigo)) {
+            throw new IllegalArgumentException("No se pudo identificar el código del certificado.");
+        }
+
+        return codigo;
+    }
+
 
     @Override
     public List<SkillPathEstudianteResponseDTO> listarSkillPathsIniciadosEstudiante(

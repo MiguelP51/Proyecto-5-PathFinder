@@ -57,6 +57,10 @@ public class SkillPathEstudianteResponseDTO {
         private String id;
         private String fileName;
         private String fileUrl;
+        private String validationMethod;
+        private String verificationUrl;
+        private String verificationCode;
+        private String issuingPlatform;
         private String status;
         private String uploadedAt;
         private String reviewedAt;
