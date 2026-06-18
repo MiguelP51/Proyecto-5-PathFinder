@@ -126,8 +126,12 @@ export default function DashboardSubareaPage({
   };
 
   const handlePathChallengeAction = (challenge: StudentPathChallenge) => {
+    const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
+
     router.push(
-        `/areas/${area}/subareas/${idSubarea}/pathchallenges/${challenge.idPathChallenge}`,
+        `/user/app/challenges/${challenge.idPathChallenge}?returnTo=${encodeURIComponent(
+            returnTo,
+        )}&returnLabel=${encodeURIComponent("Volver a subárea")}`,
     );
   };
 
