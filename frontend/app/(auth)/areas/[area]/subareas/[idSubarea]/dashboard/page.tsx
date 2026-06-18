@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, BookOpen, Target, Award, TrendingUp, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
+import { getStudentPathChallengesBySubarea } from "@/lib/pathchallenge/student-service";
+import { StudentPathChallenge } from "@/lib/pathchallenge/student-types";
 
 interface SubAreaDTO {
   idSubarea: number;
@@ -41,37 +43,18 @@ interface DiagnosticoEstadoDTO {
   completado?: boolean | null;
 }
 
-// PathChallenges mockeados por ahora (HU-29)
-const MOCK_CHALLENGES = [
-  {
-    id: "1",
-    title: "Diseña un proceso de reclutamiento",
-    description: "Crea un proceso completo de atracción y selección de talento",
-    difficulty: "Medio",
-    durationLabel: "3 horas",
-    xp: 350,
-    progreso: 0,
-    estado: "DISPONIBLE",
-  },
-  {
-    id: "2",
-    title: "Entrevista por competencias",
-    description: "Realiza una entrevista simulada usando el modelo STAR",
-    difficulty: "Fácil",
-    durationLabel: "1 hora",
-    xp: 200,
-    progreso: 0,
-    estado: "DISPONIBLE",
-  },
-];
-
 const difficultyColor: Record<string, string> = {
   BASICO: "bg-green-100 text-green-700",
+  BÁSICO: "bg-green-100 text-green-700",
   INTERMEDIO: "bg-yellow-100 text-yellow-700",
   AVANZADO: "bg-red-100 text-red-700",
+
   Fácil: "bg-green-100 text-green-700",
+  Facil: "bg-green-100 text-green-700",
+  Media: "bg-yellow-100 text-yellow-700",
   Medio: "bg-yellow-100 text-yellow-700",
   Difícil: "bg-red-100 text-red-700",
+  Dificil: "bg-red-100 text-red-700",
 };
 
 const statusColor: Record<string, string> = {
@@ -142,11 +125,18 @@ export default function DashboardSubareaPage({
     }
   };
 
+  const handlePathChallengeAction = (challenge: StudentPathChallenge) => {
+    router.push(
+        `/areas/${area}/subareas/${idSubarea}/pathchallenges/${challenge.idPathChallenge}`,
+    );
+  };
+
   const [area, setArea] = useState("");
   const [idSubarea, setIdSubarea] = useState("");
   const [subarea, setSubarea] = useState<SubAreaDTO | null>(null);
   const [skillPaths, setSkillPaths] = useState<SkillPathDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pathChallenges, setPathChallenges] = useState<StudentPathChallenge[]>([]);
   const [startingSkillPathId, setStartingSkillPathId] = useState<string | null>(null);
   const [ultimoDiagnostico, setUltimoDiagnostico] = useState<DiagnosticoEstadoDTO | null>(null);
 
@@ -160,34 +150,49 @@ export default function DashboardSubareaPage({
   useEffect(() => {
     if (!idSubarea || !session?.backendJwt) return;
 
+    setLoading(true);
+
     Promise.all([
       apiFetch<SubAreaDTO>(
           `/api/exploracion/subareas/${idSubarea}`,
           {},
-          session.backendJwt
+          session.backendJwt,
       ),
       apiFetch<DiagnosticoEstadoDTO>(
           `/api/diagnostico/subarea/${idSubarea}/ultimo`,
           {},
-          session.backendJwt
+          session.backendJwt,
       ).catch(() => null),
     ])
         .then(([subareaData, diagnosticoData]) => {
           setSubarea(subareaData);
           setUltimoDiagnostico(diagnosticoData);
 
-          if (subareaData.slug) {
-            return apiFetch<SkillPathDTO[]>(
-                `/api/skillpaths/estudiante?subareaId=${subareaData.slug}`,
-                {},
-                session.backendJwt
-            );
-          }
+          const skillPathsPromise = subareaData.slug
+              ? apiFetch<SkillPathDTO[]>(
+                  `/api/skillpaths/estudiante?subareaId=${subareaData.slug}`,
+                  {},
+                  session.backendJwt,
+              )
+              : Promise.resolve([]);
 
-          return [];
+          const pathChallengesPromise = getStudentPathChallengesBySubarea(
+              idSubarea,
+              session.backendJwt,
+          ).catch((error) => {
+            console.error("Error cargando PathChallenges:", error);
+            return [];
+          });
+
+          return Promise.all([skillPathsPromise, pathChallengesPromise]);
         })
-        .then((spData) => setSkillPaths(spData as SkillPathDTO[]))
-        .catch(console.error)
+        .then(([spData, challengeData]) => {
+          setSkillPaths(spData as SkillPathDTO[]);
+          setPathChallenges(challengeData as StudentPathChallenge[]);
+        })
+        .catch((error) => {
+          console.error("Error cargando dashboard de subárea:", error);
+        })
         .finally(() => setLoading(false));
   }, [idSubarea, session]);
 
@@ -208,7 +213,7 @@ export default function DashboardSubareaPage({
 
   // Calcular stats
   const skillPathsCompletados = skillPaths.filter(sp => sp.status === "COMPLETADO").length;
-  const challengesCompletados = MOCK_CHALLENGES.filter(c => c.estado === "COMPLETADO").length;
+  const challengesCompletados = pathChallenges.filter((c) => c.status === "COMPLETADO",).length;
   const progresoGeneral = skillPaths.length > 0
     ? Math.round(skillPaths.reduce((acc, sp) => acc + sp.progressPercentage, 0) / skillPaths.length)
     : 0;
@@ -248,7 +253,7 @@ export default function DashboardSubareaPage({
           {[
             { icon: <TrendingUp className="h-5 w-5 text-blue-500" />, value: `${progresoGeneral}%`, label: "Progreso general" },
             { icon: <BookOpen className="h-5 w-5 text-purple-500" />, value: `${skillPathsCompletados}/${skillPaths.length}`, label: "SkillPaths completados" },
-            { icon: <Target className="h-5 w-5 text-green-500" />, value: `${challengesCompletados}/${MOCK_CHALLENGES.length}`, label: "Challenges completados" },
+            { icon: <Target className="h-5 w-5 text-green-500" />, value: `${challengesCompletados}/${pathChallenges.length}`, label: "Challenges completados" },
             { icon: <Award className="h-5 w-5 text-yellow-500" />, value: "0", label: "Habilidades trabajadas" },
           ].map((stat, i) => (
             <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
@@ -352,23 +357,83 @@ export default function DashboardSubareaPage({
               </div>
               <p className="text-xs text-slate-400 mb-4">Retos prácticos para aplicar tus conocimientos</p>
 
-              <div className="space-y-3">
-                {MOCK_CHALLENGES.map((ch) => (
-                  <div key={ch.id} className="border border-slate-100 rounded-xl p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="font-semibold text-sm text-slate-900">{ch.title}</p>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${difficultyColor[ch.difficulty]}`}>
-                        {ch.difficulty}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mb-3">{ch.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
-                      <span>⏱ {ch.durationLabel}</span>
-                      <span>⚡ {ch.xp} XP</span>
-                    </div>
+              {pathChallenges.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">
+                    No hay PathChallenges disponibles aún
+                  </p>
+              ) : (
+                  <div className="space-y-3">
+                    {pathChallenges.map((ch) => (
+                        <div key={ch.idPathChallenge} className="border border-slate-100 rounded-xl p-4">
+                          <div className="flex justify-between items-start gap-3 mb-2">
+                            <div>
+                              <p className="font-semibold text-sm text-slate-900">{ch.title}</p>
+                              <p className="text-xs text-slate-400 mt-1">{ch.description}</p>
+                            </div>
+
+                            <span
+                                className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                    difficultyColor[ch.difficulty] ?? "bg-slate-100 text-slate-600"
+                                }`}
+                            >
+                              {ch.difficulty}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mb-3">
+                            <span>⏱ {ch.durationLabel}</span>
+                            <span>⚡ {ch.xp} XP</span>
+                            <span
+                                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                    statusColor[ch.status] ?? "bg-slate-100 text-slate-600"
+                                }`}
+                            >
+                                {statusLabel[ch.status] ?? ch.status}
+                            </span>
+                          </div>
+
+                          {ch.skills.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {ch.skills.slice(0, 3).map((skill) => (
+                                    <span
+                                        key={skill.id}
+                                        className="rounded-full bg-green-50 px-2 py-1 text-[11px] font-medium text-green-700"
+                                    >
+                                        {skill.name}
+                                    </span>
+                                ))}
+                              </div>
+                          )}
+
+                          <div className="mb-4">
+                            <div className="flex justify-between text-xs text-slate-400 mb-1">
+                              <span>Progreso</span>
+                              <span>{ch.progressPercentage}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                  className="h-full rounded-full bg-green-500"
+                                  style={{ width: `${ch.progressPercentage}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                              type="button"
+                              onClick={() => handlePathChallengeAction(ch)}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df]"
+                          >
+                            {ch.status === "DISPONIBLE"
+                                ? "Ver misión"
+                                : ch.status === "COMPLETADO"
+                                    ? "Revisar misión"
+                                    : "Continuar misión"}
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+              )}
             </div>
           </div>
 
@@ -463,7 +528,7 @@ export default function DashboardSubareaPage({
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Challenges:</span>
-                  <span>{challengesCompletados}/{MOCK_CHALLENGES.length}</span>
+                  <span>{challengesCompletados}/{pathChallenges.length}</span>
                 </div>
               </div>
             </div>
