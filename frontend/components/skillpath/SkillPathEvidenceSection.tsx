@@ -4,12 +4,14 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     AlertCircle,
+    AlertTriangle,
     CheckCircle2,
     Eye,
     FileText,
     Loader2,
     Trash2,
     Upload,
+    X,
 } from "lucide-react";
 
 import { SkillPathEvidence } from "@/lib/skillpath/types";
@@ -25,6 +27,7 @@ import {
 
 interface SkillPathEvidenceSectionProps {
     skillPathId: string;
+    skillPathPlatform: string;
     initialEvidence?: SkillPathEvidence | null;
 }
 
@@ -44,23 +47,41 @@ async function getBackendJwtFromSession() {
 
 export function SkillPathEvidenceSection({
                                              skillPathId,
+                                             skillPathPlatform,
                                              initialEvidence,
                                          }: SkillPathEvidenceSectionProps) {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const [evidence, setEvidence] = useState<SkillPathEvidence | undefined>(
-        initialEvidence ?? undefined,
-    );
+    const [evidence, setEvidence] = useState<SkillPathEvidence | undefined>(initialEvidence ?? undefined,);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [verificationUrl, setVerificationUrl] = useState(initialEvidence?.verificationUrl ?? "",);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isViewing, setIsViewing] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const evidenceStatus = evidence?.status ?? "SIN_EVIDENCIA";
     const isBusy = isUploading || isDeleting || isViewing;
+
+    const normalizedPlatform = skillPathPlatform.trim().toUpperCase();
+    const requiresVerificationUrl =
+        normalizedPlatform.includes("COURSERA") ||
+        normalizedPlatform.includes("UDEMY");
+
+    const urlPlaceholder = normalizedPlatform.includes("COURSERA")
+        ? "https://coursera.org/verify/..."
+        : normalizedPlatform.includes("UDEMY")
+            ? "https://www.udemy.com/certificate/..."
+            : "Pega aquí el enlace oficial del certificado";
+
+    const platformHelpText = normalizedPlatform.includes("COURSERA")
+        ? "En Coursera, pega el enlace oficial de verificación del certificado."
+        : normalizedPlatform.includes("UDEMY")
+            ? "En Udemy, abre tu certificado y copia el enlace de la página del certificado."
+            : "Pega el enlace oficial del certificado si la plataforma lo proporciona.";
 
     const handleSelectFile = (file: File | undefined) => {
         setErrorMessage(null);
@@ -89,8 +110,19 @@ export function SkillPathEvidenceSection({
     };
 
     const handleUpload = async () => {
-        if (!selectedFile) {
-            setErrorMessage("Selecciona un archivo PDF antes de continuar.");
+        const cleanUrl = verificationUrl.trim();
+
+        if (requiresVerificationUrl && !cleanUrl) {
+            setErrorMessage(
+                `Para SkillPaths de ${skillPathPlatform}, debes ingresar el enlace oficial del certificado.`,
+            );
+            return;
+        }
+
+        if (!selectedFile && !cleanUrl) {
+            setErrorMessage(
+                "Ingresa el enlace de verificación o selecciona un PDF antes de continuar.",
+            );
             return;
         }
 
@@ -103,12 +135,16 @@ export function SkillPathEvidenceSection({
 
             const updatedSkillPath = await uploadSkillPathEvidence(
                 skillPathId,
-                selectedFile,
+                {
+                    file: selectedFile,
+                    verificationUrl: cleanUrl,
+                },
                 token,
             );
 
             setEvidence(updatedSkillPath.evidence ?? undefined);
             setSelectedFile(null);
+            setVerificationUrl(updatedSkillPath.evidence?.verificationUrl ?? cleanUrl);
             setSuccessMessage(
                 evidence
                     ? "Evidencia reemplazada correctamente. Quedó pendiente de validación."
@@ -126,7 +162,7 @@ export function SkillPathEvidenceSection({
             const message =
                 error instanceof Error
                     ? error.message
-                    : "No se pudo subir la evidencia. Verifica el archivo e intenta nuevamente.";
+                    : "No se pudo subir la evidencia. Verifica los datos e intenta nuevamente.";
 
             setErrorMessage(message);
         } finally {
@@ -189,14 +225,6 @@ export function SkillPathEvidenceSection({
             return;
         }
 
-        const confirmed = window.confirm(
-            "¿Seguro que deseas eliminar la evidencia subida?",
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
         try {
             setIsDeleting(true);
             setErrorMessage(null);
@@ -211,6 +239,8 @@ export function SkillPathEvidenceSection({
 
             setEvidence(updatedSkillPath.evidence ?? undefined);
             setSelectedFile(null);
+            setVerificationUrl("");
+            setShowDeleteModal(false);
             setSuccessMessage("Evidencia eliminada correctamente.");
 
             if (fileInputRef.current) {
@@ -246,7 +276,7 @@ export function SkillPathEvidenceSection({
                                 Certificado o evidencia
                             </h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Sube un PDF que demuestre que completaste este recurso externo.
+                                Pega el enlace oficial de tu certificado. El PDF queda como respaldo opcional.
                             </p>
                         </div>
                     </div>
@@ -269,12 +299,29 @@ export function SkillPathEvidenceSection({
 
                             <div>
                                 <p className="text-sm font-semibold text-slate-900">
-                                    {evidence.fileName}
+                                    {evidence.fileName ?? "Evidencia enviada por enlace"}
                                 </p>
 
                                 {evidence.uploadedAt && (
                                     <p className="mt-1 text-sm text-slate-500">
                                         Subido el {evidence.uploadedAt}
+                                    </p>
+                                )}
+
+                                {evidence.verificationUrl && (
+                                    <a
+                                        href={evidence.verificationUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2 inline-flex text-sm font-semibold text-[#7447D7] hover:underline"
+                                    >
+                                        Abrir enlace oficial del certificado
+                                    </a>
+                                )}
+
+                                {evidence.verificationCode && (
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Código: {evidence.verificationCode}
                                     </p>
                                 )}
 
@@ -287,42 +334,35 @@ export function SkillPathEvidenceSection({
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <button
-                                type="button"
-                                onClick={handleViewEvidence}
-                                disabled={isBusy}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#7447D7]/30 bg-white px-4 py-2 text-sm font-semibold text-[#7447D7] transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {isViewing ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Abriendo...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="h-4 w-4" />
-                                        Ver PDF
-                                    </>
-                                )}
-                            </button>
+                            {evidence.fileUrl && evidence.fileName && (
+                                <button
+                                    type="button"
+                                    onClick={handleViewEvidence}
+                                    disabled={isBusy}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#7447D7]/30 bg-white px-4 py-2 text-sm font-semibold text-[#7447D7] transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isViewing ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Abriendo...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Eye className="h-4 w-4" />
+                                            Ver PDF
+                                        </>
+                                    )}
+                                </button>
+                            )}
 
                             <button
                                 type="button"
-                                onClick={handleDeleteEvidence}
+                                onClick={() => setShowDeleteModal(true)}
                                 disabled={isBusy}
                                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isDeleting ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Eliminando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 className="h-4 w-4" />
-                                        Eliminar
-                                    </>
-                                )}
+                                <Trash2 className="h-4 w-4" />
+                                Eliminar
                             </button>
                         </div>
                     </div>
@@ -330,6 +370,36 @@ export function SkillPathEvidenceSection({
             )}
 
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+                <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-slate-900">
+                        Plataforma: {skillPathPlatform}
+                    </p>
+
+                    <label className="mt-3 block text-sm font-semibold text-slate-700">
+                        Enlace oficial del certificado
+                        {requiresVerificationUrl && (
+                            <span className="text-red-500"> *</span>
+                        )}
+                    </label>
+
+                    <input
+                        type="url"
+                        value={verificationUrl}
+                        onChange={(event) => {
+                            setVerificationUrl(event.target.value);
+                            setErrorMessage(null);
+                            setSuccessMessage(null);
+                        }}
+                        placeholder={urlPlaceholder}
+                        disabled={isBusy}
+                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#7447D7] focus:ring-2 focus:ring-[#7447D7]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+
+                    <p className="mt-2 text-xs text-slate-500">
+                        {platformHelpText}
+                    </p>
+                </div>
+
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <p className="text-sm font-semibold text-slate-900">
@@ -337,7 +407,7 @@ export function SkillPathEvidenceSection({
                         </p>
 
                         <p className="mt-1 text-sm text-slate-500">
-                            Formato permitido: PDF. Tamaño máximo: {MAX_FILE_SIZE_MB} MB.
+                            PDF opcional como respaldo. Tamaño máximo: {MAX_FILE_SIZE_MB} MB.
                         </p>
                     </div>
 
@@ -399,6 +469,74 @@ export function SkillPathEvidenceSection({
                     <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                         <AlertCircle className="h-4 w-4" />
                         {errorMessage}
+                    </div>
+                )}
+
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
+                                        <AlertTriangle className="h-6 w-6 text-red-500" />
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-lg font-extrabold text-[#020B2D]">
+                                            Eliminar evidencia
+                                        </h3>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                            Esta acción quitará el certificado o enlace enviado.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    disabled={isDeleting}
+                                    className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                                <p className="text-sm text-red-700">
+                                    ¿Seguro que deseas eliminar esta evidencia? Luego podrás subir una nueva si lo necesitas.
+                                </p>
+                            </div>
+
+                            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    disabled={isDeleting}
+                                    className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteEvidence}
+                                    disabled={isDeleting}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isDeleting ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Eliminando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="h-4 w-4" />
+                                            Sí, eliminar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

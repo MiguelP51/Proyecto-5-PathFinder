@@ -40,6 +40,7 @@ public class MentorProfileServiceImpl implements MentorProfileService {
                 .nombreCompleto(usuario.getNombreCompleto())
                 .correo(usuario.getCorreo())
                 .avatarUrl(usuario.getAvatarUrl())
+                .areasExpertise(Collections.emptyList())
                 .certificaciones(Collections.emptyList())
                 .especialidades(Collections.emptyList());
 

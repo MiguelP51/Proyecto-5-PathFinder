@@ -255,6 +255,7 @@ export default async function SkillPathDetailPage({
 
                 <SkillPathEvidenceSection
                     skillPathId={skillPath.id}
+                    skillPathPlatform={skillPath.platform}
                     initialEvidence={skillPath.evidence}
                 />
 

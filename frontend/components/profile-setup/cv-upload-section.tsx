@@ -34,6 +34,11 @@ export function CVUploadSection({
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("El archivo excede el límite permitido de 10 MB.");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
       onCVUpload(file);
     }
   };
@@ -57,6 +62,10 @@ export function CVUploadSection({
     if (file) {
       if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
         toast.error("Formato no válido. Solo se permiten archivos PDF para el CV.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("El archivo excede el límite permitido de 10 MB.");
         return;
       }
       onCVUpload(file);

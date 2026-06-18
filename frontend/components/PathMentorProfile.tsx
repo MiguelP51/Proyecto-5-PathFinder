@@ -140,8 +140,14 @@ export default function PathMentorProfile() {
     setLoading(true);
     apiFetch<ProfileData>('/api/mentor/profile', {}, session.backendJwt)
       .then((data) => {
-        setProfile(data);
-        setEditFields(data);
+        const safe = {
+          ...data,
+          areasExpertise: data.areasExpertise ?? [],
+          certificaciones: data.certificaciones ?? [],
+          especialidades: data.especialidades ?? [],
+        };
+        setProfile(safe);
+        setEditFields(safe);
       })
       .catch(() => {
         setProfile((prev) => ({

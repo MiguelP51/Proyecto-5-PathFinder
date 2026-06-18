@@ -260,6 +260,11 @@ export default function SimulationSchedulePage() {
       return;
     }
 
+    if (!puestoInteres || !puestoInteres.trim()) {
+      toast.warning("Por favor ingresa el puesto al que postulas.");
+      return;
+    }
+
     if (holidays.includes(selectedDate)) {
       toast.warning("La fecha seleccionada es feriado nacional. No se puede programar en este día.");
       return;
@@ -602,7 +607,7 @@ export default function SimulationSchedulePage() {
                 </div>
 
                 <button
-                  disabled={!selectedMentor || !selectedDate || !selectedSlot || scheduling}
+                  disabled={!selectedMentor || !selectedDate || !selectedSlot || !puestoInteres.trim() || scheduling}
                   onClick={handleSchedule}
                   className="w-full h-11 bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white font-bold rounded-xl transition shadow-md shadow-purple-200/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                 >

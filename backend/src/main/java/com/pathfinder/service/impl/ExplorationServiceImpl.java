@@ -1,9 +1,11 @@
 package com.pathfinder.service.impl;
 
 import com.pathfinder.dto.response.SubAreaResponseDTO;
+import com.pathfinder.model.entity.DiagnosticoInicial;
 import com.pathfinder.model.entity.SubArea;
 import com.pathfinder.model.entity.Usuario;
 import com.pathfinder.model.entity.VisitaSubArea;
+import com.pathfinder.repository.DiagnosticoInicialRepository;
 import com.pathfinder.repository.SubAreaRepository;
 import com.pathfinder.repository.UsuarioRepository;
 import com.pathfinder.repository.VisitaSubAreaRepository;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class ExplorationServiceImpl implements ExplorationService {
     private final SubAreaRepository subAreaRepository;
     private final VisitaSubAreaRepository visitaSubAreaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final DiagnosticoInicialRepository diagnosticoInicialRepository;
 
     @Override
     public List<SubAreaResponseDTO> getSubAreasByArea(String areaId, Integer idUsuario) {
@@ -64,6 +68,19 @@ public class ExplorationServiceImpl implements ExplorationService {
                 .findByUsuario_IdUsuarioAndSubArea_IdSubarea(idUsuario, sa.getIdSubarea())
                 .isPresent();
 
+        // Una sola consulta deriva ambos flags de diagnóstico:
+        // - diagnosticoIniciado: existe un DiagnosticoInicial, sin importar su estado (EN_PROGRESO o COMPLETADO)
+        // - diagnosticoCompletado: ese último diagnóstico tiene estado COMPLETADO
+        // Nota: yaVisitada NO se usa para decidir el texto del botón en la lista,
+        // porque solo significa "entró a ver la descripción", no "empezó el diagnóstico".
+        Optional<DiagnosticoInicial> ultimoDiagnostico = diagnosticoInicialRepository
+                .findTopByUsuario_IdUsuarioAndSubArea_IdSubareaOrderByFechaInicioDesc(idUsuario, sa.getIdSubarea());
+
+        boolean diagnosticoIniciado = ultimoDiagnostico.isPresent();
+        boolean diagnosticoCompletado = ultimoDiagnostico
+                .map(d -> "COMPLETADO".equalsIgnoreCase(d.getEstado()))
+                .orElse(false);
+
         return SubAreaResponseDTO.builder()
                 .idSubarea(sa.getIdSubarea())
                 .areaId(sa.getAreaId())
@@ -80,6 +97,8 @@ public class ExplorationServiceImpl implements ExplorationService {
                 .plataformasSkillPath(sa.getPlataformasSkillPath())
                 .slug(sa.getSlug())
                 .yaVisitada(yaVisitada)
+                .diagnosticoIniciado(diagnosticoIniciado)
+                .diagnosticoCompletado(diagnosticoCompletado)
                 .build();
-        }
+    }
 }

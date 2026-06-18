@@ -24,6 +24,8 @@ interface SubAreaDTO {
   cantidadPathChallenges: number;
   plataformasSkillPath: string;
   yaVisitada: boolean;
+  diagnosticoIniciado: boolean;
+  diagnosticoCompletado: boolean;
 }
 
 const areaConfig: Record<string, { titulo: string; emoji: string; colorFrom: string; colorTo: string }> = {
@@ -60,6 +62,12 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
   }, [area, session]);
 
   const handleSeleccionarSubarea = async (subarea: SubAreaDTO) => {
+    // Si ya completó el diagnóstico, va directo al dashboard, sin pasar por la descripción.
+    if (subarea.diagnosticoCompletado) {
+      router.push(`/areas/${area}/subareas/${subarea.idSubarea}/dashboard`);
+      return;
+    }
+
     try {
       await apiFetch(
         `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
@@ -128,8 +136,8 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
                 key={subarea.idSubarea}
                 className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
               >
-                {/* Badge visitada */}
-                {subarea.yaVisitada && (
+                {/* Badge: solo aparece con diagnóstico realmente completado */}
+                {subarea.diagnosticoCompletado && (
                   <span
                     className="absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-bold text-white"
                     style={{ background: `linear-gradient(135deg, ${config.colorFrom}, ${config.colorTo})` }}
@@ -161,21 +169,25 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
                   <span className="font-semibold">Nivel:</span> {subarea.nivel ?? "Principiante"}
                 </p>
 
-                {/* Botón */}
+                {/* Botón: el texto depende de si existe diagnóstico, no de si visitó la descripción */}
                 <button
                   onClick={() => handleSeleccionarSubarea(subarea)}
                   className={`w-full rounded-xl py-2.5 text-sm font-bold transition ${
-                    subarea.yaVisitada
+                    subarea.diagnosticoCompletado
                       ? "text-white"
                       : "border border-slate-200 text-slate-700 hover:border-slate-400"
                   }`}
                   style={
-                    subarea.yaVisitada
+                    subarea.diagnosticoCompletado
                       ? { background: `linear-gradient(135deg, ${config.colorFrom}, ${config.colorTo})` }
                       : {}
                   }
                 >
-                  {subarea.yaVisitada ? "Continuar" : "Comenzar"}
+                  {subarea.diagnosticoCompletado
+                    ? "Continuar"
+                    : subarea.diagnosticoIniciado
+                      ? "Continuar diagnóstico"
+                      : "Comenzar"}
                 </button>
               </div>
             ))}

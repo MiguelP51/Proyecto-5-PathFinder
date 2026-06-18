@@ -25,7 +25,8 @@ public interface SkillPathService {
     SkillPathEstudianteResponseDTO subirEvidenciaSkillPath(
             String correo,
             Integer idSkillPath,
-            MultipartFile file
+            MultipartFile file,
+            String urlVerificacion
     );
 
     SkillPathEstudianteResponseDTO eliminarEvidenciaSkillPath(

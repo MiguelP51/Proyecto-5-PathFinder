@@ -24,6 +24,7 @@ interface SubAreaDTO {
   cantidadPathChallenges: number;
   plataformasSkillPath: string;
   yaVisitada: boolean;
+  diagnosticoCompletado: boolean;
 }
 
 export default function SubAreaDetallePage({
@@ -50,16 +51,21 @@ export default function SubAreaDetallePage({
   useEffect(() => {
     if (!idSubarea || !session?.backendJwt) return;
     apiFetch<SubAreaDTO>(
-      `/api/exploracion/subareas/${idSubarea}`,
-      {},
-      session.backendJwt
+        `/api/exploracion/subareas/${idSubarea}`,
+        {},
+        session.backendJwt
     )
-      .then((data) => setSubarea(data))
-      .catch(() => setError("No se pudo cargar la información de la subárea"))
-      .finally(() => setLoading(false));
+        .then(setSubarea)
+        .catch(() => setError("No se pudo cargar la información de la subárea"))
+        .finally(() => setLoading(false));
   }, [idSubarea, session, area, router]);
 
   const handleComenzar = () => {
+    if (subarea?.diagnosticoCompletado) {
+      router.push(`/areas/${area}/subareas/${idSubarea}/dashboard`);
+      return;
+    }
+
     router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`);
   };
 
@@ -177,7 +183,7 @@ export default function SubAreaDetallePage({
             onClick={handleComenzar}
             className="rounded-full bg-white px-8 py-3 text-sm font-bold text-[#6f63ff] hover:bg-white/90 transition"
           >
-            Iniciar diagnóstico
+            {subarea.diagnosticoCompletado ? "Ir al dashboard" : "Iniciar diagnóstico"}
           </button>
         </div>
       </section>

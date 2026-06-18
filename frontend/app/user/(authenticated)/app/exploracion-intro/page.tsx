@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -116,6 +118,7 @@ const slides = [
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 export default function ExploracionIntroPage() {
+  const { data: session } = useSession();
   const router = useRouter();
   const [current, setCurrent] = useState(0);
 
@@ -125,18 +128,29 @@ export default function ExploracionIntroPage() {
 
   const goTo = (index: number) => setCurrent(index);
 
-  const handleNext = () => {
+  const completeIntro = async () => {
+    try {
+      if (session?.backendJwt) {
+        await apiFetch("/api/estudiante/dashboard/exploracion/iniciar", {
+          method: "POST"
+        }, session.backendJwt);
+      }
+    } catch (e) {
+      console.error("Error starting exploration:", e);
+    }
+    router.push("/user/app/exploracion/dashboard");
+  };
+
+  const handleNext = async () => {
     if (isLast) {
-      // TODO: POST /api/estudiante/exploracion/iniciar
-      router.push("/user/app/exploracion/dashboard");
+      await completeIntro();
     } else {
       setCurrent((prev) => prev + 1);
     }
   };
 
-  const handleSkip = () => {
-    // TODO: POST /api/estudiante/exploracion/iniciar
-    router.push("/user/app/exploracion/dashboard");
+  const handleSkip = async () => {
+    await completeIntro();
   };
 
   return (

@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import com.pathfinder.dto.response.DiagnosticoEstadoDTO;
 
 @Slf4j
 @RestController
@@ -86,6 +87,27 @@ public class DiagnosticoController {
         } catch (Exception e) {
             log.error("Error obteniendo resultado: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener resultado"));
+        }
+    }
+
+    @GetMapping("/subarea/{idSubarea}/ultimo")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<DiagnosticoEstadoDTO>> ultimoDiagnosticoSubarea(
+            @PathVariable Integer idSubarea,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Usuario usuario = usuarioRepository.findByCorreo(userDetails.getUsername()).orElseThrow();
+
+            DiagnosticoEstadoDTO result = diagnosticoService.obtenerUltimoDiagnosticoSubarea(
+                    idSubarea,
+                    usuario.getIdUsuario()
+            );
+
+            return ResponseEntity.ok(ApiResponse.success("Último diagnóstico obtenido", result));
+        } catch (Exception e) {
+            log.error("Error obteniendo último diagnóstico: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al obtener último diagnóstico"));
         }
     }
 }

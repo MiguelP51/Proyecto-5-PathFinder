@@ -35,6 +35,7 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
     private final PerfilCVHerramientaRepository perfilHerramientaRepo;
     private final ProgresoEstudianteRepository  progresoRepo;
     private final ArchivoCVRepository           archivoCVRepository;
+    private final PerfilEntrenamientoRepository perfilEntrenamientoRepository;
 
     // =========================================================
     // HU-EST-03 — Estado del estudiante
@@ -58,11 +59,16 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
         boolean confirmado =
                 etapas.get(NombreEtapa.CONFIRMACION_PERFIL) == EstadoEtapa.COMPLETADA;
 
+        boolean exploracionIniciada = perfilEntrenamientoRepository.findByUsuario_Correo(correo)
+                .map(PerfilEntrenamiento::getExploracionIniciada)
+                .orElse(false);
+
         return EstadoEstudianteResponse.builder()
                 .tienePerfilCV(tienePerfilCV)
                 .perfilConfirmado(confirmado)
                 .etapas(etapas)
                 .etapaActual(etapaActual)
+                .exploracionIniciada(exploracionIniciada)
                 .build();
     }
 

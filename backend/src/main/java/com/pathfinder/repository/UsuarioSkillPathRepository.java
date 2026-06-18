@@ -13,26 +13,42 @@ import java.util.Optional;
 @Repository
 public interface UsuarioSkillPathRepository extends JpaRepository<UsuarioSkillPath, Integer> {
 
-    Optional<UsuarioSkillPath> findByUsuario_CorreoAndSkillPath_IdSkillPath(
+    Optional<UsuarioSkillPath> findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(
             String correo,
             Integer idSkillPath
     );
 
-    List<UsuarioSkillPath> findByUsuario_CorreoAndSkillPath_IdSkillPathIn(
+    List<UsuarioSkillPath> findByUsuario_CorreoAndSkillPath_IdSkillPathInAndActivoTrue(
             String correo,
             Collection<Integer> idsSkillPath
     );
 
     @Query("""
+    SELECT usp
+    FROM UsuarioSkillPath usp
+    JOIN FETCH usp.skillPath sp
+    WHERE usp.usuario.correo = :correo
+      AND usp.activo = true
+      AND sp.activo = true
+    ORDER BY usp.fechaRegistro DESC
+    """)
+    List<UsuarioSkillPath> findSkillPathsIniciadosByUsuarioCorreo(
+            @Param("correo") String correo
+    );
+
+    // Nuevo: usado para migrar /api/skillpaths/activos al modelo de UsuarioSkillPath
+    @Query("""
         SELECT usp
         FROM UsuarioSkillPath usp
         JOIN FETCH usp.skillPath sp
         WHERE usp.usuario.correo = :correo
+          AND usp.estado = :estado
           AND sp.activo = true
         ORDER BY usp.fechaRegistro DESC
         """)
-    List<UsuarioSkillPath> findSkillPathsIniciadosByUsuarioCorreo(
-            @Param("correo") String correo
+    List<UsuarioSkillPath> findByUsuarioCorreoAndEstado(
+            @Param("correo") String correo,
+            @Param("estado") String estado
     );
 
     @Query("""
