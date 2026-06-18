@@ -4,7 +4,9 @@ import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.SkillPathActivoDTO;
 import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
 import com.pathfinder.model.entity.SkillPath;
+import com.pathfinder.model.entity.UsuarioSkillPath;
 import com.pathfinder.repository.SkillPathRepository;
+import com.pathfinder.repository.UsuarioSkillPathRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -28,25 +30,28 @@ import java.util.List;
 public class SkillPathController {
 
     private final SkillPathRepository skillPathRepository;
+    private final UsuarioSkillPathRepository usuarioSkillPathRepository;
     private final SkillPathService skillPathService;
 
     // GET /api/skillpaths/activos → SkillPaths EN_PROGRESO del estudiante
+    // Migrado al modelo de catálogo: el progreso ahora vive en UsuarioSkillPath,
+    // no directamente en SkillPath.id_usuario (modelo viejo, obsoleto).
     @GetMapping("/activos")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<List<SkillPathActivoDTO>>> getActivos(
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<SkillPath> skillPaths = skillPathRepository
-                    .findByUsuario_CorreoAndEstado(userDetails.getUsername(), "EN_PROGRESO");
+            List<UsuarioSkillPath> avances = usuarioSkillPathRepository
+                    .findByUsuarioCorreoAndEstado(userDetails.getUsername(), "EN_PROGRESO");
 
-            List<SkillPathActivoDTO> dtos = skillPaths.stream()
-                    .map(sp -> SkillPathActivoDTO.builder()
-                            .idSkillPath(sp.getIdSkillPath())
-                            .titulo(sp.getTitulo())
-                            .plataforma(sp.getPlataforma())
-                            .progreso(sp.getProgreso())
-                            .estado(sp.getEstado())
-                            .xp(sp.getXp())
+            List<SkillPathActivoDTO> dtos = avances.stream()
+                    .map(usp -> SkillPathActivoDTO.builder()
+                            .idSkillPath(usp.getSkillPath().getIdSkillPath())
+                            .titulo(usp.getSkillPath().getTitulo())
+                            .plataforma(usp.getSkillPath().getPlataforma())
+                            .progreso(usp.getProgreso())
+                            .estado(usp.getEstado())
+                            .xp(usp.getSkillPath().getXp())
                             .build())
                     .toList();
 
@@ -58,23 +63,25 @@ public class SkillPathController {
         }
     }
 
-    // GET /api/skillpaths → Todos los SkillPaths del estudiante
+    // GET /api/skillpaths → Todos los SkillPaths con avance del estudiante
+    // Migrado al modelo de catálogo: antes leía SkillPath.id_usuario directo,
+    // ahora lee UsuarioSkillPath (avances reales del estudiante sobre SkillPaths de catálogo).
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<List<SkillPathActivoDTO>>> getTodos(
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<SkillPath> skillPaths = skillPathRepository
-                    .findByUsuario_Correo(userDetails.getUsername());
+            List<UsuarioSkillPath> avances = usuarioSkillPathRepository
+                    .findSkillPathsIniciadosByUsuarioCorreo(userDetails.getUsername());
 
-            List<SkillPathActivoDTO> dtos = skillPaths.stream()
-                    .map(sp -> SkillPathActivoDTO.builder()
-                            .idSkillPath(sp.getIdSkillPath())
-                            .titulo(sp.getTitulo())
-                            .plataforma(sp.getPlataforma())
-                            .progreso(sp.getProgreso())
-                            .estado(sp.getEstado())
-                            .xp(sp.getXp())
+            List<SkillPathActivoDTO> dtos = avances.stream()
+                    .map(usp -> SkillPathActivoDTO.builder()
+                            .idSkillPath(usp.getSkillPath().getIdSkillPath())
+                            .titulo(usp.getSkillPath().getTitulo())
+                            .plataforma(usp.getSkillPath().getPlataforma())
+                            .progreso(usp.getProgreso())
+                            .estado(usp.getEstado())
+                            .xp(usp.getSkillPath().getXp())
                             .build())
                     .toList();
 

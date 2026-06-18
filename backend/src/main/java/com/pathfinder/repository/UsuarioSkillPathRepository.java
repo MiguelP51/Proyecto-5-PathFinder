@@ -34,4 +34,19 @@ public interface UsuarioSkillPathRepository extends JpaRepository<UsuarioSkillPa
     List<UsuarioSkillPath> findSkillPathsIniciadosByUsuarioCorreo(
             @Param("correo") String correo
     );
+
+    // Nuevo: usado para migrar /api/skillpaths/activos al modelo de UsuarioSkillPath
+    @Query("""
+        SELECT usp
+        FROM UsuarioSkillPath usp
+        JOIN FETCH usp.skillPath sp
+        WHERE usp.usuario.correo = :correo
+          AND usp.estado = :estado
+          AND sp.activo = true
+        ORDER BY usp.fechaRegistro DESC
+        """)
+    List<UsuarioSkillPath> findByUsuarioCorreoAndEstado(
+            @Param("correo") String correo,
+            @Param("estado") String estado
+    );
 }
