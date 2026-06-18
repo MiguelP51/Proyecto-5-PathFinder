@@ -83,7 +83,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
         Map<Integer, UsuarioPathChallenge> avancesPorChallenge =
                 usuarioPathChallengeRepository
-                        .findByUsuario_CorreoAndPathChallenge_IdPathChallengeIn(correo, ids)
+                        .findByUsuario_CorreoAndPathChallenge_IdPathChallengeInAndActivoTrue(correo, ids)
                         .stream()
                         .collect(toMap(
                                 avance -> avance.getPathChallenge().getIdPathChallenge(),
@@ -108,7 +108,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
 
         UsuarioPathChallenge avance = usuarioPathChallengeRepository
-                .findByUsuario_CorreoAndPathChallenge_IdPathChallenge(correo, idPathChallenge)
+                .findByUsuario_CorreoAndPathChallenge_IdPathChallengeAndActivoTrue(correo, idPathChallenge)
                 .orElse(null);
 
         return mapToResponse(challenge, avance, true);
@@ -124,7 +124,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
 
         UsuarioPathChallenge avance = usuarioPathChallengeRepository
-                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallenge(
+                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallengeAndActivoTrue(
                         usuario.getIdUsuario(),
                         idPathChallenge
                 )
@@ -273,7 +273,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
             PathChallenge challenge
     ) {
         return usuarioPathChallengeRepository
-                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallenge(
+                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallengeAndActivoTrue(
                         usuario.getIdUsuario(),
                         challenge.getIdPathChallenge()
                 )
@@ -324,7 +324,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     ) {
         List<UsuarioPathChallengeTask> registros =
                 usuarioPathChallengeTaskRepository
-                        .findByUsuarioPathChallenge_IdUsuarioPathChallenge(
+                        .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndActivoTrue(
                                 avance.getIdUsuarioPathChallenge()
                         );
 
@@ -374,7 +374,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
     private Set<Integer> obtenerIdsTareasCompletadas(Integer idUsuarioPathChallenge) {
         return usuarioPathChallengeTaskRepository
-                .findByUsuarioPathChallenge_IdUsuarioPathChallenge(idUsuarioPathChallenge)
+                .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndActivoTrue(idUsuarioPathChallenge)
                 .stream()
                 .filter(registro -> Boolean.TRUE.equals(registro.getCompletada()))
                 .map(registro -> registro.getPathChallengeTask().getIdPathChallengeTask())
@@ -461,7 +461,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         }
 
         return usuarioPathChallengeTaskRepository
-                .findByUsuarioPathChallenge_IdUsuarioPathChallenge(
+                .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndActivoTrue(
                         avance.getIdUsuarioPathChallenge()
                 )
                 .stream()

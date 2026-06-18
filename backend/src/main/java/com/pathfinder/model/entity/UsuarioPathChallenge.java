@@ -63,6 +63,9 @@ public class UsuarioPathChallenge {
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @PrePersist
     public void prePersist() {
         if (fechaRegistro == null) {
@@ -83,6 +86,10 @@ public class UsuarioPathChallenge {
 
         if (progresoPorcentaje == null) {
             progresoPorcentaje = 0;
+        }
+
+        if (activo == null) {
+            activo = true;
         }
     }
 
