@@ -30,6 +30,7 @@ interface EstadoEstudianteResponse {
     AGENDAMIENTO_ENTREVISTA?: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
     EVALUACION_ENTREVISTA?: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
   };
+  exploracionIniciada?: boolean;
 }
 
 const formatFecha = (fechaStr: string) => {
@@ -90,6 +91,15 @@ export default function StudentDashboard() {
         session?.backendJwt
       );
       setStudentStatus(data);
+
+      if (data && data.etapas?.EVALUACION_ENTREVISTA === "COMPLETADA") {
+        if (data.exploracionIniciada) {
+          router.push("/user/app/exploracion/dashboard");
+        } else {
+          router.push("/user/app/exploracion-intro");
+        }
+        return;
+      }
 
       // Cargar entrevista activa si está en etapa de agendamiento o posterior
       try {

@@ -44,7 +44,7 @@ export default function AuthenticatedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 transition-all duration-300">
+    <div className={`min-h-screen bg-slate-50 transition-all duration-300 ${sidebarOpen ? "md:pl-72" : "md:pl-0"}`}>
 
       <UserTopBar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}

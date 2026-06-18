@@ -42,30 +42,55 @@ export default function DiscTestPage() {
       return;
     }
 
+    const loadQuestions = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await apiFetch<Pregunta[]>("/api/disc/questions", {}, session?.backendJwt);
+        setQuestions(data || []);
+      } catch (err) {
+        console.error("Error cargando preguntas:", err);
+        setError(err instanceof Error ? err.message : "Error cargando las preguntas del test");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (status === "authenticated" && session?.backendJwt) {
       loadQuestions();
     }
   }, [status, session, router]);
 
-  const loadQuestions = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await apiFetch<Pregunta[]>("/api/disc/questions", {}, session?.backendJwt);
-      setQuestions(data || []);
-    } catch (err) {
-      console.error("Error cargando preguntas:", err);
-      setError(err instanceof Error ? err.message : "Error cargando las preguntas del test");
-    } finally {
-      setLoading(false);
+  // Load answers from localStorage on mount/session load
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.email) {
+      const email = session.user.email;
+      const savedAnswers = localStorage.getItem(`disc_answers_${email}`);
+      if (savedAnswers) {
+        try {
+          setAnswers(JSON.parse(savedAnswers));
+        } catch (e) {
+          console.error("Error parsing saved DISC answers:", e);
+        }
+      }
+      const savedPage = localStorage.getItem(`disc_page_${email}`);
+      if (savedPage) {
+        setCurrentPage(Number(savedPage) || 0);
+      }
     }
-  };
+  }, [status, session]);
 
   const handleSelectOption = (questionId: number, optionId: number) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionId,
-    }));
+    setAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [questionId]: optionId,
+      };
+      if (session?.user?.email) {
+        localStorage.setItem(`disc_answers_${session.user.email}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
 
     // Micro-interacción: auto scroll suave al siguiente elemento en móviles/pantallas si está disponible
     setTimeout(() => {
@@ -109,13 +134,21 @@ export default function DiscTestPage() {
       return;
     }
     setError("");
-    setCurrentPage((prev) => prev + 1);
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    if (session?.user?.email) {
+      localStorage.setItem(`disc_page_${session.user.email}`, String(nextPage));
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePrevPage = () => {
     setError("");
-    setCurrentPage((prev) => Math.max(0, prev - 1));
+    const prevPage = Math.max(0, currentPage - 1);
+    setCurrentPage(prevPage);
+    if (session?.user?.email) {
+      localStorage.setItem(`disc_page_${session.user.email}`, String(prevPage));
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -147,6 +180,11 @@ export default function DiscTestPage() {
         method: "POST",
         body: JSON.stringify(payload),
       }, session?.backendJwt);
+
+      if (session?.user?.email) {
+        localStorage.removeItem(`disc_answers_${session.user.email}`);
+        localStorage.removeItem(`disc_page_${session.user.email}`);
+      }
 
       router.push("/user/app/disc-results");
     } catch (err) {

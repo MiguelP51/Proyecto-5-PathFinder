@@ -71,10 +71,20 @@ export default function SurveyPage() {
       
       // Initialize answers state
       const initialAnswers: RespuestaState = {};
+      const saved = localStorage.getItem(`survey_answers_${session?.user?.email || 'default'}`);
+      let parsedSaved: RespuestaState = {};
+      if (saved) {
+        try {
+          parsedSaved = JSON.parse(saved);
+        } catch (e) {
+          console.error("Error parsing saved survey draft:", e);
+        }
+      }
+
       questionsData.forEach(q => {
         initialAnswers[q.idPregunta] = {
-          valorEntero: undefined,
-          valorTexto: ""
+          valorEntero: parsedSaved[q.idPregunta]?.valorEntero ?? undefined,
+          valorTexto: parsedSaved[q.idPregunta]?.valorTexto ?? ""
         };
       });
       setRespuestas(initialAnswers);
@@ -87,23 +97,35 @@ export default function SurveyPage() {
   };
 
   const handleRatingChange = (idPregunta: number, rating: number) => {
-    setRespuestas(prev => ({
-      ...prev,
-      [idPregunta]: {
-        ...prev[idPregunta],
-        valorEntero: rating
+    setRespuestas(prev => {
+      const updated = {
+        ...prev,
+        [idPregunta]: {
+          ...prev[idPregunta],
+          valorEntero: rating
+        }
+      };
+      if (session?.user?.email) {
+        localStorage.setItem(`survey_answers_${session.user.email}`, JSON.stringify(updated));
       }
-    }));
+      return updated;
+    });
   };
 
   const handleTextChange = (idPregunta: number, text: string) => {
-    setRespuestas(prev => ({
-      ...prev,
-      [idPregunta]: {
-        ...prev[idPregunta],
-        valorTexto: text
+    setRespuestas(prev => {
+      const updated = {
+        ...prev,
+        [idPregunta]: {
+          ...prev[idPregunta],
+          valorTexto: text
+        }
+      };
+      if (session?.user?.email) {
+        localStorage.setItem(`survey_answers_${session.user.email}`, JSON.stringify(updated));
       }
-    }));
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,6 +168,10 @@ export default function SurveyPage() {
         method: "POST",
         body: JSON.stringify(payload)
       }, session?.backendJwt);
+
+      if (session?.user?.email) {
+        localStorage.removeItem(`survey_answers_${session.user.email}`);
+      }
 
       toast.success("¡Encuesta enviada con éxito! Agradecemos enormemente tus comentarios.");
       setCompletada(true);

@@ -18,4 +18,6 @@ public class EstadoEstudianteResponse {
     private NombreEtapa etapaActual;
 
     private Map<NombreEtapa, EstadoEtapa> etapas;
+
+    private Boolean exploracionIniciada;
 }

@@ -6,6 +6,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, Plus, Trash2, Calendar } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const PREDEFINED_CAREERS = [
+  "Gestión y Alta Dirección",
+  "Gestión Empresarial",
+  "Administración de Empresas",
+  "Administración de Negocios",
+  "Administración",
+  "Contabilidad",
+  "Economía",
+  "Finanzas",
+  "Marketing",
+  "Negocios Internacionales",
+  "Comercio Exterior",
+  "Comunicaciones",
+  "Ingeniería Industrial",
+  "Ingeniería Económica",
+  "Ingeniería de Sistemas",
+  "Ingeniería Informática",
+  "Derecho",
+  "Psicología",
+  "Ingeniería Civil",
+  "Ingeniería Mecánica",
+  "Ingeniería Electrónica",
+  "Ingeniería Ambiental",
+  "Arquitectura",
+  "Medicina",
+  "Enfermería",
+  "Nutrición"
+];
 
 export interface Education {
   id: string;
@@ -193,13 +229,37 @@ export function EducationSection({ educations, onChange, disabled = false }: Edu
 
                 <div className="space-y-2">
                   <Label className="text-slate-700">Carrera</Label>
-                  <Input
-                    value={edu.career}
-                    disabled={disabled}
-                    onChange={(e) => updateEducation(edu.id, "career", e.target.value)}
-                    placeholder="Nombre de la carrera"
-                    className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20"
-                  />
+                  {(() => {
+                    const isPredefined = PREDEFINED_CAREERS.includes(edu.career);
+                    const hasCustomCareer = edu.career !== "" && !isPredefined;
+                    return (
+                      <div className="space-y-2">
+                        <Select
+                          value={edu.career}
+                          disabled={disabled}
+                          onValueChange={(val) => {
+                            updateEducation(edu.id, "career", val);
+                          }}
+                        >
+                          <SelectTrigger className="border-slate-200 focus:border-[#0E3E66] focus:ring-[#0E3E66]/20">
+                            <SelectValue placeholder="Selecciona tu carrera" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white max-h-[250px] overflow-y-auto">
+                            {PREDEFINED_CAREERS.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                            {hasCustomCareer && (
+                              <SelectItem value={edu.career}>
+                                {edu.career} (Detectada)
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-2">

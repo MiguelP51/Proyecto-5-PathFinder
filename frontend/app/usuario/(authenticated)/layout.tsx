@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import UserTopBar from "@/components/role-based/UserTopBar";
 import UserSidebar from "@/components/role-based/UserSidebar";
@@ -14,10 +14,10 @@ export default function AuthenticatedLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className={`min-h-screen bg-slate-50 transition-all duration-300 ${sidebarOpen ? "md:pl-72" : "md:pl-0"}`}>
 
       <UserTopBar
-        onMenuClick={() => setSidebarOpen(true)}
+        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
       />
 
       <UserSidebar
