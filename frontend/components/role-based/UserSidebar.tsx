@@ -273,7 +273,7 @@ export default function UserSidebar({ open, onClose }: Props) {
                     { href: "/user/app/exploracion/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, isLocked: false },
                     { href: "/user/explore", label: "Explorar", icon: <Compass className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { href: "/user/app/skillpaths", label: "SkillPaths", icon: <BookOpen className="h-5 w-5" />, isLocked: !isProfileConfirmed },
-                    { href: "/user/challenges", label: "Challenges", icon: <Trophy className="h-5 w-5" />, isLocked: !isProfileConfirmed },
+                    { href: "/user/app/challenges", label: "Challenges", icon: <Trophy className="h-5 w-5" />, isLocked: !isProfileConfirmed },
                     { 
                       href: statusData?.etapas?.AGENDAMIENTO_ENTREVISTA === "COMPLETADA"
                         ? "/user/app/simulation-details"

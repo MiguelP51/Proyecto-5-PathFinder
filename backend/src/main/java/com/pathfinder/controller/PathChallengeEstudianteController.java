@@ -48,6 +48,27 @@ public class PathChallengeEstudianteController {
         }
     }
 
+    @GetMapping("/estudiante/iniciados")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<List<PathChallengeEstudianteResponseDTO>>> listarIniciados(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            List<PathChallengeEstudianteResponseDTO> challenges =
+                    pathChallengeEstudianteService.listarIniciados(
+                            userDetails.getUsername()
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("PathChallenges iniciados obtenidos", challenges)
+            );
+        } catch (Exception e) {
+            log.error("Error obteniendo PathChallenges iniciados: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al obtener PathChallenges iniciados"));
+        }
+    }
+
     @GetMapping("/estudiante/{idPathChallenge}")
     @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
     public ResponseEntity<ApiResponse<PathChallengeEstudianteResponseDTO>> obtenerDetalle(

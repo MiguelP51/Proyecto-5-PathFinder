@@ -67,3 +67,13 @@ export async function finishStudentPathChallenge(
         token,
     );
 }
+
+export async function getStartedStudentPathChallenges(
+    token?: string | null,
+): Promise<StudentPathChallenge[]> {
+    return apiFetch<StudentPathChallenge[]>(
+        `/api/pathchallenges/estudiante/iniciados`,
+        {},
+        token,
+    );
+}

@@ -47,6 +47,25 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
     @Override
     @Transactional(readOnly = true)
+    public List<PathChallengeEstudianteResponseDTO> listarIniciados(String correo) {
+        List<UsuarioPathChallenge> avances =
+                usuarioPathChallengeRepository.findIniciadosByUsuarioCorreo(correo);
+
+        if (avances.isEmpty()) {
+            return List.of();
+        }
+
+        return avances.stream()
+                .map(avance -> mapToResponse(
+                        avance.getPathChallenge(),
+                        avance,
+                        false
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PathChallengeEstudianteResponseDTO> listarPorSubarea(
             String correo,
             Integer idSubarea

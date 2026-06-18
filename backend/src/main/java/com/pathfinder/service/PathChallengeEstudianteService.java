@@ -8,6 +8,10 @@ import java.util.List;
 
 public interface PathChallengeEstudianteService {
 
+    List<PathChallengeEstudianteResponseDTO> listarIniciados(
+            String correo
+    );
+
     List<PathChallengeEstudianteResponseDTO> listarPorSubarea(
             String correo,
             Integer idSubarea
