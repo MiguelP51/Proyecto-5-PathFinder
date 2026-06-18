@@ -32,6 +32,4 @@ public class UpdateAdminSkillPathRequestDTO {
 
     @NotNull(message = "Debe indicar si es gratuito")
     private Boolean esGratuito;
-
-    private Boolean activo;
 }

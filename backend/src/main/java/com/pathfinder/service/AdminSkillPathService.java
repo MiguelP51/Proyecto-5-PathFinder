@@ -66,24 +66,6 @@ public class AdminSkillPathService {
         curso.setEstadoEnlace(request.getEstadoEnlace());
         curso.setEsGratuito(request.getEsGratuito());
 
-        if (request.getActivo() != null) {
-            curso.setActivo(request.getActivo());
-        }
-
-        curso.setFechaModificacion(LocalDateTime.now());
-
-        return CursoExternoResponseDTO.from(cursoExternoRepository.save(curso));
-    }
-
-    @Transactional
-    public CursoExternoResponseDTO actualizarEstadoSkillPath(
-            Integer idCurso,
-            Boolean activo
-    ) {
-        CursoExterno curso = cursoExternoRepository.findById(idCurso)
-                .orElseThrow(() -> new EntityNotFoundException("Curso no encontrado con ID: " + idCurso));
-
-        curso.setActivo(activo);
         curso.setFechaModificacion(LocalDateTime.now());
 
         return CursoExternoResponseDTO.from(cursoExternoRepository.save(curso));

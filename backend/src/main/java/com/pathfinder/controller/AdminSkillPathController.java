@@ -2,7 +2,6 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.admin.curso.CursoExternoResponseDTO;
 import com.pathfinder.dto.admin.skillpath.UpdateAdminSkillPathRequestDTO;
-import com.pathfinder.dto.admin.skillpath.UpdateAdminSkillPathStatusRequestDTO;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.model.enums.NivelCurso;
 import com.pathfinder.service.AdminSkillPathService;
@@ -43,23 +42,6 @@ public class AdminSkillPathController {
                 ApiResponse.success(
                         "SkillPath actualizado correctamente",
                         adminSkillPathService.actualizarSkillPath(idCurso, request)
-                )
-        );
-    }
-
-    @PatchMapping("/{idCurso}/estado")
-    public ResponseEntity<ApiResponse<CursoExternoResponseDTO>> actualizarEstadoSkillPath(
-            @PathVariable Integer idCurso,
-            @Valid @RequestBody UpdateAdminSkillPathStatusRequestDTO request
-    ) {
-        String mensaje = Boolean.TRUE.equals(request.getActivo())
-                ? "SkillPath activado correctamente"
-                : "SkillPath desactivado correctamente";
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        mensaje,
-                        adminSkillPathService.actualizarEstadoSkillPath(idCurso, request.getActivo())
                 )
         );
     }

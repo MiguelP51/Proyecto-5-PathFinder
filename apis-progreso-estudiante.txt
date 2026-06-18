@@ -1,0 +1,31 @@
+GET /api/admin/estudiantes/progreso
+Que hace: Lista estudiantes con un resumen de progreso para que admin pueda monitorear avances generales.
+Que devuelve: Lista de estudiantes con idUsuario, nombre, correo, progreso general, total de SkillPaths, SkillPaths completados, SkillPaths en progreso, total de Challenges y Challenges completados.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso
+Que hace: Obtiene el progreso completo de un estudiante especifico.
+Que devuelve: Datos del estudiante, progreso general, resumen de areas, resumen de subareas, SkillPaths del estudiante y Challenges asociados.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/areas
+Que hace: Obtiene el progreso de un estudiante agrupado por areas.
+Que devuelve: Lista de areas con areaId, nombre, emoji, porcentaje de progreso, total de subareas, subareas iniciadas/completadas, total de SkillPaths y SkillPaths completados.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/areas/{areaId}
+Que hace: Obtiene el detalle del progreso de un estudiante dentro de un area especifica.
+Que devuelve: Datos del area, porcentaje de progreso del area, lista de subareas del area, SkillPaths asociados y Challenges asociados.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/subareas/{idSubarea}
+Que hace: Obtiene el detalle del progreso de un estudiante dentro de una subarea especifica.
+Que devuelve: Datos de la subarea, si fue visitada, resultado o estado del diagnostico, porcentaje de progreso, SkillPaths asociados con estado/progreso y Challenges asociados.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/skillpaths
+Que hace: Lista todos los SkillPaths relacionados al progreso de un estudiante.
+Que devuelve: Lista de SkillPaths con id, titulo, area, subarea, plataforma, dificultad, duracion, XP, estado, porcentaje de progreso y estado de evidencia.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/challenges
+Que hace: Lista los PathChallenges asociados al avance de un estudiante.
+Que devuelve: Lista de Challenges con id, titulo, subarea, dificultad, XP, estado y porcentaje de progreso si existe informacion individual del estudiante.
+
+GET /api/admin/estudiantes/{idUsuario}/progreso/diagnosticos
+Que hace: Lista los diagnosticos realizados por un estudiante por subarea.
+Que devuelve: Lista de diagnosticos con idDiagnostico, subarea, area, estado, puntaje, total de preguntas, respuestas correctas, nivel recomendado y fecha.

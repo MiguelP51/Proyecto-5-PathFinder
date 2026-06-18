@@ -5,17 +5,11 @@ import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
 import {
   Search,
-  BookOpen,
-  MonitorPlay,
-  Layers,
-  ThumbsUp,
   Plus,
   Edit2,
   Power,
-  Trash2,
-  ChevronDown,
-  RefreshCw,
   Upload,
+  Download,
 } from "lucide-react";
 import SkillPathFormModal from "@/components/admin/SkillPathFormModal";
 import SkillPathBulkUploadModal from "@/components/admin/SkillPathBulkUploadModal";
@@ -72,27 +66,40 @@ export default function SkillPathsPage() {
     }
   }, [status, session, tipoFiltro]);
 
-  const handleEliminar = async (id: number) => {
-    if (!confirm("¿Seguro que deseas eliminar este SkillPath?")) return;
+  const handleCambiarEstado = async (item: SkillPath) => {
+    const nuevoEstado = !item.activo;
+    const accion = nuevoEstado ? "activar" : "desactivar";
+
+    if (!confirm(`Seguro que deseas ${accion} este SkillPath?`)) return;
+
     try {
-      await apiFetch(`/api/admin/manage-skillpaths/${id}`, { method: "DELETE" }, session?.backendJwt);
+      await apiFetch(
+        `/api/admin/manage-skillpaths/${item.idSkillPath}/estado`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ activo: nuevoEstado }),
+        },
+        session?.backendJwt,
+      );
       cargarSkillPaths();
     } catch (err) {
-      alert("Error al eliminar");
+      alert(`Error al ${accion}`);
     }
   };
 
-  const handleActivar = async (id: number, currentActivo: boolean) => {
-    try {
-      await apiFetch(`/api/admin/manage-skillpaths/${id}/estado`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activo: !currentActivo })
-      }, session?.backendJwt);
-      cargarSkillPaths();
-    } catch (err) {
-      alert("Error al cambiar estado");
-    }
+  const handleDownloadTemplate = () => {
+    const csv = [
+      "titulo,plataforma,areaNombre,dificultad,duracionLabel,urlExterno,descripcion",
+      "Curso de Excel,Coursera,Analisis de Datos,PRINCIPIANTE,6 horas,https://www.coursera.org/,Curso introductorio",
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "skillpaths-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const filteredSkillpaths = skillpaths.filter(sp => 
@@ -112,7 +119,14 @@ export default function SkillPathsPage() {
             Administra plantillas globales de aprendizaje
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-2 self-start rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-5 py-2.5 shadow-sm transition text-sm font-bold"
+          >
+            <Download className="h-4 w-4" />
+            <span>Descargar Template</span>
+          </button>
           <button 
             onClick={() => setIsBulkOpen(true)}
             className="flex items-center gap-2 self-start rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-5 py-2.5 shadow-sm transition text-sm font-bold"
@@ -225,14 +239,14 @@ export default function SkillPathsPage() {
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button 
-                        onClick={() => handleActivar(item.idSkillPath, item.activo)}
-                        className="p-1.5 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Activar/Desactivar">
+                        onClick={() => handleCambiarEstado(item)}
+                        className={`p-1.5 rounded-lg transition ${
+                          item.activo
+                            ? "hover:text-red-600 hover:bg-red-50"
+                            : "hover:text-emerald-600 hover:bg-emerald-50"
+                        }`}
+                        title={item.activo ? "Desactivar" : "Activar"}>
                         <Power className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleEliminar(item.idSkillPath)}
-                        className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

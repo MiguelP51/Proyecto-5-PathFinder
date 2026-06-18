@@ -49,21 +49,22 @@ public class AdminManageSkillPathController {
         );
     }
 
+    @DeleteMapping("/{id}")
+    @Audit(modulo = "SKILLPATH", accion = "DESACTIVACION_SKILLPATH")
+    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Integer id) {
+        adminManageSkillPathService.eliminarSkillPath(id);
+        return ResponseEntity.ok(ApiResponse.success("SkillPath desactivado", null));
+    }
+
     @PatchMapping("/{id}/estado")
     @Audit(modulo = "SKILLPATH", accion = "CAMBIO_ESTADO_SKILLPATH")
-    public ResponseEntity<ApiResponse<AdminManageSkillPathResponseDTO>> actualizarEstado(
+    public ResponseEntity<ApiResponse<AdminManageSkillPathResponseDTO>> cambiarEstado(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAdminManageSkillPathStatusRequestDTO request) {
         return ResponseEntity.ok(
-                ApiResponse.success("Estado actualizado", adminManageSkillPathService.cambiarEstado(id, request))
+                ApiResponse.success("Estado del SkillPath actualizado",
+                        adminManageSkillPathService.cambiarEstado(id, request.getActivo()))
         );
-    }
-
-    @DeleteMapping("/{id}")
-    @Audit(modulo = "SKILLPATH", accion = "ELIMINACION_SKILLPATH")
-    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Integer id) {
-        adminManageSkillPathService.eliminarSkillPath(id);
-        return ResponseEntity.ok(ApiResponse.success("SkillPath eliminado", null));
     }
 
     @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
