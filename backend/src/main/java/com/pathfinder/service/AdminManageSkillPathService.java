@@ -4,11 +4,13 @@ import com.opencsv.CSVReader;
 import com.pathfinder.dto.admin.manage_skillpath.*;
 import com.pathfinder.model.entity.SkillPath;
 import com.pathfinder.repository.SkillPathRepository;
+import com.pathfinder.repository.SubAreaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStreamReader;
@@ -29,6 +31,7 @@ public class AdminManageSkillPathService {
     );
 
     private final SkillPathRepository skillPathRepository;
+    private final SubAreaRepository subAreaRepository;
 
     @Transactional(readOnly = true)
     public List<AdminManageSkillPathResponseDTO> listarSkillPaths(String tipo) {
@@ -60,10 +63,30 @@ public class AdminManageSkillPathService {
         skillPath.setUrlExterno(request.getUrlExterno());
         skillPath.setDificultad(request.getDificultad());
         skillPath.setDuracionLabel(request.getDuracionLabel());
-        skillPath.setAreaId(request.getAreaId());
-        skillPath.setAreaNombre(request.getAreaNombre());
-        skillPath.setSubareaId(request.getSubareaId());
-        skillPath.setSubareaNombre(request.getSubareaNombre());
+        
+        // Autocompletar área y subárea si se provee un subareaId numérico
+        if (StringUtils.hasText(request.getSubareaId())) {
+            try {
+                Integer sId = Integer.parseInt(request.getSubareaId().trim());
+                subAreaRepository.findById(sId).ifPresent(subArea -> {
+                    skillPath.setSubareaId(String.valueOf(subArea.getIdSubarea()));
+                    skillPath.setSubareaNombre(subArea.getNombre());
+                    skillPath.setAreaId(subArea.getAreaId());
+                    skillPath.setAreaNombre(subArea.getAreaNombre());
+                });
+            } catch (NumberFormatException e) {
+                skillPath.setAreaId(request.getAreaId());
+                skillPath.setAreaNombre(request.getAreaNombre());
+                skillPath.setSubareaId(request.getSubareaId());
+                skillPath.setSubareaNombre(request.getSubareaNombre());
+            }
+        } else {
+            skillPath.setAreaId(request.getAreaId());
+            skillPath.setAreaNombre(request.getAreaNombre());
+            skillPath.setSubareaId(request.getSubareaId());
+            skillPath.setSubareaNombre(request.getSubareaNombre());
+        }
+
         skillPath.setEsRecomendado(request.getEsRecomendado() != null ? request.getEsRecomendado() : false);
         skillPath.setActivo(true);
         skillPath.setProgreso(0);
@@ -86,10 +109,36 @@ public class AdminManageSkillPathService {
         if (request.getUrlExterno() != null) skillPath.setUrlExterno(request.getUrlExterno());
         if (request.getDificultad() != null) skillPath.setDificultad(request.getDificultad());
         if (request.getDuracionLabel() != null) skillPath.setDuracionLabel(request.getDuracionLabel());
-        if (request.getAreaId() != null) skillPath.setAreaId(request.getAreaId());
-        if (request.getAreaNombre() != null) skillPath.setAreaNombre(request.getAreaNombre());
-        if (request.getSubareaId() != null) skillPath.setSubareaId(request.getSubareaId());
-        if (request.getSubareaNombre() != null) skillPath.setSubareaNombre(request.getSubareaNombre());
+        
+        // Autocompletar área y subárea si se provee un subareaId numérico
+        if (request.getSubareaId() != null) {
+            if (StringUtils.hasText(request.getSubareaId())) {
+                try {
+                    Integer sId = Integer.parseInt(request.getSubareaId().trim());
+                    subAreaRepository.findById(sId).ifPresent(subArea -> {
+                        skillPath.setSubareaId(String.valueOf(subArea.getIdSubarea()));
+                        skillPath.setSubareaNombre(subArea.getNombre());
+                        skillPath.setAreaId(subArea.getAreaId());
+                        skillPath.setAreaNombre(subArea.getAreaNombre());
+                    });
+                } catch (NumberFormatException e) {
+                    skillPath.setAreaId(request.getAreaId());
+                    skillPath.setAreaNombre(request.getAreaNombre());
+                    skillPath.setSubareaId(request.getSubareaId());
+                    skillPath.setSubareaNombre(request.getSubareaNombre());
+                }
+            } else {
+                skillPath.setSubareaId(null);
+                skillPath.setSubareaNombre(null);
+                skillPath.setAreaId(null);
+                skillPath.setAreaNombre(null);
+            }
+        } else {
+            if (request.getAreaId() != null) skillPath.setAreaId(request.getAreaId());
+            if (request.getAreaNombre() != null) skillPath.setAreaNombre(request.getAreaNombre());
+            if (request.getSubareaNombre() != null) skillPath.setSubareaNombre(request.getSubareaNombre());
+        }
+
         if (request.getEsRecomendado() != null) skillPath.setEsRecomendado(request.getEsRecomendado());
 
         return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));

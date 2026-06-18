@@ -48,4 +48,9 @@ public class AdminDISCQuestionController {
     public void eliminarPregunta(@PathVariable Integer idPreguntaDisc) {
         adminDISCQuestionService.eliminarPregunta(idPreguntaDisc);
     }
+
+    @GetMapping("/types")
+    public List<com.pathfinder.model.entity.TipoPreguntaDISC> listarTiposPregunta() {
+        return adminDISCQuestionService.listarTiposPregunta();
+    }
 }

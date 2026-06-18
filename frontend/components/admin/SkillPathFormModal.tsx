@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import { X } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [subareas, setSubareas] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     titulo: editingItem?.titulo || '',
@@ -24,9 +25,23 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
     urlExterno: editingItem?.urlExterno || '',
     dificultad: editingItem?.dificultad || 'Principiante',
     duracionLabel: editingItem?.duracionLabel || '',
-    areaNombre: editingItem?.areaNombre || '',
+    subareaId: editingItem?.subareaId || '',
     esRecomendado: editingItem?.esRecomendado || false
   });
+
+  useEffect(() => {
+    const loadSubareas = async () => {
+      try {
+        const data = await apiFetch<any[]>('/api/admin/subareas?soloActivos=true', {}, session?.backendJwt);
+        setSubareas(data || []);
+      } catch (err) {
+        console.error('Error al cargar subareas:', err);
+      }
+    };
+    if (session?.backendJwt) {
+      loadSubareas();
+    }
+  }, [session]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as any;
@@ -97,8 +112,15 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Área / Habilidad</label>
-              <input name="areaNombre" value={formData.areaNombre} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+              <label className="block text-sm font-bold text-slate-700 mb-1">Subárea Asociada</label>
+              <select name="subareaId" value={formData.subareaId} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white">
+                <option value="">-- Sin Asignar --</option>
+                {subareas.map(sa => (
+                  <option key={sa.idSubarea} value={String(sa.idSubarea)}>
+                    {sa.areaNombre} &gt; {sa.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
