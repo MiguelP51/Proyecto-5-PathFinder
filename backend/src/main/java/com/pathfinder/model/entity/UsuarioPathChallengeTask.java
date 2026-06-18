@@ -45,6 +45,9 @@ public class UsuarioPathChallengeTask {
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @PrePersist
     public void prePersist() {
         if (fechaRegistro == null) {
@@ -53,6 +56,10 @@ public class UsuarioPathChallengeTask {
 
         if (completada == null) {
             completada = false;
+        }
+
+        if (activo == null) {
+            activo = true;
         }
     }
 

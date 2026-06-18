@@ -66,6 +66,9 @@ public class EvidenciaSkillPath {
     @Column(name = "fecha_revision")
     private LocalDateTime fechaRevision;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @PrePersist
     public void prePersist() {
         if (fechaSubida == null) {
@@ -74,6 +77,10 @@ public class EvidenciaSkillPath {
 
         if (estadoValidacion == null) {
             estadoValidacion = "PENDIENTE";
+        }
+
+        if (activo == null) {
+            activo = true;
         }
     }
 }

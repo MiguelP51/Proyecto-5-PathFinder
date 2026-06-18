@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SubAreaRepository extends JpaRepository<SubArea, Integer> {
+    List<SubArea> findByActivoTrue();
+    List<SubArea> findByAreaId(String areaId);
     List<SubArea> findByAreaIdAndActivoTrue(String areaId);
     Optional<SubArea> findByIdSubareaAndActivoTrue(Integer idSubarea);
 }

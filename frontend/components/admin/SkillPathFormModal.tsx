@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import { X } from 'lucide-react';
@@ -10,10 +10,13 @@ interface Props {
   editingItem: SkillPath | null;
 }
 
+const DURATION_PATTERN = /^\d+(\.\d+)?\s*(hora|horas|minuto|minutos|min|h|dia|dias|semana|semanas|mes|meses)$/i;
+
 export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: Props) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [subareas, setSubareas] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     titulo: editingItem?.titulo || '',
@@ -22,9 +25,23 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
     urlExterno: editingItem?.urlExterno || '',
     dificultad: editingItem?.dificultad || 'Principiante',
     duracionLabel: editingItem?.duracionLabel || '',
-    areaNombre: editingItem?.areaNombre || '',
+    subareaId: editingItem?.subareaId || '',
     esRecomendado: editingItem?.esRecomendado || false
   });
+
+  useEffect(() => {
+    const loadSubareas = async () => {
+      try {
+        const data = await apiFetch<any[]>('/api/admin/subareas?soloActivos=true', {}, session?.backendJwt);
+        setSubareas(data || []);
+      } catch (err) {
+        console.error('Error al cargar subareas:', err);
+      }
+    };
+    if (session?.backendJwt) {
+      loadSubareas();
+    }
+  }, [session]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as any;
@@ -36,8 +53,15 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    const duracion = formData.duracionLabel.trim();
+    if (duracion && !DURATION_PATTERN.test(duracion)) {
+      setError('La duracion debe tener numero y unidad. Ejemplo: 6 horas.');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (editingItem) {
@@ -88,8 +112,15 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Área / Habilidad</label>
-              <input name="areaNombre" value={formData.areaNombre} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+              <label className="block text-sm font-bold text-slate-700 mb-1">Subárea Asociada</label>
+              <select name="subareaId" value={formData.subareaId} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white">
+                <option value="">-- Sin Asignar --</option>
+                {subareas.map(sa => (
+                  <option key={sa.idSubarea} value={String(sa.idSubarea)}>
+                    {sa.areaNombre} &gt; {sa.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -103,7 +134,7 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Duración (ej. 40 horas)</label>
-              <input name="duracionLabel" value={formData.duracionLabel} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+              <input name="duracionLabel" value={formData.duracionLabel} onChange={handleChange} placeholder="6 horas" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
             </div>
 
             <div className="col-span-2">

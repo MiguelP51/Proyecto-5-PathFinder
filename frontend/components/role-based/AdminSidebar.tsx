@@ -10,6 +10,7 @@ import {
   Shield,
   UploadCloud,
   Grid,
+  Layers,
   BookOpen,
   Target,
   RefreshCw,
@@ -17,6 +18,7 @@ import {
   LogOut,
   X,
   MessageSquare,
+  Brain,
 } from "lucide-react";
 
 interface Props {
@@ -39,12 +41,20 @@ export default function AdminSidebar({
   // Helper para determinar si un enlace está activo
   const isActive = (path: string) => pathname === path;
 
-  // Clase para los enlaces
+  // Clase para los enlaces principales
   const linkClass = (path: string) =>
     `flex items-center gap-3 rounded-xl p-3 transition text-sm font-medium ${
       isActive(path)
         ? "bg-[#0E3E66]/10 text-[#0E3E66]"
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+    }`;
+
+  // Clase para los subenlaces indentados (Fase 3 - Alternativa B)
+  const sublinkClass = (path: string) =>
+    `flex items-center gap-3 rounded-xl p-2.5 pl-8 transition text-xs font-semibold border-l border-slate-100/80 ml-4 ${
+      isActive(path)
+        ? "bg-slate-50 text-[#0E3E66] border-l-2 border-l-[#0E3E66] rounded-l-none"
+        : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
     }`;
 
   return (
@@ -136,22 +146,35 @@ export default function AdminSidebar({
           <div>
             <p className="px-3 mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Contenido</p>
             <div className="flex flex-col gap-1">
-              <Link href="/admin/areas" className={linkClass("/admin/areas")}>
-                <Grid className="h-5 w-5" />
-                Áreas y Subáreas
+              {/* Jerarquía de Contenidos - Fijos e Indentados */}
+              <Link href="/admin/areas" className={sublinkClass("/admin/areas")}>
+                <Grid className="h-4 w-4 text-slate-400" />
+                Áreas
               </Link>
-              <Link href="/admin/skillpaths" className={linkClass("/admin/skillpaths")}>
-                <BookOpen className="h-5 w-5" />
+              <Link href="/admin/subareas" className={sublinkClass("/admin/subareas")}>
+                <Layers className="h-4 w-4 text-slate-400" />
+                Subáreas
+              </Link>
+              <Link href="/admin/skillpaths" className={sublinkClass("/admin/skillpaths")}>
+                <BookOpen className="h-4 w-4 text-slate-400" />
                 SkillPaths
               </Link>
-              <Link href="/admin/pathchallenges" className={linkClass("/admin/pathchallenges")}>
-                <Target className="h-5 w-5" />
-                PathChallenges
+              <Link href="/admin/pathchallenges" className={sublinkClass("/admin/pathchallenges")}>
+                <Target className="h-4 w-4 text-slate-400" />
+                Challenges
               </Link>
-              <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
-                <MessageSquare className="h-5 w-5" />
-                Encuestas de Satisfacción
-              </Link>
+
+              {/* Evaluaciones y Feedback */}
+              <div className="mt-2 pt-2 border-t border-slate-100/50">
+                <Link href="/admin/disc" className={linkClass("/admin/disc")}>
+                  <Brain className="h-5 w-5" />
+                  Preguntas DISC
+                </Link>
+                <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
+                  <MessageSquare className="h-5 w-5" />
+                  Encuestas de Satisfacción
+                </Link>
+              </div>
             </div>
           </div>
 

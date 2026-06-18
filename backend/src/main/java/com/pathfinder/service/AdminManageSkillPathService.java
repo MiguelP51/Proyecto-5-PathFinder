@@ -4,24 +4,34 @@ import com.opencsv.CSVReader;
 import com.pathfinder.dto.admin.manage_skillpath.*;
 import com.pathfinder.model.entity.SkillPath;
 import com.pathfinder.repository.SkillPathRepository;
+import com.pathfinder.repository.SubAreaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminManageSkillPathService {
 
+    private static final Pattern DURACION_PATTERN = Pattern.compile(
+            "^\\d+(\\.\\d+)?\\s*(hora|horas|minuto|minutos|min|h|dia|dias|semana|semanas|mes|meses)$",
+            Pattern.CASE_INSENSITIVE
+    );
+
     private final SkillPathRepository skillPathRepository;
+    private final SubAreaRepository subAreaRepository;
 
     @Transactional(readOnly = true)
     public List<AdminManageSkillPathResponseDTO> listarSkillPaths(String tipo) {
@@ -42,6 +52,8 @@ public class AdminManageSkillPathService {
 
     @Transactional
     public AdminManageSkillPathResponseDTO crearSkillPathGlobal(CreateAdminManageSkillPathRequestDTO request) {
+        validarDuracionLabel(request.getDuracionLabel());
+
         SkillPath skillPath = new SkillPath();
         
         skillPath.setUsuario(null);
@@ -51,10 +63,30 @@ public class AdminManageSkillPathService {
         skillPath.setUrlExterno(request.getUrlExterno());
         skillPath.setDificultad(request.getDificultad());
         skillPath.setDuracionLabel(request.getDuracionLabel());
-        skillPath.setAreaId(request.getAreaId());
-        skillPath.setAreaNombre(request.getAreaNombre());
-        skillPath.setSubareaId(request.getSubareaId());
-        skillPath.setSubareaNombre(request.getSubareaNombre());
+        
+        // Autocompletar área y subárea si se provee un subareaId numérico
+        if (StringUtils.hasText(request.getSubareaId())) {
+            try {
+                Integer sId = Integer.parseInt(request.getSubareaId().trim());
+                subAreaRepository.findById(sId).ifPresent(subArea -> {
+                    skillPath.setSubareaId(String.valueOf(subArea.getIdSubarea()));
+                    skillPath.setSubareaNombre(subArea.getNombre());
+                    skillPath.setAreaId(subArea.getAreaId());
+                    skillPath.setAreaNombre(subArea.getAreaNombre());
+                });
+            } catch (NumberFormatException e) {
+                skillPath.setAreaId(request.getAreaId());
+                skillPath.setAreaNombre(request.getAreaNombre());
+                skillPath.setSubareaId(request.getSubareaId());
+                skillPath.setSubareaNombre(request.getSubareaNombre());
+            }
+        } else {
+            skillPath.setAreaId(request.getAreaId());
+            skillPath.setAreaNombre(request.getAreaNombre());
+            skillPath.setSubareaId(request.getSubareaId());
+            skillPath.setSubareaNombre(request.getSubareaNombre());
+        }
+
         skillPath.setEsRecomendado(request.getEsRecomendado() != null ? request.getEsRecomendado() : false);
         skillPath.setActivo(true);
         skillPath.setProgreso(0);
@@ -69,27 +101,46 @@ public class AdminManageSkillPathService {
         SkillPath skillPath = skillPathRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SkillPath no encontrado con ID: " + id));
 
+        validarDuracionLabel(request.getDuracionLabel());
+
         if (request.getTitulo() != null) skillPath.setTitulo(request.getTitulo());
         if (request.getPlataforma() != null) skillPath.setPlataforma(request.getPlataforma());
         if (request.getDescripcion() != null) skillPath.setDescripcion(request.getDescripcion());
         if (request.getUrlExterno() != null) skillPath.setUrlExterno(request.getUrlExterno());
         if (request.getDificultad() != null) skillPath.setDificultad(request.getDificultad());
         if (request.getDuracionLabel() != null) skillPath.setDuracionLabel(request.getDuracionLabel());
-        if (request.getAreaId() != null) skillPath.setAreaId(request.getAreaId());
-        if (request.getAreaNombre() != null) skillPath.setAreaNombre(request.getAreaNombre());
-        if (request.getSubareaId() != null) skillPath.setSubareaId(request.getSubareaId());
-        if (request.getSubareaNombre() != null) skillPath.setSubareaNombre(request.getSubareaNombre());
+        
+        // Autocompletar área y subárea si se provee un subareaId numérico
+        if (request.getSubareaId() != null) {
+            if (StringUtils.hasText(request.getSubareaId())) {
+                try {
+                    Integer sId = Integer.parseInt(request.getSubareaId().trim());
+                    subAreaRepository.findById(sId).ifPresent(subArea -> {
+                        skillPath.setSubareaId(String.valueOf(subArea.getIdSubarea()));
+                        skillPath.setSubareaNombre(subArea.getNombre());
+                        skillPath.setAreaId(subArea.getAreaId());
+                        skillPath.setAreaNombre(subArea.getAreaNombre());
+                    });
+                } catch (NumberFormatException e) {
+                    skillPath.setAreaId(request.getAreaId());
+                    skillPath.setAreaNombre(request.getAreaNombre());
+                    skillPath.setSubareaId(request.getSubareaId());
+                    skillPath.setSubareaNombre(request.getSubareaNombre());
+                }
+            } else {
+                skillPath.setSubareaId(null);
+                skillPath.setSubareaNombre(null);
+                skillPath.setAreaId(null);
+                skillPath.setAreaNombre(null);
+            }
+        } else {
+            if (request.getAreaId() != null) skillPath.setAreaId(request.getAreaId());
+            if (request.getAreaNombre() != null) skillPath.setAreaNombre(request.getAreaNombre());
+            if (request.getSubareaNombre() != null) skillPath.setSubareaNombre(request.getSubareaNombre());
+        }
+
         if (request.getEsRecomendado() != null) skillPath.setEsRecomendado(request.getEsRecomendado());
 
-        return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
-    }
-
-    @Transactional
-    public AdminManageSkillPathResponseDTO cambiarEstado(Integer id, UpdateAdminManageSkillPathStatusRequestDTO request) {
-        SkillPath skillPath = skillPathRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("SkillPath no encontrado con ID: " + id));
-        
-        skillPath.setActivo(request.getActivo());
         return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
     }
 
@@ -97,7 +148,20 @@ public class AdminManageSkillPathService {
     public void eliminarSkillPath(Integer id) {
         SkillPath skillPath = skillPathRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SkillPath no encontrado con ID: " + id));
-        skillPathRepository.delete(skillPath);
+        skillPath.setActivo(false);
+        skillPath.setFechaModificacion(LocalDateTime.now());
+        skillPathRepository.save(skillPath);
+    }
+
+    @Transactional
+    public AdminManageSkillPathResponseDTO cambiarEstado(Integer id, Boolean activo) {
+        SkillPath skillPath = skillPathRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("SkillPath no encontrado con ID: " + id));
+
+        skillPath.setActivo(activo);
+        skillPath.setFechaModificacion(LocalDateTime.now());
+
+        return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
     }
 
     @Transactional
@@ -124,12 +188,15 @@ public class AdminManageSkillPathService {
                     }
 
                     SkillPath skillPath = new SkillPath();
+                    String duracionLabel = row.length > 4 ? row[4] : "";
+                    validarDuracionLabel(duracionLabel);
+
                     skillPath.setUsuario(null);
                     skillPath.setTitulo(row[0]);
                     skillPath.setPlataforma(row.length > 1 ? row[1] : "");
                     skillPath.setAreaNombre(row.length > 2 ? row[2] : "");
                     skillPath.setDificultad(row.length > 3 ? row[3] : "");
-                    skillPath.setDuracionLabel(row.length > 4 ? row[4] : "");
+                    skillPath.setDuracionLabel(duracionLabel);
                     skillPath.setUrlExterno(row.length > 5 ? row[5] : "");
                     skillPath.setDescripcion(row.length > 6 ? row[6] : "");
                     skillPath.setActivo(true);
@@ -156,5 +223,17 @@ public class AdminManageSkillPathService {
                 .errores(errores.size())
                 .detalleErrores(errores)
                 .build();
+    }
+
+    private void validarDuracionLabel(String duracionLabel) {
+        if (duracionLabel == null || duracionLabel.isBlank()) {
+            return;
+        }
+
+        if (!DURACION_PATTERN.matcher(duracionLabel.trim()).matches()) {
+            throw new IllegalArgumentException(
+                    "La duracion debe tener numero y unidad. Ejemplo: 6 horas"
+            );
+        }
     }
 }

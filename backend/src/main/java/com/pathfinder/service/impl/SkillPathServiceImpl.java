@@ -67,7 +67,7 @@ public class SkillPathServiceImpl implements SkillPathService {
 
         Map<Integer, UsuarioSkillPath> progresoPorSkillPath =
                 usuarioSkillPathRepository
-                        .findByUsuario_CorreoAndSkillPath_IdSkillPathIn(
+                        .findByUsuario_CorreoAndSkillPath_IdSkillPathInAndActivoTrue(
                                 correo,
                                 idsSkillPath
                         )
@@ -98,7 +98,7 @@ public class SkillPathServiceImpl implements SkillPathService {
                 ));
 
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(
                         correo,
                         idSkillPath
                 )
@@ -108,7 +108,7 @@ public class SkillPathServiceImpl implements SkillPathService {
 
         if (usuarioSkillPath != null) {
             evidencia = evidenciaSkillPathRepository
-                    .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                    .findTopByUsuarioSkillPath_IdUsuarioSkillPathAndActivoTrueOrderByFechaSubidaDesc(
                             usuarioSkillPath.getIdUsuarioSkillPath()
                     )
                     .orElse(null);
@@ -217,7 +217,7 @@ public class SkillPathServiceImpl implements SkillPathService {
                 ));
 
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(
                         correo,
                         idSkillPath
                 )
@@ -300,7 +300,7 @@ public class SkillPathServiceImpl implements SkillPathService {
                 ));
 
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(correo, idSkillPath)
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(correo, idSkillPath)
                 .orElseGet(() -> {
                     UsuarioSkillPath nuevo = new UsuarioSkillPath();
                     nuevo.setUsuario(usuario);
@@ -327,7 +327,7 @@ public class SkillPathServiceImpl implements SkillPathService {
 
         eliminarEvidenciasFisicasDeS3(avanceGuardado.getIdUsuarioSkillPath());
 
-        evidenciaSkillPathRepository.deleteByUsuarioSkillPath_IdUsuarioSkillPath(
+        evidenciaSkillPathRepository.desactivarByUsuarioSkillPathId(
                 avanceGuardado.getIdUsuarioSkillPath()
         );
 
@@ -405,7 +405,7 @@ public class SkillPathServiceImpl implements SkillPathService {
                 ));
 
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(
                         correo,
                         idSkillPath
                 )
@@ -422,7 +422,7 @@ public class SkillPathServiceImpl implements SkillPathService {
 
         eliminarEvidenciasFisicasDeS3(usuarioSkillPath.getIdUsuarioSkillPath());
 
-        evidenciaSkillPathRepository.deleteByUsuarioSkillPath_IdUsuarioSkillPath(
+        evidenciaSkillPathRepository.desactivarByUsuarioSkillPathId(
                 usuarioSkillPath.getIdUsuarioSkillPath()
         );
 
@@ -597,7 +597,7 @@ public class SkillPathServiceImpl implements SkillPathService {
         return avances.stream()
                 .map(avance -> {
                     EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
-                            .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                            .findTopByUsuarioSkillPath_IdUsuarioSkillPathAndActivoTrueOrderByFechaSubidaDesc(
                                     avance.getIdUsuarioSkillPath()
                             )
                             .orElse(null);
@@ -613,7 +613,7 @@ public class SkillPathServiceImpl implements SkillPathService {
 
     private void eliminarEvidenciasFisicasDeS3(Integer idUsuarioSkillPath) {
         List<EvidenciaSkillPath> evidencias =
-                evidenciaSkillPathRepository.findByUsuarioSkillPath_IdUsuarioSkillPath(
+                evidenciaSkillPathRepository.findByUsuarioSkillPath_IdUsuarioSkillPathAndActivoTrue(
                         idUsuarioSkillPath
                 );
 
@@ -644,13 +644,13 @@ public class SkillPathServiceImpl implements SkillPathService {
             Integer idSkillPath
     ) {
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(correo, idSkillPath)
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(correo, idSkillPath)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No existe evidencia para este SkillPath."
                 ));
 
         EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
-                .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                .findTopByUsuarioSkillPath_IdUsuarioSkillPathAndActivoTrueOrderByFechaSubidaDesc(
                         usuarioSkillPath.getIdUsuarioSkillPath()
                 )
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -679,13 +679,13 @@ public class SkillPathServiceImpl implements SkillPathService {
             Integer idSkillPath
     ) {
         UsuarioSkillPath usuarioSkillPath = usuarioSkillPathRepository
-                .findByUsuario_CorreoAndSkillPath_IdSkillPath(correo, idSkillPath)
+                .findByUsuario_CorreoAndSkillPath_IdSkillPathAndActivoTrue(correo, idSkillPath)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No existe evidencia para este SkillPath."
                 ));
 
         EvidenciaSkillPath evidencia = evidenciaSkillPathRepository
-                .findTopByUsuarioSkillPath_IdUsuarioSkillPathOrderByFechaSubidaDesc(
+                .findTopByUsuarioSkillPath_IdUsuarioSkillPathAndActivoTrueOrderByFechaSubidaDesc(
                         usuarioSkillPath.getIdUsuarioSkillPath()
                 )
                 .orElseThrow(() -> new IllegalArgumentException(

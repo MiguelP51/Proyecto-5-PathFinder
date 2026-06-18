@@ -1,10 +1,13 @@
 package com.pathfinder.dto.admin.manage_skillpath;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class UpdateAdminManageSkillPathStatusRequestDTO {
-    @NotNull(message = "El estado (activo) es obligatorio")
+
+    @NotNull(message = "El estado activo es obligatorio")
     private Boolean activo;
 }

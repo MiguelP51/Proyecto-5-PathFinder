@@ -10,13 +10,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Detectar ancho de pantalla para inicializar el sidebar en desktop
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      setSidebarOpen(true);
-    }
-  }, []);
-
   const isStudent = status === "authenticated" && session?.user?.rol?.toLowerCase() === "user";
 
   if (isStudent) {

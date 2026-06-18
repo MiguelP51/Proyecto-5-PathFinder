@@ -202,4 +202,9 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
                 .activo(opcion.getActivo())
                 .build();
     }
+
+    @Override
+    public List<TipoPreguntaDISC> listarTiposPregunta() {
+        return tipoPreguntaDISCRepository.findByActivoTrue();
+    }
 }

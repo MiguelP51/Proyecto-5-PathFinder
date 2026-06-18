@@ -65,7 +65,7 @@ export default function SkillPathBulkUploadModal({ onClose, onSuccess }: Props) 
               <div className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/50">
                 <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
                 <p className="text-sm font-bold text-slate-700 mb-1">Sube tu archivo CSV</p>
-                <p className="text-xs text-slate-500 mb-4">El archivo debe contener cabeceras (Titulo, Plataforma, Habilidad, Nivel, etc.)</p>
+                <p className="text-xs text-slate-500 mb-4">El archivo debe contener cabeceras: titulo, plataforma, areaNombre, dificultad, duracionLabel, urlExterno, descripcion.</p>
                 
                 <label className="inline-block px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl cursor-pointer hover:bg-slate-50 transition shadow-sm">
                   Seleccionar Archivo
