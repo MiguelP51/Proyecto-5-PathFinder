@@ -1,4 +1,5 @@
 // HU-EST-22: Dashboard de subárea
+// HU-EST-23: Tarjeta "Último diagnóstico" ahora permite consultar el informe completo generado
 "use client";
 
 import { useEffect, useState } from "react";
@@ -487,12 +488,27 @@ export default function DashboardSubareaPage({
                       </div>
                     </div>
 
-                    <button
-                        onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`)}
-                        className="w-full rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:border-[#6f63ff] hover:text-[#6f63ff] transition"
-                    >
-                      Actualizar diagnóstico
-                    </button>
+                    {/* HU-EST-23: consultar el informe completo ya generado */}
+                    <div className="space-y-2">
+                      <button
+                          onClick={() =>
+                              router.push(
+                                  `/areas/${area}/subareas/${idSubarea}/diagnostico/resultado?id=${ultimoDiagnostico?.idDiagnostico}&modo=consulta`,
+                              )
+                          }
+                          className="w-full rounded-xl py-2 text-xs font-bold text-white transition"
+                          style={{ background: "linear-gradient(135deg, #6f63ff, #c850c0)" }}
+                      >
+                        Ver informe completo
+                      </button>
+
+                      <button
+                          onClick={() => router.push(`/areas/${area}/subareas/${idSubarea}/diagnostico`)}
+                          className="w-full rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:border-[#6f63ff] hover:text-[#6f63ff] transition"
+                      >
+                        Actualizar diagnóstico
+                      </button>
+                    </div>
                   </>
               ) : (
                   <>
