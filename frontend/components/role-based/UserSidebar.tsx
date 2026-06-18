@@ -187,7 +187,7 @@ export default function UserSidebar({ open, onClose }: Props) {
       {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm transition-opacity duration-300 md:hidden"
           onClick={onClose}
         />
       )}

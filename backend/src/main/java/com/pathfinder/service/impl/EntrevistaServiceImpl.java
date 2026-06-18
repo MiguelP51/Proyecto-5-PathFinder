@@ -37,6 +37,10 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     @Override
     @Transactional
     public EntrevistaResponseDTO agendarEntrevista(String correoEstudiante, AgendarEntrevistaRequest request) {
+        if (request.getPuesto() == null || request.getPuesto().trim().isEmpty()) {
+            throw new IllegalArgumentException("El puesto al que postulas es obligatorio");
+        }
+
         Usuario estudiante = usuarioRepository.findByCorreo(correoEstudiante)
                 .orElseThrow(() -> new IllegalArgumentException("Estudiante no encontrado"));
 
