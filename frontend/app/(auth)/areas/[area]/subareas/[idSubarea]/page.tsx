@@ -24,16 +24,7 @@ interface SubAreaDTO {
   cantidadPathChallenges: number;
   plataformasSkillPath: string;
   yaVisitada: boolean;
-}
-
-interface DiagnosticoEstadoDTO {
-  idDiagnostico?: number;
-  estado?: string;
-  puntaje?: number;
-  totalPreguntas?: number;
-  respuestasCorrectas?: number;
-  nivelRecomendado?: string;
-  completado: boolean;
+  diagnosticoCompletado: boolean;
 }
 
 export default function SubAreaDetallePage({
@@ -49,7 +40,6 @@ export default function SubAreaDetallePage({
   const [subarea, setSubarea] = useState<SubAreaDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [diagnosticoCompletado, setDiagnosticoCompletado] = useState(false);
 
   useEffect(() => {
     params.then(({ area, idSubarea }) => {
@@ -60,28 +50,18 @@ export default function SubAreaDetallePage({
 
   useEffect(() => {
     if (!idSubarea || !session?.backendJwt) return;
-    Promise.all([
-      apiFetch<SubAreaDTO>(
-          `/api/exploracion/subareas/${idSubarea}`,
-          {},
-          session.backendJwt
-      ),
-      apiFetch<DiagnosticoEstadoDTO>(
-          `/api/diagnostico/subarea/${idSubarea}/ultimo`,
-          {},
-          session.backendJwt
-      ),
-    ])
-        .then(([subareaData, diagnosticoData]) => {
-          setSubarea(subareaData);
-          setDiagnosticoCompletado(Boolean(diagnosticoData.completado));
-        })
+    apiFetch<SubAreaDTO>(
+        `/api/exploracion/subareas/${idSubarea}`,
+        {},
+        session.backendJwt
+    )
+        .then(setSubarea)
         .catch(() => setError("No se pudo cargar la información de la subárea"))
         .finally(() => setLoading(false));
   }, [idSubarea, session, area, router]);
 
   const handleComenzar = () => {
-    if (diagnosticoCompletado) {
+    if (subarea?.diagnosticoCompletado) {
       router.push(`/areas/${area}/subareas/${idSubarea}/dashboard`);
       return;
     }
@@ -203,7 +183,7 @@ export default function SubAreaDetallePage({
             onClick={handleComenzar}
             className="rounded-full bg-white px-8 py-3 text-sm font-bold text-[#6f63ff] hover:bg-white/90 transition"
           >
-            {diagnosticoCompletado ? "Ir al dashboard" : "Iniciar diagnóstico"}
+            {subarea.diagnosticoCompletado ? "Ir al dashboard" : "Iniciar diagnóstico"}
           </button>
         </div>
       </section>
