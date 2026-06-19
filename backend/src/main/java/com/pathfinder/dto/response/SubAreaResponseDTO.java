@@ -1,3 +1,4 @@
+// backend/src/main/java/com/pathfinder/dto/response/SubAreaResponseDTO.java
 package com.pathfinder.dto.response;
 
 import lombok.Builder;
@@ -23,4 +24,5 @@ public class SubAreaResponseDTO {
     private Boolean diagnosticoIniciado;
     private Boolean diagnosticoCompletado;
     private String slug;
+    private Integer progreso; // HU-EST-21: promedio combinado SkillPaths + PathChallenges, null si no hay ítems
 }
