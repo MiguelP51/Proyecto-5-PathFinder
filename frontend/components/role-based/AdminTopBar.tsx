@@ -53,9 +53,8 @@ export default function AdminTopBar({
     "";
 
   return (
-    <header className={`sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-900 dark:text-slate-100 transition-all duration-300 ${
-      sidebarOpen ? "md:pl-72" : "md:pl-0"
-    }`}>
+    <header className={`sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-900 dark:text-slate-100 transition-all duration-300 ${sidebarOpen ? "md:pl-72" : "md:pl-0"
+      }`}>
 
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
 
@@ -89,10 +88,6 @@ export default function AdminTopBar({
         {/* RIGHT */}
         <div className="flex min-w-0 items-center gap-3">
 
-          {/* SESION */}
-          <span className="hidden rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 sm:inline-flex">
-            Administrador
-          </span>
 
           {/* THEME TOGGLE */}
           {mounted && (
