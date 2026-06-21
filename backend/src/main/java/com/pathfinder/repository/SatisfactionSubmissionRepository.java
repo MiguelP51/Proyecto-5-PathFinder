@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SatisfactionSubmissionRepository extends JpaRepository<SatisfactionSubmission, Integer> {
-    boolean existsBySurvey_IdSurveyAndStudent_IdUsuarioAndTargetId(Integer idSurvey, Integer idUsuario, Integer targetId);
+    boolean existsBySurvey_IdSurveyAndStudent_IdUsuario(Integer idSurvey, Integer idUsuario);
 }

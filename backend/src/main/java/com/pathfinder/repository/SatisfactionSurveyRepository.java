@@ -8,6 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface SatisfactionSurveyRepository extends JpaRepository<SatisfactionSurvey, Integer> {
-    Optional<SatisfactionSurvey> findFirstByTargetTypeAndStatus(String targetType, String status);
-    Optional<SatisfactionSurvey> findFirstByTargetTypeAndTargetIdAndStatus(String targetType, Integer targetId, String status);
+    Optional<SatisfactionSurvey> findFirstByStatus(String status);
 }

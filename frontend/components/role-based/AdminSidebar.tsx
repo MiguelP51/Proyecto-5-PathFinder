@@ -124,12 +124,7 @@ export default function AdminSidebar({
 
             <Link href="/admin/areas" className={linkClass("/admin/areas")}>
               <Grid className="h-5 w-5" />
-              Áreas
-            </Link>
-
-            <Link href="/admin/subareas" className={linkClass("/admin/subareas")}>
-              <Layers className="h-5 w-5" />
-              Subáreas
+              Áreas y Sub-áreas
             </Link>
 
             <Link href="/admin/skillpaths" className={linkClass("/admin/skillpaths")}>
@@ -142,19 +137,24 @@ export default function AdminSidebar({
               Challenges
             </Link>
 
+            <Link href="/admin/subareas" className={linkClass("/admin/subareas")}>
+              <Layers className="h-5 w-5" />
+              Competencias
+            </Link>
+
             <Link href="/admin/disc" className={linkClass("/admin/disc")}>
               <Brain className="h-5 w-5" />
               Preguntas DISC
             </Link>
 
-            <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
-              <MessageSquare className="h-5 w-5" />
-              Encuestas de Satisfacción
-            </Link>
-
             <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>
               <RefreshCw className="h-5 w-5" />
               Sincronización de catálogo de cursos
+            </Link>
+
+            <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
+              <MessageSquare className="h-5 w-5" />
+              Encuestas de Satisfacción
             </Link>
 
             <Link href="/admin/audit-logs" className={linkClass("/admin/audit-logs")}>

@@ -1,22 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { satisfactionAdminService, SatisfactionSurveyRequestDTO, SatisfactionQuestionDTO } from "@/lib/satisfaction/adminService";
 import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function NewSurveyPage() {
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export default function EditSurveyPage({ params }: Props) {
   const router = useRouter();
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(false);
+  const { data: session, status } = useSession();
+  const unwrappedParams = React.use(params);
+  const id = Number(unwrappedParams.id);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState<SatisfactionSurveyRequestDTO>({
     title: "",
     status: "DRAFT",
     questions: []
   });
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.backendJwt) return;
+    satisfactionAdminService.getById(id, session.backendJwt).then(data => {
+      setFormData({
+        title: data.title,
+        status: data.status,
+        questions: data.questions || []
+      });
+      setLoading(false);
+    }).catch(err => {
+      console.error("Error loading survey:", err);
+      alert("Error al cargar la encuesta");
+      router.push("/admin/surveys");
+    });
+  }, [id, status, session]);
 
   const handleAddQuestion = () => {
     setFormData(prev => ({
@@ -42,17 +66,25 @@ export default function NewSurveyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     try {
-      await satisfactionAdminService.create(formData, session?.backendJwt);
+      await satisfactionAdminService.update(id, formData, session?.backendJwt);
       router.push("/admin/surveys");
     } catch (error) {
-      console.error("Error creating survey:", error);
-      alert("Error al crear la encuesta");
+      console.error("Error updating survey:", error);
+      alert("Error al guardar los cambios de la encuesta");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
@@ -64,7 +96,7 @@ export default function NewSurveyPage() {
         Volver a encuestas
       </Link>
 
-      <h1 className="text-3xl font-black tracking-tight text-[#0E3E66]">Nueva Encuesta</h1>
+      <h1 className="text-3xl font-black tracking-tight text-[#0E3E66]">Editar Encuesta</h1>
       
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-8">
         
@@ -188,10 +220,10 @@ export default function NewSurveyPage() {
           </button>
           <button 
             type="submit" 
-            disabled={loading || formData.questions.length === 0}
+            disabled={saving || formData.questions.length === 0}
             className="bg-[#0E3E66] hover:bg-blue-900 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition disabled:opacity-50 text-sm cursor-pointer"
           >
-            {loading ? "Guardando..." : "Guardar Encuesta"}
+            {saving ? "Guardando..." : "Guardar Cambios"}
           </button>
         </div>
       </form>

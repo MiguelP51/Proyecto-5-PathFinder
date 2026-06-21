@@ -10,7 +10,5 @@ import java.util.List;
 public class PendingSurveyResponseDTO {
     private Integer idSurvey;
     private String title;
-    private String targetType;
-    private Integer targetId;
     private List<SatisfactionQuestionDTO> questions;
 }

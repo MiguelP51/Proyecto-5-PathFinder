@@ -2,6 +2,7 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.admin.satisfaction.SatisfactionSurveyRequestDTO;
 import com.pathfinder.dto.admin.satisfaction.SatisfactionSurveyResponseDTO;
+import com.pathfinder.dto.admin.satisfaction.SatisfactionSubmissionResponseDTO;
 import com.pathfinder.service.SatisfactionAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -35,5 +36,15 @@ public class AdminSatisfactionController {
     @GetMapping("/{id}")
     public ResponseEntity<SatisfactionSurveyResponseDTO> getSurveyById(@PathVariable Integer id) {
         return ResponseEntity.ok(adminService.getSurveyById(id));
+    }
+
+    @GetMapping("/submissions")
+    public ResponseEntity<List<SatisfactionSubmissionResponseDTO>> getAllSubmissions() {
+        return ResponseEntity.ok(adminService.getAllSubmissions());
+    }
+
+    @GetMapping("/submissions/{id}")
+    public ResponseEntity<SatisfactionSubmissionResponseDTO> getSubmissionById(@PathVariable Integer id) {
+        return ResponseEntity.ok(adminService.getSubmissionById(id));
     }
 }

@@ -9,8 +9,6 @@ import java.util.List;
 public class SatisfactionSurveyResponseDTO {
     private Integer idSurvey;
     private String title;
-    private String targetType;
-    private Integer targetId;
     private String status;
     private List<SatisfactionQuestionDTO> questions;
 }

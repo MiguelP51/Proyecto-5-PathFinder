@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "satisfaction_submission", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"survey_id", "student_id", "target_id"})
+    @UniqueConstraint(columnNames = {"survey_id", "student_id"})
 })
 public class SatisfactionSubmission {
 
@@ -26,9 +26,6 @@ public class SatisfactionSubmission {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Usuario student;
-
-    @Column(name = "target_id", nullable = false)
-    private Integer targetId;
 
     @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;

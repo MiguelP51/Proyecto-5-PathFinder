@@ -28,25 +28,17 @@ public class SatisfactionStudentServiceImpl implements SatisfactionStudentServic
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PendingSurveyResponseDTO> getPendingSurvey(String targetType, Integer targetId, Integer studentId) {
-        // Find if an active survey applies to this specific target
-        Optional<SatisfactionSurvey> specificSurveyOpt = surveyRepository.findFirstByTargetTypeAndTargetIdAndStatus(targetType, targetId, "ACTIVE");
-        
-        SatisfactionSurvey survey;
-        if (specificSurveyOpt.isPresent()) {
-            survey = specificSurveyOpt.get();
-        } else {
-            // Check if there is a generic one
-            Optional<SatisfactionSurvey> genericSurveyOpt = surveyRepository.findFirstByTargetTypeAndTargetIdAndStatus(targetType, null, "ACTIVE");
-            if (genericSurveyOpt.isPresent()) {
-                survey = genericSurveyOpt.get();
-            } else {
-                return Optional.empty();
-            }
+    public Optional<PendingSurveyResponseDTO> getPendingSurvey(Integer studentId) {
+        // Find if there is an active survey
+        Optional<SatisfactionSurvey> activeSurveyOpt = surveyRepository.findFirstByStatus("ACTIVE");
+        if (activeSurveyOpt.isEmpty()) {
+            return Optional.empty();
         }
 
-        // Check if student already submitted for this target
-        boolean alreadySubmitted = submissionRepository.existsBySurvey_IdSurveyAndStudent_IdUsuarioAndTargetId(survey.getIdSurvey(), studentId, targetId);
+        SatisfactionSurvey survey = activeSurveyOpt.get();
+
+        // Check if student already submitted for this survey
+        boolean alreadySubmitted = submissionRepository.existsBySurvey_IdSurveyAndStudent_IdUsuario(survey.getIdSurvey(), studentId);
         if (alreadySubmitted) {
             return Optional.empty();
         }
@@ -59,14 +51,13 @@ public class SatisfactionStudentServiceImpl implements SatisfactionStudentServic
             dto.setQuestionType(q.getQuestionType());
             dto.setIsMandatory(q.getIsMandatory());
             dto.setOrderIndex(q.getOrderIndex());
+            dto.setSection(q.getSection());
             return dto;
         }).collect(Collectors.toList());
 
         return Optional.of(PendingSurveyResponseDTO.builder()
                 .idSurvey(survey.getIdSurvey())
                 .title(survey.getTitle())
-                .targetType(survey.getTargetType())
-                .targetId(survey.getTargetId())
                 .questions(qDtos)
                 .build());
     }
@@ -81,14 +72,13 @@ public class SatisfactionStudentServiceImpl implements SatisfactionStudentServic
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
 
         // Anti-duplicate check
-        if (submissionRepository.existsBySurvey_IdSurveyAndStudent_IdUsuarioAndTargetId(request.getSurveyId(), studentId, request.getTargetId())) {
+        if (submissionRepository.existsBySurvey_IdSurveyAndStudent_IdUsuario(request.getSurveyId(), studentId)) {
             return;
         }
 
         SatisfactionSubmission submission = new SatisfactionSubmission();
         submission.setSurvey(survey);
         submission.setStudent(student);
-        submission.setTargetId(request.getTargetId());
         
         SatisfactionSubmission savedSubmission = submissionRepository.save(submission);
 

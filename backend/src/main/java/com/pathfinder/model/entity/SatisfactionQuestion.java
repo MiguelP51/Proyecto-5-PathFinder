@@ -30,4 +30,7 @@ public class SatisfactionQuestion extends AuditoriaBase {
 
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex = 0;
+
+    @Column(name = "section", length = 100)
+    private String section; // MENTOR, SKILLPATH_CHALLENGE, etc.
 }
