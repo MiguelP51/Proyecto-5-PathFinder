@@ -9,6 +9,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import static org.springframework.http.HttpStatus.*;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,10 +67,25 @@ public class GoogleCalendarServiceImpl implements GoogleCalendarService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 String body = response.getBody();
                 log.error("Google Calendar API error: {} - {}", response.getStatusCode(), body);
-                throw new RuntimeException("Error al consultar Google Calendar: " + response.getStatusCode() + (body != null ? " - " + extractErrorMessage(body) : ""));
+
+                if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                    throw new RuntimeException("El token de acceso no es válido o ha expirado. Vuelve a intentar la sincronización.");
+                }
+                if (response.getStatusCode() == HttpStatus.FORBIDDEN) {
+                    throw new RuntimeException("Sin permisos para acceder al calendario. Verifica los permisos de la aplicación en tu cuenta de Google.");
+                }
+                if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                    throw new RuntimeException("No se encontró el calendario principal. Verifica tu cuenta de Google.");
+                }
+
+                String errorMessage = extractErrorMessage(body);
+                throw new RuntimeException("Error al consultar Google Calendar: " + response.getStatusCode() +
+                        (errorMessage != null ? " - " + errorMessage : ""));
             }
 
             return parseEvents(response.getBody());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error syncing Google Calendar events: {}", e.getMessage(), e);
             throw new RuntimeException("Error al sincronizar eventos de Google Calendar: " + e.getMessage(), e);

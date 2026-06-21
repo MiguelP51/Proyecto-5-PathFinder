@@ -253,6 +253,13 @@ export default function AvailabilityPage() {
     setSyncing(true);
 
     try {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        toast.error('Google Calendar no está configurado. Contacta al administrador.');
+        setSyncing(false);
+        return;
+      }
+
       const gis = (window as any).google?.accounts?.oauth2;
       if (!gis) {
         toast.error('Google Identity Services no está disponible. Recarga la página o intenta más tarde.');
@@ -261,9 +268,21 @@ export default function AvailabilityPage() {
       }
 
       const client = gis.initTokenClient({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: clientId,
         scope: 'https://www.googleapis.com/auth/calendar.readonly',
         callback: async (response: any) => {
+          if (response?.error) {
+            if (response.error === 'access_denied') {
+              toast.error('Acceso denegado. Debes permitir el acceso a tu calendario de Google.');
+            } else if (response.error === 'popup_closed_by_user') {
+              toast.info('Ventana cerrada. No se sincronizó el calendario.');
+            } else {
+              toast.error(`Error de autenticación: ${response.error}`);
+            }
+            setSyncing(false);
+            return;
+          }
+
           if (response?.access_token) {
             try {
               const weekStart = weekDates[0].date.toISOString().slice(0, 10);
@@ -281,7 +300,7 @@ export default function AvailabilityPage() {
               if (count > 0) {
                 toast.success(`${count} evento${count > 1 ? 's' : ''} sincronizado${count > 1 ? 's' : ''} desde Google Calendar`);
               } else {
-                toast.success('No se encontraron eventos en este rango de fechas');
+                toast.info('No se encontraron eventos en este rango de fechas');
               }
             } catch (err) {
               console.error('Error sincronizando Google Calendar:', err);
@@ -296,7 +315,12 @@ export default function AvailabilityPage() {
       client.requestAccessToken();
     } catch (err) {
       console.error('Error al iniciar GIS:', err);
-      toast.error('Error al conectar con Google Calendar');
+      const errorStr = String(err);
+      if (errorStr.includes('popup') || errorStr.includes('blocked') || errorStr.includes('Popup')) {
+        toast.error('El navegador bloqueó la ventana emergente. Permite ventanas emergentes para este sitio e intenta de nuevo.');
+      } else {
+        toast.error('Error al conectar con Google Calendar. Verifica la configuración de Google Cloud.');
+      }
       setSyncing(false);
     }
   };
