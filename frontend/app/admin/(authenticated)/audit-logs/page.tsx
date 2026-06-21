@@ -65,10 +65,7 @@ export default function AuditLogsPage() {
     const matchesSearch =
       !searchTerm ||
       (log.usuarioCorreo?.toLowerCase().includes(term) || false) ||
-      (log.accion?.toLowerCase().includes(term) || false) ||
-      (log.modulo?.toLowerCase().includes(term) || false) ||
-      (log.detalles?.toLowerCase().includes(term) || false) ||
-      (log.ipOrigen?.toLowerCase().includes(term) || false);
+      (log.accion?.toLowerCase().includes(term) || false);
 
     const matchesAction = selectedAction === "Todas" || log.accion === selectedAction;
     const matchesUser = selectedUser === "Todos" || log.usuarioCorreo === selectedUser;
@@ -80,18 +77,7 @@ export default function AuditLogsPage() {
   const uniqueUsers = Array.from(new Set(logs.map((l) => l.usuarioCorreo).filter(Boolean)));
   const uniqueActions = Array.from(new Set(logs.map((l) => l.accion).filter(Boolean)));
 
-  // Cálculos estadísticos
-  const totalAcciones = logs.length;
-  const usuariosActivos = new Set(logs.map((l) => l.usuarioCorreo).filter(Boolean)).size;
-  const totalExitosas = logs.filter((l) => l.resultado === "EXITO").length;
-  const porcentajeExito = logs.length > 0 ? ((totalExitosas / logs.length) * 100).toFixed(1) + "%" : "100%";
-  
-  const erroresHoy = logs.filter((l) => {
-    if (l.resultado !== "FALLO") return false;
-    const dateEvent = new Date(l.fechaEvento).toDateString();
-    const today = new Date().toDateString();
-    return dateEvent === today;
-  }).length;
+
 
   // Exportar logs a CSV
   const exportarCSV = () => {
@@ -100,17 +86,11 @@ export default function AuditLogsPage() {
       return;
     }
 
-    const headers = ["Fecha y Hora", "Usuario", "Rol", "Módulo", "Acción", "Detalles", "Resultado", "IP", "Mensaje Error"];
+    const headers = ["Fecha y Hora", "Usuario", "Acción"];
     const rows = filteredLogs.map((log) => [
       formatFecha(log.fechaEvento),
       log.usuarioCorreo || "",
-      log.rol || "",
-      log.modulo || "",
-      log.accion || "",
-      `"${(log.detalles || "").replace(/"/g, '""')}"`,
-      log.resultado || "",
-      log.ipOrigen || "",
-      `"${(log.mensajeError || "").replace(/"/g, '""')}"`
+      log.accion || ""
     ]);
 
     const csvContent = [
@@ -159,56 +139,7 @@ export default function AuditLogsPage() {
         </div>
       )}
 
-      {/* Tarjetas de Estadísticas */}
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm flex flex-col gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800">
-              {loading ? "..." : totalAcciones.toLocaleString()}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Acciones Registradas</span>
-          </div>
-        </article>
 
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm flex flex-col gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800">
-              {loading ? "..." : usuariosActivos}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Usuarios Activos</span>
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm flex flex-col gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <CheckCircle className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800">
-              {loading ? "..." : porcentajeExito}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Acciones Exitosas</span>
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm flex flex-col gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-            <AlertOctagon className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800">
-              {loading ? "..." : erroresHoy}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 block mt-0.5">Errores (Hoy)</span>
-          </div>
-        </article>
-      </section>
 
       {/* Integración SSO Corporativo */}
       <section className="bg-white rounded-3xl border border-blue-100 p-6 shadow-sm shadow-blue-50">
@@ -261,7 +192,7 @@ export default function AuditLogsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por usuario, acción o módulo..."
+                placeholder="Buscar por usuario o acción..."
                 className="w-full h-11 rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50"
               />
             </div>
@@ -323,10 +254,6 @@ export default function AuditLogsPage() {
                   <th className="px-6 py-4">Fecha y Hora</th>
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Acción</th>
-                  <th className="px-6 py-4">Módulo</th>
-                  <th className="px-6 py-4">Detalles</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4">IP</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -346,24 +273,11 @@ export default function AuditLogsPage() {
                         {log.accion}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-500 font-mono">{log.modulo}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600 max-w-[300px] truncate" title={log.detalles}>
-                      {log.detalles}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${
-                        log.resultado === 'EXITO' ? 'text-emerald-600' : 'text-rose-600'
-                      }`}>
-                        {log.resultado === 'EXITO' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                        {log.resultado === 'EXITO' ? 'Éxito' : 'Error'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-400 font-mono">{log.ipOrigen}</td>
                   </tr>
                 ))}
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={3} className="px-6 py-8 text-center text-slate-500">
                       No se encontraron registros de auditoría.
                     </td>
                   </tr>
