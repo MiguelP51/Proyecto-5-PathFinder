@@ -5,10 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  BarChart2,
   Users,
-  Shield,
-  UploadCloud,
   Grid,
   Layers,
   BookOpen,
@@ -43,18 +40,16 @@ export default function AdminSidebar({
 
   // Clase para los enlaces principales
   const linkClass = (path: string) =>
-    `flex items-center gap-3 rounded-xl p-3 transition text-sm font-medium ${
-      isActive(path)
-        ? "bg-[#0E3E66]/10 text-[#0E3E66]"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+    `flex items-center gap-3 rounded-xl p-3 transition text-sm font-medium ${isActive(path)
+      ? "bg-[#0E3E66]/10 text-[#0E3E66]"
+      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
     }`;
 
   // Clase para los subenlaces indentados (Fase 3 - Alternativa B)
   const sublinkClass = (path: string) =>
-    `flex items-center gap-3 rounded-xl p-2.5 pl-8 transition text-xs font-semibold border-l border-slate-100/80 ml-4 ${
-      isActive(path)
-        ? "bg-slate-50 text-[#0E3E66] border-l-2 border-l-[#0E3E66] rounded-l-none"
-        : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
+    `flex items-center gap-3 rounded-xl p-2.5 pl-8 transition text-xs font-semibold border-l border-slate-100/80 ml-4 ${isActive(path)
+      ? "bg-slate-50 text-[#0E3E66] border-l-2 border-l-[#0E3E66] rounded-l-none"
+      : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
     }`;
 
   return (
@@ -72,8 +67,8 @@ export default function AdminSidebar({
         className={`fixed left-0 top-0 z-50 flex flex-col bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300
           w-full h-auto max-h-[85vh] border-b border-slate-200 dark:border-slate-800 rounded-b-3xl overflow-y-auto
           md:w-72 md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none scrollbar-thin scrollbar-thumb-slate-200
-          ${open 
-            ? "translate-y-0 md:translate-x-0 md:translate-y-0" 
+          ${open
+            ? "translate-y-0 md:translate-x-0 md:translate-y-0"
             : "-translate-y-full md:-translate-x-full md:translate-y-0"
           }`}
       >
@@ -116,81 +111,56 @@ export default function AdminSidebar({
         {/* Navigation */}
         <nav className="flex flex-col gap-6 p-4">
 
-          {/* GENERAL */}
-          <div>
-            <p className="px-3 mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">General</p>
-            <div className="flex flex-col gap-1">
-              <Link href="/admin/dashboard" className={linkClass("/admin/dashboard")}>
-                <Home className="h-5 w-5" />
-                Dashboard
-              </Link>
-            </div>
-          </div>
+          <div className="flex flex-col gap-1">
+            <Link href="/admin/dashboard" className={linkClass("/admin/dashboard")}>
+              <Home className="h-5 w-5" />
+              Dashboard
+            </Link>
 
-          {/* GESTIÓN DE USUARIOS */}
-          <div>
-            <p className="px-3 mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Gestión de Usuarios</p>
-            <div className="flex flex-col gap-1">
-              <Link href="/admin/home" className={linkClass("/admin/home")}>
-                <Users className="h-5 w-5" />
-                Usuarios
-              </Link>
-              <Link href="/admin/roles" className={linkClass("/admin/roles")}>
-                <Shield className="h-5 w-5" />
-                Roles y Permisos
-              </Link>
-            </div>
-          </div>
+            <Link href="/admin/home" className={linkClass("/admin/home")}>
+              <Users className="h-5 w-5" />
+              Usuarios
+            </Link>
 
-          {/* CONTENIDO */}
-          <div>
-            <p className="px-3 mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Contenido</p>
-            <div className="flex flex-col gap-1">
-              {/* Jerarquía de Contenidos - Fijos e Indentados */}
-              <Link href="/admin/areas" className={sublinkClass("/admin/areas")}>
-                <Grid className="h-4 w-4 text-slate-400" />
-                Áreas
-              </Link>
-              <Link href="/admin/subareas" className={sublinkClass("/admin/subareas")}>
-                <Layers className="h-4 w-4 text-slate-400" />
-                Subáreas
-              </Link>
-              <Link href="/admin/skillpaths" className={sublinkClass("/admin/skillpaths")}>
-                <BookOpen className="h-4 w-4 text-slate-400" />
-                SkillPaths
-              </Link>
-              <Link href="/admin/pathchallenges" className={sublinkClass("/admin/pathchallenges")}>
-                <Target className="h-4 w-4 text-slate-400" />
-                Challenges
-              </Link>
+            <Link href="/admin/areas" className={linkClass("/admin/areas")}>
+              <Grid className="h-5 w-5" />
+              Áreas
+            </Link>
 
-              {/* Evaluaciones y Feedback */}
-              <div className="mt-2 pt-2 border-t border-slate-100/50">
-                <Link href="/admin/disc" className={linkClass("/admin/disc")}>
-                  <Brain className="h-5 w-5" />
-                  Preguntas DISC
-                </Link>
-                <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
-                  <MessageSquare className="h-5 w-5" />
-                  Encuestas de Satisfacción
-                </Link>
-              </div>
-            </div>
-          </div>
+            <Link href="/admin/subareas" className={linkClass("/admin/subareas")}>
+              <Layers className="h-5 w-5" />
+              Subáreas
+            </Link>
 
-          {/* INTEGRACIÓN Y DATOS */}
-          <div>
-            <p className="px-3 mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Integración y Datos</p>
-            <div className="flex flex-col gap-1">
-              <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>
-                <RefreshCw className="h-5 w-5" />
-                Sincronización de catálogo de cursos
-              </Link>
-              <Link href="/admin/audit-logs" className={linkClass("/admin/audit-logs")}>
-                <FileText className="h-5 w-5" />
-                Auditoría y Logs
-              </Link>
-            </div>
+            <Link href="/admin/skillpaths" className={linkClass("/admin/skillpaths")}>
+              <BookOpen className="h-5 w-5" />
+              SkillPaths
+            </Link>
+
+            <Link href="/admin/pathchallenges" className={linkClass("/admin/pathchallenges")}>
+              <Target className="h-5 w-5" />
+              Challenges
+            </Link>
+
+            <Link href="/admin/disc" className={linkClass("/admin/disc")}>
+              <Brain className="h-5 w-5" />
+              Preguntas DISC
+            </Link>
+
+            <Link href="/admin/surveys" className={linkClass("/admin/surveys")}>
+              <MessageSquare className="h-5 w-5" />
+              Encuestas de Satisfacción
+            </Link>
+
+            <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>
+              <RefreshCw className="h-5 w-5" />
+              Sincronización de catálogo de cursos
+            </Link>
+
+            <Link href="/admin/audit-logs" className={linkClass("/admin/audit-logs")}>
+              <FileText className="h-5 w-5" />
+              Auditoría y Logs
+            </Link>
           </div>
 
           <div className="mt-2 border-t border-slate-100 pt-4">
