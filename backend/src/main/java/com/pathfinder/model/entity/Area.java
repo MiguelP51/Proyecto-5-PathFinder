@@ -22,4 +22,10 @@ public class Area extends AuditoriaBase {
 
     @Column(name = "emoji", length = 10)
     private String emoji;
+
+    @Column(name = "descripcion", columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
 }

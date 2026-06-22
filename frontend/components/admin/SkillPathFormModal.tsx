@@ -26,7 +26,8 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
     dificultad: editingItem?.dificultad || 'Principiante',
     duracionLabel: editingItem?.duracionLabel || '',
     subareaId: editingItem?.subareaId || '',
-    esRecomendado: editingItem?.esRecomendado || false
+    esRecomendado: editingItem?.esRecomendado || false,
+    estadoPublicacion: (editingItem as any)?.estadoPublicacion || 'ACTIVA'
   });
 
   useEffect(() => {
@@ -135,6 +136,15 @@ export default function SkillPathFormModal({ onClose, onSuccess, editingItem }: 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Duración (ej. 40 horas)</label>
               <input name="duracionLabel" value={formData.duracionLabel} onChange={handleChange} placeholder="6 horas" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Estado de Publicación</label>
+              <select name="estadoPublicacion" value={formData.estadoPublicacion} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white">
+                <option value="BORRADOR">Borrador</option>
+                <option value="ACTIVA">Activa</option>
+                <option value="INACTIVA">Inactiva</option>
+              </select>
             </div>
 
             <div className="col-span-2">

@@ -10,6 +10,8 @@ interface Area {
   idArea: string;
   nombre: string;
   emoji: string;
+  descripcion?: string;
+  imagenUrl?: string;
   activo: boolean;
 }
 
@@ -118,7 +120,7 @@ export default function AreasPage() {
             <table className="w-full border-collapse text-left text-sm text-slate-700">
               <thead className="bg-slate-50/50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Emoji</th>
+                  <th className="px-6 py-4">Imagen / Emoji</th>
                   <th className="px-6 py-4">Código / ID</th>
                   <th className="px-6 py-4">Nombre</th>
                   <th className="px-6 py-4">Estado</th>
@@ -128,10 +130,19 @@ export default function AreasPage() {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredAreas.map((item) => (
                   <tr key={item.idArea} className="hover:bg-slate-50/40 transition">
-                    <td className="px-6 py-4 text-2xl">{item.emoji || "📁"}</td>
+                    <td className="px-6 py-4">
+                      {item.imagenUrl ? (
+                        <img src={item.imagenUrl.startsWith('areas/') ? `${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/areas/${item.idArea}/imagen` : item.imagenUrl} alt={item.nombre} className="h-10 w-10 rounded-xl object-cover border" />
+                      ) : (
+                        <span className="text-2xl">{item.emoji || "📁"}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">{item.idArea}</td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-800">{item.nombre}</p>
+                      {item.descripcion && (
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm line-clamp-2">{item.descripcion}</p>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span

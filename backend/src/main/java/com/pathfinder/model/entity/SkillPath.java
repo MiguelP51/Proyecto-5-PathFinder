@@ -63,4 +63,7 @@ public class SkillPath extends AuditoriaBase {
 
     @Column(name = "activo")
     private Boolean activo = true;
+
+    @Column(name = "estado_publicacion", nullable = false, length = 30)
+    private String estadoPublicacion = "ACTIVA"; // BORRADOR, ACTIVA, INACTIVA
 }

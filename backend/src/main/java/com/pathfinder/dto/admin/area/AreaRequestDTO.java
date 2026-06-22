@@ -11,4 +11,6 @@ public class AreaRequestDTO {
     private String nombre;
 
     private String emoji;
+    private String descripcion;
+    private String imagenUrl;
 }

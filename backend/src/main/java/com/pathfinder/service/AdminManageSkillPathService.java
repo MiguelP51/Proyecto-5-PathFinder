@@ -92,6 +92,7 @@ public class AdminManageSkillPathService {
         skillPath.setProgreso(0);
         skillPath.setXp(0);
         skillPath.setEstado("DISPONIBLE");
+        skillPath.setEstadoPublicacion(request.getEstadoPublicacion() != null ? request.getEstadoPublicacion() : "ACTIVA");
 
         return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
     }
@@ -140,6 +141,7 @@ public class AdminManageSkillPathService {
         }
 
         if (request.getEsRecomendado() != null) skillPath.setEsRecomendado(request.getEsRecomendado());
+        if (request.getEstadoPublicacion() != null) skillPath.setEstadoPublicacion(request.getEstadoPublicacion());
 
         return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
     }

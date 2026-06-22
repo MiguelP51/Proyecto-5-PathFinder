@@ -14,6 +14,8 @@ public interface AdminAreaService {
     AreaResponseDTO crearArea(AreaRequestDTO request);
     AreaResponseDTO actualizarArea(String idArea, AreaRequestDTO request);
     AreaResponseDTO cambiarEstadoArea(String idArea, Boolean activo);
+    String subirImagenArea(String idArea, org.springframework.web.multipart.MultipartFile file);
+    byte[] descargarImagenArea(String idArea);
 
     // Subáreas
     List<SubAreaAdminResponseDTO> listarSubAreas(String areaId, Boolean soloActivos);

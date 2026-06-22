@@ -13,9 +13,15 @@ import com.pathfinder.repository.SubAreaRepository;
 import com.pathfinder.service.AdminAreaService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +33,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
     private final AreaRepository areaRepository;
     private final SubAreaRepository subAreaRepository;
     private final SkillPathRepository skillPathRepository;
+    private final S3Client s3Client;
+
+    @Value("${aws.bucket-name}")
+    private String bucketName;
 
     // --- ÁREAS ---
 
@@ -66,6 +76,8 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         area.setIdArea(idArea);
         area.setNombre(request.getNombre().trim());
         area.setEmoji(request.getEmoji());
+        area.setDescripcion(request.getDescripcion());
+        area.setImagenUrl(request.getImagenUrl());
         area.setActivo(true);
         area.setFechaRegistro(LocalDateTime.now());
 
@@ -83,6 +95,8 @@ public class AdminAreaServiceImpl implements AdminAreaService {
 
         area.setNombre(request.getNombre().trim());
         area.setEmoji(request.getEmoji());
+        area.setDescripcion(request.getDescripcion());
+        area.setImagenUrl(request.getImagenUrl());
         area.setFechaModificacion(LocalDateTime.now());
 
         Area guardada = areaRepository.save(area);
@@ -119,6 +133,87 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         }
 
         return toAreaResponse(guardada);
+    }
+
+    @Override
+    @Transactional
+    public String subirImagenArea(String idArea, MultipartFile file) {
+        Area area = areaRepository.findById(idArea)
+                .orElseThrow(() -> new EntityNotFoundException("Área no encontrada con ID: " + idArea));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo no puede estar vacío");
+        }
+
+        // Validar que sea imagen
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Solo se permiten archivos de imagen");
+        }
+
+        // Eliminar imagen anterior de S3 si existe
+        if (StringUtils.hasText(area.getImagenUrl())) {
+            try {
+                String keyAnterior = area.getImagenUrl();
+                if (keyAnterior.contains(".amazonaws.com/")) {
+                    keyAnterior = keyAnterior.substring(keyAnterior.indexOf(".amazonaws.com/") + 15);
+                }
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(keyAnterior)
+                        .build());
+            } catch (Exception e) {
+                System.err.println("No se pudo eliminar imagen antigua de S3: " + e.getMessage());
+            }
+        }
+
+        // Generar nueva key de S3
+        String originalFilename = file.getOriginalFilename();
+        String extension = "png";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
+        }
+        String s3Key = "areas/area_" + idArea + "_" + System.currentTimeMillis() + "." + extension;
+
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .contentType(contentType)
+                    .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+        } catch (Exception e) {
+            throw new RuntimeException("Error al subir la imagen a S3: " + e.getMessage(), e);
+        }
+
+        // Guardar key de S3 en el área
+        area.setImagenUrl(s3Key);
+        area.setFechaModificacion(LocalDateTime.now());
+        areaRepository.save(area);
+
+        return s3Key;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] descargarImagenArea(String idArea) {
+        Area area = areaRepository.findById(idArea)
+                .orElseThrow(() -> new EntityNotFoundException("Área no encontrada con ID: " + idArea));
+
+        if (!StringUtils.hasText(area.getImagenUrl())) {
+            throw new IllegalArgumentException("El área no tiene una imagen asociada");
+        }
+
+        try (java.io.InputStream is = s3Client.getObject(
+                software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(area.getImagenUrl())
+                        .build()
+        )) {
+            return is.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al descargar la imagen desde S3: " + e.getMessage(), e);
+        }
     }
 
     // --- SUBÁREAS ---
@@ -276,6 +371,8 @@ public class AdminAreaServiceImpl implements AdminAreaService {
                 .idArea(area.getIdArea())
                 .nombre(area.getNombre())
                 .emoji(area.getEmoji())
+                .descripcion(area.getDescripcion())
+                .imagenUrl(area.getImagenUrl())
                 .activo(area.getActivo())
                 .build();
     }

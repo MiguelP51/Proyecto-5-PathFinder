@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -58,6 +59,14 @@ public class AdminAreaController {
             @RequestParam Boolean activo) {
         AreaResponseDTO data = adminAreaService.cambiarEstadoArea(idArea, activo);
         return ResponseEntity.ok(ApiResponse.success("Estado del área actualizado correctamente", data));
+    }
+
+    @PostMapping(value = "/areas/{idArea}/imagen", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<String>> subirImagen(
+            @PathVariable String idArea,
+            @RequestParam("file") MultipartFile file) {
+        String s3Key = adminAreaService.subirImagenArea(idArea, file);
+        return ResponseEntity.ok(ApiResponse.success("Imagen subida correctamente", s3Key));
     }
 
     // --- ENDPOINTS DE SUBÁREAS ---

@@ -37,6 +37,22 @@ public interface SkillPathRepository extends JpaRepository<SkillPath, Integer> {
             Integer idSkillPath
     );
 
+    List<SkillPath> findByUsuarioIsNullAndActivoTrueAndEstadoPublicacion(String estadoPublicacion);
+
+    List<SkillPath> findByUsuarioIsNullAndSubareaIdAndActivoTrueAndEstadoPublicacion(
+            String subareaId,
+            String estadoPublicacion
+    );
+
+    Optional<SkillPath> findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacionIn(
+            Integer idSkillPath,
+            java.util.Collection<String> estadosPublicacion
+    );
+    Optional<SkillPath> findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacion(
+        Integer idSkillPath,
+        String estadoPublicacion
+    );
+
     List<SkillPath> findByAreaId(String areaId);
     List<SkillPath> findBySubareaId(String subareaId);
 }
