@@ -25,6 +25,7 @@ public class AdminManageSkillPathResponseDTO {
     private Boolean activo;
     private String usuarioCorreo;
     private String usuarioNombre;
+    private String estadoPublicacion;
 
     public static AdminManageSkillPathResponseDTO from(SkillPath skillPath) {
         return AdminManageSkillPathResponseDTO.builder()
@@ -46,6 +47,7 @@ public class AdminManageSkillPathResponseDTO {
                 .activo(skillPath.getActivo())
                 .usuarioCorreo(skillPath.getUsuario() != null ? skillPath.getUsuario().getCorreo() : null)
                 .usuarioNombre(skillPath.getUsuario() != null ? skillPath.getUsuario().getNombreCompleto() : null)
+                .estadoPublicacion(skillPath.getEstadoPublicacion())
                 .build();
     }
 }

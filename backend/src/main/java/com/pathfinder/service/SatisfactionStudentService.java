@@ -6,6 +6,6 @@ import com.pathfinder.dto.student.satisfaction.SubmitSurveyRequestDTO;
 import java.util.Optional;
 
 public interface SatisfactionStudentService {
-    Optional<PendingSurveyResponseDTO> getPendingSurvey(String targetType, Integer targetId, Integer studentId);
+    Optional<PendingSurveyResponseDTO> getPendingSurvey(Integer studentId);
     void submitSurvey(SubmitSurveyRequestDTO request, Integer studentId);
 }

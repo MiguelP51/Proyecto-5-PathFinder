@@ -47,7 +47,8 @@ export default function AdminLayout({
     <div className="min-h-screen bg-slate-50">
 
       <AdminTopBar
-        onMenuClick={() => setSidebarOpen(true)}
+        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        sidebarOpen={sidebarOpen}
       />
 
       <AdminSidebar
@@ -55,7 +56,7 @@ export default function AdminLayout({
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main>
+      <main className={`transition-all duration-300 ${sidebarOpen ? "md:pl-72" : "md:pl-0"}`}>
         {children}
       </main>
 

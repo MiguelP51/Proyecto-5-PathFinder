@@ -54,11 +54,12 @@ public class SkillPathServiceImpl implements SkillPathService {
         List<SkillPath> skillPaths;
 
         if (StringUtils.hasText(subareaId)) {
-            skillPaths = skillPathRepository.findByUsuarioIsNullAndSubareaIdAndActivoTrue(
-                    subareaId
+            skillPaths = skillPathRepository.findByUsuarioIsNullAndSubareaIdAndActivoTrueAndEstadoPublicacion(
+                    subareaId,
+                    "ACTIVA"
             );
         } else {
-            skillPaths = skillPathRepository.findByUsuarioIsNullAndActivoTrue();
+            skillPaths = skillPathRepository.findByUsuarioIsNullAndActivoTrueAndEstadoPublicacion("ACTIVA");
         }
 
         List<Integer> idsSkillPath = skillPaths.stream()
@@ -92,7 +93,7 @@ public class SkillPathServiceImpl implements SkillPathService {
             Integer idSkillPath
     ) {
         SkillPath skillPath = skillPathRepository
-                .findByIdSkillPathAndUsuarioIsNullAndActivoTrue(idSkillPath)
+                .findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacionIn(idSkillPath, List.of("ACTIVA", "INACTIVA"))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "SkillPath no encontrado o no está disponible"
                 ));
@@ -206,9 +207,9 @@ public class SkillPathServiceImpl implements SkillPathService {
             Integer idSkillPath
     ) {
         SkillPath skillPath = skillPathRepository
-                .findByIdSkillPathAndUsuarioIsNullAndActivoTrue(idSkillPath)
+                .findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacion(idSkillPath, "ACTIVA")
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "SkillPath no encontrado o no está disponible"
+                        "SkillPath no encontrado o no está disponible para inscripción"
                 ));
 
         Usuario usuario = usuarioRepository.findByCorreo(correo)
@@ -271,7 +272,7 @@ public class SkillPathServiceImpl implements SkillPathService {
         }
 
         SkillPath skillPath = skillPathRepository
-                .findByIdSkillPathAndUsuarioIsNullAndActivoTrue(idSkillPath)
+                .findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacionIn(idSkillPath, List.of("ACTIVA", "INACTIVA"))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "SkillPath no encontrado o no está disponible"
                 ));
@@ -399,7 +400,7 @@ public class SkillPathServiceImpl implements SkillPathService {
             Integer idSkillPath
     ) {
         SkillPath skillPath = skillPathRepository
-                .findByIdSkillPathAndUsuarioIsNullAndActivoTrue(idSkillPath)
+                .findByIdSkillPathAndUsuarioIsNullAndActivoTrueAndEstadoPublicacionIn(idSkillPath, List.of("ACTIVA", "INACTIVA"))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "SkillPath no encontrado o no está disponible"
                 ));

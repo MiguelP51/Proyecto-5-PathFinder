@@ -32,6 +32,7 @@ export interface SkillPath {
   usuarioCorreo: string | null;
   usuarioNombre: string | null;
   subareaId?: number | string;
+  estadoPublicacion?: string;
 }
 
 export default function SkillPathsPage() {
@@ -222,12 +223,23 @@ export default function SkillPathsPage() {
                       </td>
                     )}
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${item.activo
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                        {item.activo ? 'Activo' : 'Inactivo'}
-                      </span>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${item.activo
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}>
+                          {item.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                        {item.estadoPublicacion && (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                            item.estadoPublicacion === 'ACTIVA' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            item.estadoPublicacion === 'BORRADOR' ? 'bg-slate-50 text-slate-700 border-slate-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {item.estadoPublicacion}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 text-slate-400">

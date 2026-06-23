@@ -4,8 +4,6 @@ import { SatisfactionQuestionDTO } from './adminService';
 export interface PendingSurveyResponseDTO {
   idSurvey: number;
   title: string;
-  targetType: string;
-  targetId?: number;
   questions: SatisfactionQuestionDTO[];
 }
 
@@ -17,27 +15,22 @@ export interface SubmitAnswerRequestDTO {
 
 export interface SubmitSurveyRequestDTO {
   surveyId: number;
-  targetId: number;
   answers: SubmitAnswerRequestDTO[];
 }
 
 export const satisfactionStudentService = {
-  getPendingSurvey: async (targetType: string, targetId?: number): Promise<PendingSurveyResponseDTO | null> => {
+  getPendingSurvey: async (token?: string | null): Promise<PendingSurveyResponseDTO | null> => {
     try {
-      let url = `/api/student/satisfaction/pending?targetType=${targetType}`;
-      if (targetId) {
-        url += `&targetId=${targetId}`;
-      }
-      return await apiFetch<PendingSurveyResponseDTO>(url, { method: 'GET' });
+      return await apiFetch<PendingSurveyResponseDTO>('/api/student/satisfaction/pending', { method: 'GET' }, token);
     } catch (e) {
       return null;
     }
   },
 
-  submitSurvey: async (payload: SubmitSurveyRequestDTO): Promise<void> => {
+  submitSurvey: async (payload: SubmitSurveyRequestDTO, token?: string | null): Promise<void> => {
     await apiFetch('/api/student/satisfaction/submissions', {
       method: 'POST',
       body: JSON.stringify(payload)
-    });
+    }, token);
   }
 };

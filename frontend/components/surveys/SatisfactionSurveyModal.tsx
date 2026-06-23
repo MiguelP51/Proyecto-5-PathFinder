@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { X, Star } from "lucide-react";
 import { PendingSurveyResponseDTO, SubmitSurveyRequestDTO, satisfactionStudentService } from "@/lib/satisfaction/studentService";
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function SatisfactionSurveyModal({ survey, onClose, onSubmitted }: Props) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [answers, setAnswers] = useState<Record<number, { ratingValue?: number; textValue?: string }>>({});
 
@@ -46,7 +48,6 @@ export default function SatisfactionSurveyModal({ survey, onClose, onSubmitted }
     try {
       const payload: SubmitSurveyRequestDTO = {
         surveyId: survey.idSurvey,
-        targetId: survey.targetId || 0,
         answers: Object.entries(answers).map(([qId, ans]) => ({
           questionId: Number(qId),
           ratingValue: ans.ratingValue,
@@ -54,7 +55,7 @@ export default function SatisfactionSurveyModal({ survey, onClose, onSubmitted }
         }))
       };
 
-      await satisfactionStudentService.submitSurvey(payload);
+      await satisfactionStudentService.submitSurvey(payload, session?.backendJwt);
       onSubmitted();
     } catch (error) {
       console.error(error);

@@ -29,4 +29,5 @@ public class CreateAdminManageSkillPathRequestDTO {
     private String subareaId;
     private String subareaNombre;
     private Boolean esRecomendado;
+    private String estadoPublicacion; // BORRADOR, ACTIVA, INACTIVA
 }

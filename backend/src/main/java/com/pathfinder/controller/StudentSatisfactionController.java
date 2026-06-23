@@ -21,12 +21,10 @@ public class StudentSatisfactionController {
 
     @GetMapping("/pending")
     public ResponseEntity<PendingSurveyResponseDTO> getPendingSurvey(
-            @RequestParam String targetType,
-            @RequestParam(required = false) Integer targetId,
             @AuthenticationPrincipal Usuario usuario) {
         
         try {
-            Optional<PendingSurveyResponseDTO> surveyOpt = studentService.getPendingSurvey(targetType, targetId, usuario.getIdUsuario());
+            Optional<PendingSurveyResponseDTO> surveyOpt = studentService.getPendingSurvey(usuario.getIdUsuario());
             return surveyOpt.map(ResponseEntity::ok)
                     .orElseGet(() -> ResponseEntity.noContent().build());
         } catch (Exception e) {

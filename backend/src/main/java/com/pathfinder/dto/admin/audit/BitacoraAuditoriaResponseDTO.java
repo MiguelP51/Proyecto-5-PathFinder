@@ -20,15 +20,8 @@ import java.time.LocalDateTime;
 public class BitacoraAuditoriaResponseDTO {
     private Long idAuditoria;
     private LocalDateTime fechaEvento;
-    private Integer usuarioId;
     private String usuarioCorreo;
-    private String rol;
-    private String modulo;
     private String accion;
-    private String ipOrigen;
-    private String detalles;
-    private String resultado;
-    private String mensajeError;
 
     /**
      * Mapea un objeto entidad a un DTO.
@@ -40,15 +33,8 @@ public class BitacoraAuditoriaResponseDTO {
         return BitacoraAuditoriaResponseDTO.builder()
                 .idAuditoria(entity.getIdAuditoria())
                 .fechaEvento(entity.getFechaEvento())
-                .usuarioId(entity.getUsuarioId())
                 .usuarioCorreo(entity.getUsuarioCorreo())
-                .rol(entity.getRol())
-                .modulo(entity.getModulo())
                 .accion(entity.getAccion())
-                .ipOrigen(entity.getIpOrigen())
-                .detalles(entity.getDetalles())
-                .resultado(entity.getResultado())
-                .mensajeError(entity.getMensajeError())
                 .build();
     }
 }

@@ -13,13 +13,16 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     nombre: editingItem?.nombre || '',
-    emoji: editingItem?.emoji || ''
+    emoji: editingItem?.emoji || '',
+    descripcion: editingItem?.descripcion || '',
+    imagenUrl: editingItem?.imagenUrl || ''
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -30,19 +33,42 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
     setLoading(true);
 
     try {
+      let resultArea: any;
       if (editingItem) {
-        await apiFetch(`/api/admin/areas/${editingItem.idArea}`, {
+        resultArea = await apiFetch<any>(`/api/admin/areas/${editingItem.idArea}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({
+            nombre: formData.nombre,
+            emoji: formData.emoji,
+            descripcion: formData.descripcion,
+            imagenUrl: formData.imagenUrl
+          })
         }, session?.backendJwt);
       } else {
-        await apiFetch(`/api/admin/areas`, {
+        resultArea = await apiFetch<any>(`/api/admin/areas`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({
+            nombre: formData.nombre,
+            emoji: formData.emoji,
+            descripcion: formData.descripcion,
+            imagenUrl: ''
+          })
         }, session?.backendJwt);
       }
+
+      if (imageFile) {
+        const areaIdForUpload = editingItem ? editingItem.idArea : resultArea.idArea;
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', imageFile);
+
+        await apiFetch(`/api/admin/areas/${areaIdForUpload}/imagen`, {
+          method: 'POST',
+          body: uploadFormData
+        }, session?.backendJwt);
+      }
+
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Error al guardar el Área');
@@ -74,6 +100,26 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Emoji</label>
             <input name="emoji" value={formData.emoji} onChange={handleChange} placeholder="Ej. 🧑‍💼" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
+            <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Descripción de la especialidad..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" rows={3} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Imagen del Área</label>
+            {formData.imagenUrl && (
+              <div className="mb-2 flex items-center gap-2">
+                <img src={formData.imagenUrl.startsWith('areas/') ? `${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/areas/${editingItem?.idArea}/imagen` : formData.imagenUrl} alt="Vista previa" className="h-12 w-12 rounded object-cover border" />
+                <span className="text-xs text-slate-500">Imagen actual</span>
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                setImageFile(e.target.files[0]);
+              }
+            }} className="w-full border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-purple-500" />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t mt-6">

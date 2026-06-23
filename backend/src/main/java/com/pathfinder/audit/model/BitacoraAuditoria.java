@@ -34,7 +34,7 @@ public class BitacoraAuditoria {
     @Column(name = "rol", length = 30)
     private String rol;
 
-    @Column(name = "modulo", nullable = false, length = 50)
+    @Column(name = "modulo", length = 50)
     private String modulo;
 
     @Column(name = "accion", nullable = false, length = 100)
@@ -46,7 +46,7 @@ public class BitacoraAuditoria {
     @Column(name = "detalles", columnDefinition = "TEXT")
     private String detalles;
 
-    @Column(name = "resultado", nullable = false, length = 20)
+    @Column(name = "resultado", length = 20)
     private String resultado;
 
     @Column(name = "mensaje_error", columnDefinition = "TEXT")

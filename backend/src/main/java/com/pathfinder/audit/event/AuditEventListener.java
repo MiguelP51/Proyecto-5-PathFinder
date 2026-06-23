@@ -24,15 +24,8 @@ public class AuditEventListener {
         try {
             BitacoraAuditoria entity = BitacoraAuditoria.builder()
                     .fechaEvento(event.getFechaEvento())
-                    .usuarioId(event.getUsuarioId())
                     .usuarioCorreo(event.getUsuarioCorreo())
-                    .rol(event.getRol())
-                    .modulo(event.getModulo())
                     .accion(event.getAccion())
-                    .ipOrigen(event.getIpOrigen())
-                    .detalles(event.getDetalles())
-                    .resultado(event.getResultado())
-                    .mensajeError(event.getMensajeError())
                     .build();
 
             auditoriaRepository.save(entity);

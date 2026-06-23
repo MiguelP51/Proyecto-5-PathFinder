@@ -9,4 +9,5 @@ public class SatisfactionQuestionDTO {
     private String questionType;
     private Boolean isMandatory;
     private Integer orderIndex;
+    private String section;
 }

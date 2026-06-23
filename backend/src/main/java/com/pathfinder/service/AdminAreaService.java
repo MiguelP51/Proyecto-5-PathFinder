@@ -14,6 +14,8 @@ public interface AdminAreaService {
     AreaResponseDTO crearArea(AreaRequestDTO request);
     AreaResponseDTO actualizarArea(String idArea, AreaRequestDTO request);
     AreaResponseDTO cambiarEstadoArea(String idArea, Boolean activo);
+    String subirImagenArea(String idArea, org.springframework.web.multipart.MultipartFile file);
+    byte[] descargarImagenArea(String idArea);
 
     // Subáreas
     List<SubAreaAdminResponseDTO> listarSubAreas(String areaId, Boolean soloActivos);
@@ -21,4 +23,9 @@ public interface AdminAreaService {
     SubAreaAdminResponseDTO crearSubArea(SubAreaRequestDTO request);
     SubAreaAdminResponseDTO actualizarSubArea(Integer idSubarea, SubAreaRequestDTO request);
     SubAreaAdminResponseDTO cambiarEstadoSubArea(Integer idSubarea, Boolean activo);
+    
+    // Importación y Lotes
+    void importarAreasExcel(org.springframework.web.multipart.MultipartFile file);
+    void importarSubAreasExcel(org.springframework.web.multipart.MultipartFile file, String defaultAreaId);
+    void actualizarSubAreasBatch(List<com.pathfinder.dto.admin.subarea.SubAreaBatchDTO> requests);
 }

@@ -18,12 +18,6 @@ public class SatisfactionSurvey extends AuditoriaBase {
     @Column(name = "title", nullable = false, length = 150)
     private String title;
 
-    @Column(name = "target_type", nullable = false, length = 50)
-    private String targetType; // CHALLENGE or SKILLPATH
-
-    @Column(name = "target_id")
-    private Integer targetId; // Null means applies to all
-
     @Column(name = "status", nullable = false, length = 50)
-    private String status; // DRAFT, ACTIVE, ARCHIVED
+    private String status; // DRAFT, ACTIVE, HISTORICAL
 }

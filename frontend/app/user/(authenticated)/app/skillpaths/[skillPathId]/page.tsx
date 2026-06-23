@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { SkillPathEvidenceSection } from "@/components/skillpath/SkillPathEvidenceSection";
 import { SkillPathRewardSummary } from "@/components/skillpath/SkillPathRewardSummary";
 import { SkillPathStatusSummary } from "@/components/skillpath/SkillPathStatusSummary";
-import SatisfactionSurveyTrigger from "@/components/surveys/SatisfactionSurveyTrigger";
+
 
 import {
     ArrowLeft,
@@ -261,12 +261,6 @@ export default async function SkillPathDetailPage({
 
                 <SkillPathRewardSummary skillPath={skillPath} />
             </section>
-            
-            <SatisfactionSurveyTrigger 
-                targetType="SKILLPATH" 
-                targetId={Number(skillPath.id)} 
-                isCompleted={skillPath.status === "COMPLETADO"} 
-            />
         </main>
     );
 }
