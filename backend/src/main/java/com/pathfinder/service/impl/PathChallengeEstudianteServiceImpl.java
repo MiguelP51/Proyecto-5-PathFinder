@@ -20,6 +20,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,6 +46,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private final PathChallengeTaskRepository pathChallengeTaskRepository;
     private final UsuarioPathChallengeRepository usuarioPathChallengeRepository;
     private final UsuarioPathChallengeTaskRepository usuarioPathChallengeTaskRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -419,12 +422,33 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                             return PathChallengeEstudianteResponseDTO.PathChallengeTaskEstudianteDTO
                                     .builder()
                                     .idPathChallengeTask(tarea.getIdPathChallengeTask())
+                                    .title(
+                                            tarea.getTitulo() != null && !tarea.getTitulo().isBlank()
+                                                    ? tarea.getTitulo()
+                                                    : "Tarea " + tarea.getOrden()
+                                    )
                                     .description(tarea.getDescripcion())
+                                    .taskType(
+                                            tarea.getTipoTarea() != null && !tarea.getTipoTarea().isBlank()
+                                                    ? tarea.getTipoTarea()
+                                                    : "INFORMATION"
+                                    )
+                                    .content(tarea.getContenido())
+                                    .options(parseOptions(tarea.getOpcionesJson()))
                                     .order(tarea.getOrden())
+                                    .required(
+                                            tarea.getObligatoria() == null
+                                                    ? true
+                                                    : tarea.getObligatoria()
+                                    )
                                     .completed(
                                             avanceTarea != null
                                                     && Boolean.TRUE.equals(avanceTarea.getCompletada())
                                     )
+                                    .responseText(avanceTarea != null ? avanceTarea.getRespuestaTexto() : null)
+                                    .selectedOption(avanceTarea != null ? avanceTarea.getOpcionSeleccionada() : null)
+                                    .fileName(avanceTarea != null ? avanceTarea.getArchivoNombre() : null)
+                                    .fileUrl(avanceTarea != null ? avanceTarea.getArchivoUrl() : null)
                                     .build();
                         })
                         .toList()
@@ -451,6 +475,21 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 .submission(buildSubmission(avance))
                 .reward(buildReward(challenge, avance))
                 .build();
+    }
+
+    private List<String> parseOptions(String opcionesJson) {
+        if (opcionesJson == null || opcionesJson.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(
+                    opcionesJson,
+                    new TypeReference<List<String>>() {}
+            );
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     private Map<Integer, UsuarioPathChallengeTask> obtenerTareasCompletadasMap(

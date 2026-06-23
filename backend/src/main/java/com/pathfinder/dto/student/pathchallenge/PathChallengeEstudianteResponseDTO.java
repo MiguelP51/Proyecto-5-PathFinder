@@ -56,9 +56,19 @@ public class PathChallengeEstudianteResponseDTO {
     @AllArgsConstructor
     public static class PathChallengeTaskEstudianteDTO {
         private Integer idPathChallengeTask;
+        private String title;
         private String description;
+        private String taskType;
+        private String content;
+        private List<String> options;
         private Integer order;
+        private Boolean required;
         private Boolean completed;
+
+        private String responseText;
+        private String selectedOption;
+        private String fileName;
+        private String fileUrl;
     }
 
     @Data
