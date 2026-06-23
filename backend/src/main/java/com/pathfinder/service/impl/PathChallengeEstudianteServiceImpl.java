@@ -3,6 +3,7 @@ package com.pathfinder.service.impl;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeAvanceRequestDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeEstudianteResponseDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeFinalizarRequestDTO;
+import com.pathfinder.dto.student.pathchallenge.PathChallengeTaskResponseRequestDTO;
 import com.pathfinder.model.entity.Habilidad;
 import com.pathfinder.model.entity.PathChallenge;
 import com.pathfinder.model.entity.PathChallengeTask;
@@ -30,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -164,11 +166,42 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         UsuarioPathChallenge avance = obtenerOCrearAvance(usuario, challenge);
 
         List<PathChallengeTask> tareas = obtenerTareasChallenge(idPathChallenge);
-        Set<Integer> completedTaskIds = normalizarIds(request.getCompletedTaskIds());
 
-        validarTareasPertenecenAlChallenge(completedTaskIds, tareas);
+        Set<Integer> legacyCompletedTaskIds = request != null
+                ? normalizarIds(request.getCompletedTaskIds())
+                : new HashSet<>();
 
-        sincronizarTareas(avance, tareas, completedTaskIds);
+        Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea =
+                request != null
+                        ? mapTaskResponses(request.getTaskResponses())
+                        : Map.of();
+
+        boolean traeEstadoDeTareas =
+                !legacyCompletedTaskIds.isEmpty() || !respuestasPorTarea.isEmpty();
+
+        Set<Integer> completedTaskIds;
+
+        if (traeEstadoDeTareas) {
+            validarTareasPertenecenAlChallenge(legacyCompletedTaskIds, tareas);
+            validarTareasPertenecenAlChallenge(respuestasPorTarea.keySet(), tareas);
+
+            completedTaskIds = resolverIdsTareasCompletadas(
+                    tareas,
+                    respuestasPorTarea,
+                    legacyCompletedTaskIds
+            );
+
+            sincronizarTareas(
+                    avance,
+                    tareas,
+                    respuestasPorTarea,
+                    completedTaskIds
+            );
+        } else {
+            completedTaskIds = obtenerIdsTareasCompletadas(
+                    avance.getIdUsuarioPathChallenge()
+            );
+        }
 
         int progreso = calcularProgreso(tareas, completedTaskIds);
 
@@ -179,7 +212,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         avance.setProgresoPorcentaje(progreso);
         avance.setFechaUltimoAvance(LocalDateTime.now());
 
-        if (request.getEntregaTexto() != null) {
+        if (request != null && request.getEntregaTexto() != null) {
             avance.setEntregaTexto(request.getEntregaTexto().trim());
         }
 
@@ -206,22 +239,51 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
             throw new IllegalArgumentException("La misión no tiene tareas configuradas");
         }
 
-        Set<Integer> completedTaskIds = normalizarIds(request.getCompletedTaskIds());
+        Set<Integer> legacyCompletedTaskIds = request != null
+                ? normalizarIds(request.getCompletedTaskIds())
+                : new HashSet<>();
 
-        if (completedTaskIds.isEmpty()) {
-            completedTaskIds = obtenerIdsTareasCompletadas(avance.getIdUsuarioPathChallenge());
+        Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea =
+                request != null
+                        ? mapTaskResponses(request.getTaskResponses())
+                        : Map.of();
+
+        boolean traeEstadoDeTareas =
+                !legacyCompletedTaskIds.isEmpty() || !respuestasPorTarea.isEmpty();
+
+        Set<Integer> completedTaskIds;
+
+        if (traeEstadoDeTareas) {
+            validarTareasPertenecenAlChallenge(legacyCompletedTaskIds, tareas);
+            validarTareasPertenecenAlChallenge(respuestasPorTarea.keySet(), tareas);
+
+            completedTaskIds = resolverIdsTareasCompletadas(
+                    tareas,
+                    respuestasPorTarea,
+                    legacyCompletedTaskIds
+            );
+
+            sincronizarTareas(
+                    avance,
+                    tareas,
+                    respuestasPorTarea,
+                    completedTaskIds
+            );
+        } else {
+            completedTaskIds = obtenerIdsTareasCompletadas(
+                    avance.getIdUsuarioPathChallenge()
+            );
         }
 
-        validarTareasPertenecenAlChallenge(completedTaskIds, tareas);
-        sincronizarTareas(avance, tareas, completedTaskIds);
+        boolean todasObligatoriasCompletadas = tareas.stream()
+                .filter(tarea -> tarea.getObligatoria() == null || Boolean.TRUE.equals(tarea.getObligatoria()))
+                .allMatch(tarea -> completedTaskIds.contains(tarea.getIdPathChallengeTask()));
 
-        boolean todasCompletadas = completedTaskIds.size() == tareas.size();
-
-        if (!todasCompletadas) {
-            throw new IllegalArgumentException("Debes completar todas las tareas antes de enviar la misión");
+        if (!todasObligatoriasCompletadas) {
+            throw new IllegalArgumentException("Debes completar todas las tareas obligatorias antes de enviar la misión");
         }
 
-        String entregaTexto = request.getEntregaTexto();
+        String entregaTexto = request != null ? request.getEntregaTexto() : null;
 
         if (entregaTexto != null) {
             entregaTexto = entregaTexto.trim();
@@ -323,6 +385,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private void sincronizarTareas(
             UsuarioPathChallenge avance,
             List<PathChallengeTask> tareas,
+            Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea,
             Set<Integer> completedTaskIds
     ) {
         List<UsuarioPathChallengeTask> registros =
@@ -348,6 +411,27 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 registro.setPathChallengeTask(tarea);
             }
 
+            PathChallengeTaskResponseRequestDTO respuesta =
+                    respuestasPorTarea.get(tarea.getIdPathChallengeTask());
+
+            if (respuesta != null) {
+                if (respuesta.getResponseText() != null) {
+                    registro.setRespuestaTexto(respuesta.getResponseText().trim());
+                }
+
+                if (respuesta.getSelectedOption() != null) {
+                    registro.setOpcionSeleccionada(respuesta.getSelectedOption().trim());
+                }
+
+                if (respuesta.getFileName() != null) {
+                    registro.setArchivoNombre(respuesta.getFileName().trim());
+                }
+
+                if (respuesta.getFileUrl() != null) {
+                    registro.setArchivoUrl(respuesta.getFileUrl().trim());
+                }
+            }
+
             boolean completada = completedTaskIds.contains(tarea.getIdPathChallengeTask());
 
             registro.setCompletada(completada);
@@ -362,6 +446,89 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
             usuarioPathChallengeTaskRepository.save(registro);
         }
+    }
+
+    private Map<Integer, PathChallengeTaskResponseRequestDTO> mapTaskResponses(
+            List<PathChallengeTaskResponseRequestDTO> responses
+    ) {
+        if (responses == null || responses.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Integer, PathChallengeTaskResponseRequestDTO> map = new HashMap<>();
+
+        for (PathChallengeTaskResponseRequestDTO response : responses) {
+            if (response != null && response.getIdPathChallengeTask() != null) {
+                map.put(response.getIdPathChallengeTask(), response);
+            }
+        }
+
+        return map;
+    }
+
+    private Set<Integer> resolverIdsTareasCompletadas(
+            List<PathChallengeTask> tareas,
+            Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea,
+            Set<Integer> legacyCompletedTaskIds
+    ) {
+        Set<Integer> completedTaskIds = new HashSet<>();
+
+        for (PathChallengeTask tarea : tareas) {
+            PathChallengeTaskResponseRequestDTO respuesta =
+                    respuestasPorTarea.get(tarea.getIdPathChallengeTask());
+
+            boolean completada = resolverCompletada(
+                    tarea,
+                    respuesta,
+                    legacyCompletedTaskIds
+            );
+
+            if (completada) {
+                completedTaskIds.add(tarea.getIdPathChallengeTask());
+            }
+        }
+
+        return completedTaskIds;
+    }
+
+    private boolean resolverCompletada(
+            PathChallengeTask tarea,
+            PathChallengeTaskResponseRequestDTO respuesta,
+            Set<Integer> legacyCompletedTaskIds
+    ) {
+        Integer idTarea = tarea.getIdPathChallengeTask();
+
+        if (respuesta == null) {
+            return legacyCompletedTaskIds.contains(idTarea);
+        }
+
+        String tipo = tarea.getTipoTarea() != null
+                ? tarea.getTipoTarea().trim().toUpperCase()
+                : "INFORMATION";
+
+        return switch (tipo) {
+            case "INFORMATION" ->
+                    Boolean.TRUE.equals(respuesta.getCompleted())
+                            || legacyCompletedTaskIds.contains(idTarea);
+
+            case "CHOICE" ->
+                    isNotBlank(respuesta.getSelectedOption());
+
+            case "TEXT_RESPONSE" ->
+                    isNotBlank(respuesta.getResponseText());
+
+            case "FILE_UPLOAD" ->
+                    isNotBlank(respuesta.getFileUrl())
+                            || isNotBlank(respuesta.getFileName());
+
+            default ->
+                    Boolean.TRUE.equals(respuesta.getCompleted())
+                            || legacyCompletedTaskIds.contains(idTarea);
+        };
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.trim().isBlank();
     }
 
     private int calcularProgreso(

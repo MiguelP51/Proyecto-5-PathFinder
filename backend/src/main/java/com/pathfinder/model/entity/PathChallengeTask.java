@@ -39,4 +39,7 @@ public class PathChallengeTask extends AuditoriaBase {
 
     @Column(name = "obligatoria", nullable = false)
     private Boolean obligatoria = true;
+
+    @Column(name = "config_json", columnDefinition = "TEXT")
+    private String configJson;
 }

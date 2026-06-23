@@ -45,6 +45,9 @@ public class UsuarioPathChallengeTask {
     @Column(name = "archivo_nombre", length = 255)
     private String archivoNombre;
 
+    @Column(name = "respuesta_json", columnDefinition = "TEXT")
+    private String respuestaJson;
+
     @Column(name = "completada", nullable = false)
     private Boolean completada = false;
 
