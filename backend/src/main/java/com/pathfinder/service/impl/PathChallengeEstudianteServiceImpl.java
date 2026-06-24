@@ -430,6 +430,10 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 if (respuesta.getFileUrl() != null) {
                     registro.setArchivoUrl(respuesta.getFileUrl().trim());
                 }
+
+                if (respuesta.getResponseJson() != null) {
+                    registro.setRespuestaJson(respuesta.getResponseJson().trim());
+                }
             }
 
             boolean completada = completedTaskIds.contains(tarea.getIdPathChallengeTask());
@@ -507,15 +511,16 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 : "INFORMATION";
 
         return switch (tipo) {
-            case "INFORMATION" ->
+            case "INFORMATION", "SCENARIO", "RESOURCE_REVIEW", "MULTI_SELECT", "PLAN_BUILDER", "FINAL_REVIEW" ->
                     Boolean.TRUE.equals(respuesta.getCompleted())
                             || legacyCompletedTaskIds.contains(idTarea);
 
-            case "CHOICE" ->
+            case "CHOICE", "SINGLE_CHOICE" ->
                     isNotBlank(respuesta.getSelectedOption());
 
             case "TEXT_RESPONSE" ->
-                    isNotBlank(respuesta.getResponseText());
+                    isNotBlank(respuesta.getResponseText())
+                            || isNotBlank(respuesta.getResponseJson());
 
             case "FILE_UPLOAD" ->
                     isNotBlank(respuesta.getFileUrl())
@@ -601,6 +606,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                                                     : "INFORMATION"
                                     )
                                     .content(tarea.getContenido())
+                                    .configJson(tarea.getConfigJson())
                                     .options(parseOptions(tarea.getOpcionesJson()))
                                     .order(tarea.getOrden())
                                     .required(
@@ -616,6 +622,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                                     .selectedOption(avanceTarea != null ? avanceTarea.getOpcionSeleccionada() : null)
                                     .fileName(avanceTarea != null ? avanceTarea.getArchivoNombre() : null)
                                     .fileUrl(avanceTarea != null ? avanceTarea.getArchivoUrl() : null)
+                                    .responseJson(avanceTarea != null ? avanceTarea.getRespuestaJson() : null)
                                     .build();
                         })
                         .toList()

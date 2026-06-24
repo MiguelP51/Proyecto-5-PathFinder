@@ -20,4 +20,6 @@ public class PathChallengeTaskResponseRequestDTO {
     private String fileName;
 
     private String fileUrl;
+
+    private String responseJson;
 }

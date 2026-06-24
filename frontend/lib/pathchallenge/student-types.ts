@@ -7,8 +7,9 @@ export interface StudentPathChallengeTask {
     idPathChallengeTask: number;
     title: string;
     description: string;
-    taskType: "INFORMATION" | "CHOICE" | "TEXT_RESPONSE" | "FILE_UPLOAD" | string;
+    taskType: string;
     content?: string | null;
+    configJson?: string | null;
     options: string[];
     order: number;
     required: boolean;
@@ -18,6 +19,7 @@ export interface StudentPathChallengeTask {
     selectedOption?: string | null;
     fileName?: string | null;
     fileUrl?: string | null;
+    responseJson?: string | null;
 }
 
 export interface StudentPathChallengeTaskResponseRequest {
@@ -27,6 +29,7 @@ export interface StudentPathChallengeTaskResponseRequest {
     selectedOption?: string;
     fileName?: string;
     fileUrl?: string;
+    responseJson?: string;
 }
 
 export interface StudentPathChallengeSubmission {

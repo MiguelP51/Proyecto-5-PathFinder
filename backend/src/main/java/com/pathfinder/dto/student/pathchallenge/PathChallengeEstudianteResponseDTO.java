@@ -69,6 +69,8 @@ public class PathChallengeEstudianteResponseDTO {
         private String selectedOption;
         private String fileName;
         private String fileUrl;
+        private String configJson;
+        private String responseJson;
     }
 
     @Data
