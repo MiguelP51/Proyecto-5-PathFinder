@@ -113,6 +113,15 @@ type TaskConfig = {
         badgeName?: string;
         points?: number;
     };
+
+    reviewMode?: "SUMMARY_ONLY" | "SUBMISSION_REVIEW" | "FILE_COMPARISON" | string;
+
+    comparison?: {
+        sourceTaskType?: string;
+        submissionTaskType?: string;
+        sourceTaskOrder?: number;
+        submissionTaskOrder?: number;
+    };
 };
 
 type JsonResponse = {
@@ -610,8 +619,19 @@ export function PathChallengeMissionClient({
 
     const goNext = () => {
         setError(null);
+        setSuccessMessage(null);
 
         if (!currentTaskCompleted) {
+            const taskType = normalizeTaskType(currentTask.taskType);
+            const config = getConfig(currentTask);
+
+            if (taskType === "TEXT_RESPONSE") {
+                setError(
+                    `La respuesta debe tener al menos ${config.minLength ?? 1} caracteres para continuar.`,
+                );
+                return;
+            }
+
             setError("Completa esta actividad antes de continuar con la siguiente.");
             return;
         }
@@ -697,10 +717,12 @@ export function PathChallengeMissionClient({
                         <div className="mt-8 grid gap-3 sm:grid-cols-2">
                             <button
                                 type="button"
-                                onClick={() => router.push("/user/app")}
+                                onClick={() =>
+                                    router.push(`/user/app/challenges/${challenge.idPathChallenge}`)
+                                }
                                 className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
                             >
-                                Volver al inicio
+                                Volver al briefing
                             </button>
 
                             <button
@@ -1387,7 +1409,7 @@ function TaskRenderer({
                         completed ? "text-emerald-600" : "text-slate-400"
                     }`}
                 >
-                    Mínimo sugerido: {minLength} caracteres. Actual: {text.trim().length}.
+                    Mínimo requerido: {minLength} caracteres. Actual: {text.trim().length}.
                 </p>
             </div>
         );
@@ -1528,18 +1550,42 @@ function TaskRenderer({
     }
 
     if (taskType === "FINAL_REVIEW") {
-        const documentTask = allTasks.find(
-            (item) => normalizeTaskType(item.taskType) === "DOCUMENT_REVIEW",
+        const reviewMode = config.reviewMode ?? "SUMMARY_ONLY";
+
+        const findTaskForReview = (
+            taskTypeToFind?: string,
+            taskOrderToFind?: number,
+        ) => {
+            if (taskOrderToFind) {
+                return allTasks.find((item) => item.order === taskOrderToFind);
+            }
+
+            if (taskTypeToFind) {
+                return allTasks.find(
+                    (item) => normalizeTaskType(item.taskType) === taskTypeToFind,
+                );
+            }
+
+            return undefined;
+        };
+
+        const sourceTask = findTaskForReview(
+            config.comparison?.sourceTaskType ?? "DOCUMENT_REVIEW",
+            config.comparison?.sourceTaskOrder,
         );
 
-        const uploadTask = allTasks.find(
-            (item) => normalizeTaskType(item.taskType) === "FILE_UPLOAD",
+        const submissionTask = findTaskForReview(
+            config.comparison?.submissionTaskType ?? "FILE_UPLOAD",
+            config.comparison?.submissionTaskOrder,
         );
 
-        const documentConfig = documentTask ? getConfig(documentTask) : {};
-        const uploadResponse = uploadTask
-            ? allResponses[uploadTask.idPathChallengeTask]
+        const sourceConfig = sourceTask ? getConfig(sourceTask) : {};
+        const submissionResponse = submissionTask
+            ? allResponses[submissionTask.idPathChallengeTask]
             : undefined;
+
+        const showFileComparison = reviewMode === "FILE_COMPARISON";
+        const showSubmissionReview = reviewMode === "SUBMISSION_REVIEW";
 
         return (
             <div className="space-y-5">
@@ -1551,42 +1597,72 @@ function TaskRenderer({
                         </h3>
                         <p className="mt-1 text-sm">
                             {config.reviewText ??
-                                "Revisa tus recursos y tu entrega antes de enviar la misión."}
+                                "Revisa el resumen de tus respuestas antes de enviar la misión."}
                         </p>
                     </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                    <ReviewFileCard
-                        title="Archivo original"
-                        subtitle="Plantilla base del perfil del puesto"
-                        fileName={documentConfig.documentName ?? "Plantilla pendiente"}
-                        fileType={documentConfig.documentType ?? "Documento base"}
-                        fileUrl={documentConfig.downloadUrl}
-                        emptyTitle="Plantilla original pendiente de carga"
-                        emptyText="Aquí se mostrará el archivo base que el estudiante debe descargar, completar y comparar antes de enviar."
-                    />
+                {showFileComparison && (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <ReviewFileCard
+                            title="Archivo original"
+                            subtitle="Recurso base del challenge"
+                            fileName={
+                                sourceConfig.documentName ??
+                                sourceTask?.title ??
+                                "Archivo original pendiente"
+                            }
+                            fileType={sourceConfig.documentType ?? "Archivo base"}
+                            fileUrl={sourceConfig.downloadUrl}
+                            emptyTitle="Archivo original pendiente de carga"
+                            emptyText="Aquí se mostrará el archivo base que el estudiante debe revisar o descargar antes de completar su entrega."
+                        />
 
-                    <ReviewFileCard
-                        title="Archivo entregado"
-                        subtitle="Documento completado por el estudiante"
-                        fileName={uploadResponse?.fileName ?? "Entrega pendiente"}
-                        fileType="Entrega del estudiante"
-                        fileUrl={uploadResponse?.fileUrl}
-                        emptyTitle="Archivo entregado pendiente"
-                        emptyText="Cuando el estudiante suba el perfil completado en la actividad anterior, aparecerá aquí para revisión."
-                        onOpen={
-                            uploadTask && uploadResponse?.fileName
-                                ? () => onOpenFile?.(uploadTask)
-                                : undefined
-                        }
-                        isOpening={
-                            uploadTask
-                                ? downloadingTaskId === uploadTask.idPathChallengeTask
-                                : false
-                        }
-                    />
-                </div>
+                        <ReviewFileCard
+                            title="Archivo entregado"
+                            subtitle="Documento completado por el estudiante"
+                            fileName={submissionResponse?.fileName ?? "Entrega pendiente"}
+                            fileType="Entrega del estudiante"
+                            fileUrl={submissionResponse?.fileUrl}
+                            emptyTitle="Archivo entregado pendiente"
+                            emptyText="Cuando el estudiante suba su archivo en la actividad correspondiente, aparecerá aquí para revisión."
+                            onOpen={
+                                submissionTask && submissionResponse?.fileName
+                                    ? () => onOpenFile?.(submissionTask)
+                                    : undefined
+                            }
+                            isOpening={
+                                submissionTask
+                                    ? downloadingTaskId === submissionTask.idPathChallengeTask
+                                    : false
+                            }
+                        />
+                    </div>
+                )}
+
+                {showSubmissionReview && (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <ReviewFileCard
+                            title="Archivo entregado"
+                            subtitle="Entrega final del estudiante"
+                            fileName={submissionResponse?.fileName ?? "Entrega pendiente"}
+                            fileType="Entrega del estudiante"
+                            fileUrl={submissionResponse?.fileUrl}
+                            emptyTitle="Archivo entregado pendiente"
+                            emptyText="Cuando el estudiante suba su archivo, aparecerá aquí antes de enviar la misión."
+                            onOpen={
+                                submissionTask && submissionResponse?.fileName
+                                    ? () => onOpenFile?.(submissionTask)
+                                    : undefined
+                            }
+                            isOpening={
+                                submissionTask
+                                    ? downloadingTaskId === submissionTask.idPathChallengeTask
+                                    : false
+                            }
+                        />
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     {allTasks

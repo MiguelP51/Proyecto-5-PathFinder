@@ -9,7 +9,10 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, BookOpen, Target, Award, TrendingUp, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
-import { getStudentPathChallengesBySubarea } from "@/lib/pathchallenge/student-service";
+import {
+  getStudentPathChallengesBySubarea,
+  startStudentPathChallenge,
+} from "@/lib/pathchallenge/student-service";
 import { StudentPathChallenge } from "@/lib/pathchallenge/student-types";
 
 interface SubAreaDTO {
@@ -126,10 +129,50 @@ export default function DashboardSubareaPage({
     }
   };
 
-  const handlePathChallengeAction = (challenge: StudentPathChallenge) => {
-    router.push(
-        `/areas/${area}/subareas/${idSubarea}/pathchallenges/${challenge.idPathChallenge}`,
-    );
+  const handlePathChallengeAction = async (challenge: StudentPathChallenge) => {
+    const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
+
+    const goToChallenge = (idPathChallenge: number) => {
+      router.push(
+          `/user/app/challenges/${idPathChallenge}?returnTo=${encodeURIComponent(
+              returnTo,
+          )}&returnLabel=${encodeURIComponent("Volver a subárea")}`,
+      );
+    };
+
+    if (challenge.status !== "DISPONIBLE") {
+      goToChallenge(challenge.idPathChallenge);
+      return;
+    }
+
+    if (!session?.backendJwt) {
+      alert("No se encontró la sesión del usuario. Vuelve a iniciar sesión.");
+      return;
+    }
+
+    try {
+      setStartingPathChallengeId(challenge.idPathChallenge);
+
+      const updatedChallenge = await startStudentPathChallenge(
+          challenge.idPathChallenge,
+          session.backendJwt,
+      );
+
+      setPathChallenges((prev) =>
+          prev.map((item) =>
+              item.idPathChallenge === challenge.idPathChallenge
+                  ? updatedChallenge
+                  : item,
+          ),
+      );
+
+      goToChallenge(updatedChallenge.idPathChallenge);
+    } catch (error) {
+      console.error("Error iniciando PathChallenge:", error);
+      alert("No se pudo iniciar la misión. Intenta nuevamente.");
+    } finally {
+      setStartingPathChallengeId(null);
+    }
   };
 
   const [area, setArea] = useState("");
@@ -139,6 +182,7 @@ export default function DashboardSubareaPage({
   const [loading, setLoading] = useState(true);
   const [pathChallenges, setPathChallenges] = useState<StudentPathChallenge[]>([]);
   const [startingSkillPathId, setStartingSkillPathId] = useState<string | null>(null);
+  const [startingPathChallengeId, setStartingPathChallengeId] = useState<number | null>(null);
   const [ultimoDiagnostico, setUltimoDiagnostico] = useState<DiagnosticoEstadoDTO | null>(null);
   const [redirigiendoPorDiagnostico, setRedirigiendoPorDiagnostico] = useState(false);
 
@@ -425,14 +469,24 @@ export default function DashboardSubareaPage({
                           <button
                               type="button"
                               onClick={() => handlePathChallengeAction(ch)}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df]"
+                              disabled={startingPathChallengeId === ch.idPathChallenge}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {ch.status === "DISPONIBLE"
-                                ? "Ver misión"
-                                : ch.status === "COMPLETADO"
-                                    ? "Revisar misión"
-                                    : "Continuar misión"}
-                            <ArrowRight className="h-4 w-4" />
+                            {startingPathChallengeId === ch.idPathChallenge ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Abriendo...
+                                </>
+                            ) : (
+                                <>
+                                  {ch.status === "DISPONIBLE"
+                                      ? "Ver misión"
+                                      : ch.status === "COMPLETADO"
+                                          ? "Revisar misión"
+                                          : "Continuar misión"}
+                                  <ArrowRight className="h-4 w-4" />
+                                </>
+                            )}
                           </button>
                         </div>
                     ))}
