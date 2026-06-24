@@ -196,10 +196,10 @@ export default function PathMentorInterviews() {
 
   const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const DAYS_UPPER = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
-  const RESCHEDULE_START_HOUR = 8;
+  const DAYS_UPPER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const RESCHEDULE_START_HOUR = 7;
   const RESCHEDULE_HOUR_HEIGHT = 36;
-  const RESCHEDULE_HOURS = Array.from({ length: 10 }, (_, i) => i + 8);
+  const RESCHEDULE_HOURS = Array.from({ length: 16 }, (_, i) => i + 7);
 
   const getWeekDates = (offset: number): Date[] => {
     const now = new Date();
@@ -1394,7 +1394,7 @@ export default function PathMentorInterviews() {
                 <div className={styles.timeSectionTitle}>Nueva Hora</div>
                 {(() => {
                   const dayOfWeek = selectedDate.getDay();
-                  const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+                  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
                   const hasAvailability = availableDays.includes(dayNames[dayOfWeek]);
 
                   if (hasAvailability) {
