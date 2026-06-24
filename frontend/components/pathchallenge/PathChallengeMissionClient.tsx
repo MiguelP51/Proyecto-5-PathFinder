@@ -81,6 +81,36 @@ type TaskConfig = {
     uploadService?: string;
     audioUrl?: string | null;
     audioText?: string;
+    documentTitle?: string;
+    documentName?: string;
+    documentType?: string;
+    previewImageUrl?: string | null;
+    downloadUrl?: string | null;
+    downloadLabel?: string;
+
+    companyInfo?: {
+        name?: string;
+        description?: string;
+        area?: string;
+    };
+
+    objectives?: string[];
+
+    videoUrl?: string | null;
+    meetingTitle?: string;
+    situationTitle?: string;
+    situationText?: string;
+    notes?: string[];
+
+    reviewTitle?: string;
+    reviewText?: string;
+
+    successModal?: {
+        title?: string;
+        message?: string;
+        badgeName?: string;
+        points?: number;
+    };
 };
 
 type JsonResponse = {
@@ -281,6 +311,33 @@ export function PathChallengeMissionClient({
         isTaskComplete(task, responses[task.idPathChallengeTask]),
     );
 
+    const isFinalReviewTask = (task: StudentPathChallengeTask) =>
+        normalizeTaskType(task.taskType) === "FINAL_REVIEW";
+
+    const isTaskCompletedForNavigation = (task: StudentPathChallengeTask) => {
+        if (isFinalReviewTask(task)) {
+            return allRequiredCompleted;
+        }
+
+        return isTaskComplete(task, responses[task.idPathChallengeTask]);
+    };
+
+    const canAccessTask = (index: number) => {
+        if (index === 0) {
+            return true;
+        }
+
+        const previousTasks = orderedTasks.slice(0, index);
+
+        return previousTasks.every((task) =>
+            isTaskCompletedForNavigation(task),
+        );
+    };
+
+    const currentTaskCompleted = currentTask
+        ? isTaskCompletedForNavigation(currentTask)
+        : false;
+
     const updateCurrentResponse = (value: TaskResponseState) => {
         if (!currentTask) return;
 
@@ -473,6 +530,13 @@ export function PathChallengeMissionClient({
     };
 
     const goNext = () => {
+        setError(null);
+
+        if (!currentTaskCompleted) {
+            setError("Completa esta actividad antes de continuar con la siguiente.");
+            return;
+        }
+
         if (currentIndex < orderedTasks.length - 1) {
             setCurrentIndex((value) => value + 1);
         }
@@ -590,33 +654,49 @@ export function PathChallengeMissionClient({
                                         ? allRequiredCompleted
                                         : isTaskComplete(task, responses[task.idPathChallengeTask]);
                                 const active = index === currentIndex;
+                                const available = canAccessTask(index);
 
                                 return (
                                     <button
                                         key={task.idPathChallengeTask}
                                         type="button"
-                                        onClick={() => setCurrentIndex(index)}
+                                        disabled={!available}
+                                        onClick={() => {
+                                            if (available) {
+                                                setCurrentIndex(index);
+                                            }
+                                        }}
                                         className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
                                             active
                                                 ? "bg-[#7447D7] text-white"
-                                                : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                                                : available
+                                                    ? "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                                                    : "cursor-not-allowed bg-slate-50 text-slate-400 opacity-70"
                                         }`}
                                     >
-                    <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            complete
-                                ? "bg-emerald-100 text-emerald-700"
-                                : active
-                                    ? "bg-white/20 text-white"
-                                    : "bg-white text-slate-500"
-                        }`}
-                    >
-                      {complete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
-                    </span>
+                                      <span
+                                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                              complete
+                                                  ? "bg-emerald-100 text-emerald-700"
+                                                  : active
+                                                      ? "bg-white/20 text-white"
+                                                      : available
+                                                          ? "bg-white text-slate-500"
+                                                          : "bg-slate-100 text-slate-400"
+                                          }`}
+                                      >
+                                        {complete ? (
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        ) : available ? (
+                                            index + 1
+                                        ) : (
+                                            <Lock className="h-3.5 w-3.5" />
+                                        )}
+                                      </span>
 
-                                        <span className="line-clamp-2 font-medium">
-                      {task.title || `Actividad ${task.order}`}
-                    </span>
+                                                                            <span className="line-clamp-2 font-medium">
+                                        {task.title || `Actividad ${task.order}`}
+                                      </span>
                                     </button>
                                 );
                             })}
@@ -735,6 +815,152 @@ function TaskRenderer({
     const taskType = normalizeTaskType(task.taskType);
     const config = getConfig(task);
     const jsonResponse = getJsonResponse(response);
+
+    if (taskType === "DOCUMENT_REVIEW") {
+        return (
+            <div className="space-y-5">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                        {config.documentTitle ?? "Documento base"}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {task.content || task.description}
+                    </p>
+                </div>
+
+                <DocumentResourceCard
+                    title={config.documentTitle ?? "Plantilla del challenge"}
+                    fileName={config.documentName ?? "Archivo pendiente"}
+                    fileType={config.documentType ?? "Documento"}
+                    downloadUrl={config.downloadUrl}
+                    downloadLabel={config.downloadLabel ?? "Descargar archivo adjunto"}
+                    previewImageUrl={config.previewImageUrl}
+                />
+
+                {config.companyInfo && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="flex items-start gap-3">
+                            <Building2 className="mt-0.5 h-5 w-5 text-[#7447D7]" />
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-900">
+                                    Información de la empresa
+                                </h4>
+                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                    {config.companyInfo.name}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600">
+                                    {config.companyInfo.description}
+                                </p>
+                                {config.companyInfo.area && (
+                                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                                        Área solicitante: {config.companyInfo.area}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {config.objectives && config.objectives.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <h4 className="text-sm font-bold text-slate-900">
+                            Objetivos de esta etapa
+                        </h4>
+                        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                            {config.objectives.map((objective) => (
+                                <li key={objective}>{objective}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                <button
+                    type="button"
+                    onClick={() =>
+                        onChange({
+                            completed: true,
+                            responseJson: JSON.stringify({ reviewed: true }),
+                        })
+                    }
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        response?.completed || jsonResponse.reviewed
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-[#7447D7] text-white hover:bg-[#6338c5]"
+                    }`}
+                >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {response?.completed || jsonResponse.reviewed
+                        ? "Documento revisado"
+                        : "Marcar documento como revisado"}
+                </button>
+            </div>
+        );
+    }
+
+    if (taskType === "VIDEO_SCENARIO") {
+        return (
+            <div className="space-y-5">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                        {config.meetingTitle ?? "Reunión de contexto"}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {task.content || task.description}
+                    </p>
+                </div>
+
+                <VideoResourceCard
+                    title={config.meetingTitle ?? "Video del challenge"}
+                    videoUrl={config.videoUrl}
+                    previewImageUrl={config.previewImageUrl}
+                />
+
+                {(config.situationTitle || config.situationText) && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <h4 className="text-sm font-bold text-slate-900">
+                            {config.situationTitle ?? "Situación hipotética"}
+                        </h4>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                            {config.situationText}
+                        </p>
+                    </div>
+                )}
+
+                {config.notes && config.notes.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <h4 className="text-sm font-bold text-slate-900">
+                            Información obtenida de la reunión
+                        </h4>
+                        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                            {config.notes.map((note) => (
+                                <li key={note}>{note}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                <button
+                    type="button"
+                    onClick={() =>
+                        onChange({
+                            completed: true,
+                            responseJson: JSON.stringify({ reviewed: true }),
+                        })
+                    }
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        response?.completed || jsonResponse.reviewed
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-[#7447D7] text-white hover:bg-[#6338c5]"
+                    }`}
+                >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {response?.completed || jsonResponse.reviewed
+                        ? "Reunión revisada"
+                        : "Marcar reunión como revisada"}
+                </button>
+            </div>
+        );
+    }
 
     if (taskType === "SCENARIO") {
         return (
@@ -1028,7 +1254,7 @@ function TaskRenderer({
         const acceptValue = acceptedExtensions.join(",");
 
         const handleFileChange = async (
-            event: React.ChangeEvent<HTMLInputElement>,
+            event: ChangeEvent<HTMLInputElement>,
         ) => {
             const file = event.target.files?.[0];
 
@@ -1112,16 +1338,54 @@ function TaskRenderer({
     }
 
     if (taskType === "FINAL_REVIEW") {
+        const documentTask = allTasks.find(
+            (item) => normalizeTaskType(item.taskType) === "DOCUMENT_REVIEW",
+        );
+
+        const uploadTask = allTasks.find(
+            (item) => normalizeTaskType(item.taskType) === "FILE_UPLOAD",
+        );
+
+        const documentConfig = documentTask ? getConfig(documentTask) : {};
+        const uploadResponse = uploadTask
+            ? allResponses[uploadTask.idPathChallengeTask]
+            : undefined;
+
         return (
-            <div>
-                <div className="mb-5 flex items-start gap-3 rounded-2xl bg-purple-50 p-4 text-[#7447D7]">
+            <div className="space-y-5">
+                <div className="flex items-start gap-3 rounded-2xl bg-purple-50 p-4 text-[#7447D7]">
                     <ClipboardList className="mt-0.5 h-5 w-5" />
                     <div>
-                        <h3 className="font-bold">Revisión final</h3>
+                        <h3 className="font-bold">
+                            {config.reviewTitle ?? "Revisión final"}
+                        </h3>
                         <p className="mt-1 text-sm">
-                            Revisa tus decisiones antes de enviar la misión.
+                            {config.reviewText ??
+                                "Revisa tus recursos y tu entrega antes de enviar la misión."}
                         </p>
                     </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <ReviewFileCard
+                        title="Archivo original"
+                        subtitle="Plantilla base del perfil del puesto"
+                        fileName={documentConfig.documentName ?? "Plantilla pendiente"}
+                        fileType={documentConfig.documentType ?? "Documento base"}
+                        fileUrl={documentConfig.downloadUrl}
+                        emptyTitle="Plantilla original pendiente de carga"
+                        emptyText="Aquí se mostrará el archivo base que el estudiante debe descargar, completar y comparar antes de enviar."
+                    />
+
+                    <ReviewFileCard
+                        title="Archivo entregado"
+                        subtitle="Documento completado por el estudiante"
+                        fileName={uploadResponse?.fileName ?? "Entrega pendiente"}
+                        fileType="Entrega del estudiante"
+                        fileUrl={uploadResponse?.fileUrl}
+                        emptyTitle="Archivo entregado pendiente"
+                        emptyText="Cuando el estudiante suba el perfil completado en la actividad anterior, aparecerá aquí para revisión."
+                    />
                 </div>
 
                 <div className="space-y-4">
@@ -1171,6 +1435,220 @@ function InfoBox({ title, value }: { title: string; value: string }) {
         <div className="rounded-2xl bg-white p-4">
             <h4 className="text-sm font-bold text-slate-900">{title}</h4>
             <p className="mt-2 text-sm text-slate-600">{value}</p>
+        </div>
+    );
+}
+
+function isPublicUrl(value?: string | null) {
+    return Boolean(value && /^https?:\/\//i.test(value));
+}
+
+function DocumentResourceCard({
+                                  title,
+                                  fileName,
+                                  fileType,
+                                  downloadUrl,
+                                  downloadLabel,
+                                  previewImageUrl,
+                              }: {
+    title: string;
+    fileName: string;
+    fileType: string;
+    downloadUrl?: string | null;
+    downloadLabel: string;
+    previewImageUrl?: string | null;
+}) {
+    const hasDownload = isPublicUrl(downloadUrl);
+
+    return (
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+            <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-[#7447D7]">
+                        <FileText className="h-7 w-7" />
+                    </div>
+
+                    <div>
+                        <h4 className="text-base font-bold text-slate-900">{title}</h4>
+                        <p className="mt-1 text-sm text-slate-600">{fileName}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {fileType} · Archivo base
+                        </p>
+                    </div>
+                </div>
+
+                {hasDownload ? (
+                    <a
+                        href={downloadUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6338c5]"
+                    >
+                        <Download className="h-4 w-4" />
+                        {downloadLabel}
+                    </a>
+                ) : (
+                    <button
+                        type="button"
+                        disabled
+                        className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-400"
+                    >
+                        <Download className="h-4 w-4" />
+                        Archivo pendiente
+                    </button>
+                )}
+            </div>
+
+            {previewImageUrl ? (
+                <img
+                    src={previewImageUrl}
+                    alt={title}
+                    className="h-64 w-full border-t border-slate-100 object-cover"
+                />
+            ) : (
+                <div className="border-t border-slate-100 bg-slate-50 px-5 py-6">
+                    <p className="text-sm font-semibold text-slate-700">
+                        Archivo base pendiente de carga
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Aquí se mostrará la plantilla que el estudiante deberá descargar,
+                        completar y volver a subir en la etapa de entrega.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function VideoResourceCard({
+                               title,
+                               videoUrl,
+                               previewImageUrl,
+                           }: {
+    title: string;
+    videoUrl?: string | null;
+    previewImageUrl?: string | null;
+}) {
+    const hasVideo = isPublicUrl(videoUrl);
+
+    return (
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-4 p-5">
+                <div>
+                    <h4 className="text-base font-bold text-slate-900">{title}</h4>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Recurso audiovisual del challenge
+                    </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-[#7447D7]">
+                    <PlayCircle className="h-7 w-7" />
+                </div>
+            </div>
+
+            {hasVideo ? (
+                <video
+                    src={videoUrl ?? undefined}
+                    controls
+                    poster={previewImageUrl ?? undefined}
+                    className="aspect-video w-full border-t border-slate-100 bg-black"
+                />
+            ) : (
+                <div className="flex aspect-video flex-col items-center justify-center border-t border-slate-100 bg-slate-50 px-6 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#7447D7] shadow-sm">
+                        <PlayCircle className="h-9 w-9" />
+                    </div>
+
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                        Video pendiente de carga
+                    </p>
+                    <p className="mt-1 max-w-md text-sm text-slate-500">
+                        Aquí se mostrará la reunión o simulación con la información necesaria
+                        para completar el perfil del puesto.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ReviewFileCard({
+                            title,
+                            subtitle,
+                            fileName,
+                            fileType,
+                            fileUrl,
+                            emptyTitle,
+                            emptyText,
+                        }: {
+    title: string;
+    subtitle: string;
+    fileName: string;
+    fileType: string;
+    fileUrl?: string | null;
+    emptyTitle: string;
+    emptyText: string;
+}) {
+    const hasFile = Boolean(fileName && !fileName.toLowerCase().includes("pendiente"));
+    const canOpen = isPublicUrl(fileUrl);
+
+    return (
+        <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="flex items-start gap-4">
+                <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                        hasFile
+                            ? "bg-purple-50 text-[#7447D7]"
+                            : "bg-slate-100 text-slate-400"
+                    }`}
+                >
+                    <FileText className="h-6 w-6" />
+                </div>
+
+                <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-slate-900">{title}</h4>
+                    <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+
+                    {hasFile ? (
+                        <>
+                            <p className="mt-3 truncate text-sm font-semibold text-slate-800">
+                                {fileName}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                {fileType}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="mt-3 text-sm font-semibold text-slate-600">
+                                {emptyTitle}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">{emptyText}</p>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {hasFile && (
+                <div className="mt-4">
+                    {canOpen ? (
+                        <a
+                            href={fileUrl ?? "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            <FileText className="h-4 w-4" />
+                            Ver archivo
+                        </a>
+                    ) : (
+                        <div className="rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-500">
+                            Archivo registrado. La vista directa estará disponible cuando se
+                            configure una URL pública o prefirmada.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -1255,6 +1733,24 @@ function TaskSummary({
 
     if (taskType === "TEXT_RESPONSE") {
         content = response?.responseText?.trim() || "Sin justificación registrada.";
+    }
+
+    if (taskType === "FILE_UPLOAD") {
+        content = response?.fileName
+            ? `Archivo subido: ${response.fileName}`
+            : "Sin archivo subido.";
+    }
+
+    if (taskType === "DOCUMENT_REVIEW") {
+        const config = getConfig(task);
+
+        content = config.documentName
+            ? `Plantilla revisada: ${config.documentName}`
+            : "Plantilla revisada. Archivo base pendiente de carga.";
+    }
+
+    if (taskType === "VIDEO_SCENARIO") {
+        content = "Reunión revisada. Información de la organización analizada.";
     }
 
     if (taskType === "FILE_UPLOAD") {
