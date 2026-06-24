@@ -5,6 +5,7 @@ import com.pathfinder.dto.request.GuardarFeedbackRequest;
 import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.dto.response.MentorMetricsResponseDTO;
 import com.pathfinder.model.entity.Competencia;
 import com.pathfinder.repository.CompetenciaRepository;
 import com.pathfinder.service.EntrevistaService;
@@ -107,6 +108,20 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error obteniendo entrevistas del mentor: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener la lista de entrevistas"));
+        }
+    }
+
+    // GET /api/entrevistas/mentor/metrics — Obtener metricas del mentor (HU-PM-XX)
+    @GetMapping("/mentor/metrics")
+    public ResponseEntity<ApiResponse<MentorMetricsResponseDTO>> getMentorMetrics(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "anio") String periodo) {
+        try {
+            MentorMetricsResponseDTO metrics = entrevistaService.obtenerMetricas(userDetails.getUsername(), periodo);
+            return ResponseEntity.ok(ApiResponse.success("Métricas obtenidas con éxito", metrics));
+        } catch (Exception e) {
+            log.error("Error obteniendo métricas del mentor: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener métricas"));
         }
     }
 

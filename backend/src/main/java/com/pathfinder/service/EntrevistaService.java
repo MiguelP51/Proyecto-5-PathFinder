@@ -3,6 +3,7 @@ package com.pathfinder.service;
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
 import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.dto.response.MentorMetricsResponseDTO;
 import java.util.List;
 
 public interface EntrevistaService {
@@ -15,4 +16,6 @@ public interface EntrevistaService {
     void archivarEntrevistasEstudiante(String correoEstudiante);
 
     EntrevistaResponseDTO reprogramar(Integer idEntrevista, String correoMentor, ReprogramarEntrevistaRequest request);
+
+    MentorMetricsResponseDTO obtenerMetricas(String correoMentor, String periodo);
 }

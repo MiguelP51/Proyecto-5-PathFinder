@@ -2,7 +2,11 @@ package com.pathfinder.service.impl;
 
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
 import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
+import com.pathfinder.dto.response.CompetenciaMetricDTO;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.dto.response.FeedbackRecentDTO;
+import com.pathfinder.dto.response.MentorMetricsResponseDTO;
+import com.pathfinder.dto.response.MonthlyMetricDTO;
 import com.pathfinder.model.entity.*;
 import com.pathfinder.model.enums.*;
 import com.pathfinder.repository.*;
@@ -16,8 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +36,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     private final EmailService emailService;
     private final FeriadoRepository feriadoRepository;
     private final NotificacionService notificacionService;
+    private final ConfiguracionDisponibilidadMentorRepository configuracionDisponibilidadMentorRepository;
 
 
     @Override
@@ -509,5 +513,214 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 idEntrevista, correoMentor, nuevaFecha, nuevaHora);
 
         return mapToDTO(entrevista);
+    }
+
+    @Override
+    public MentorMetricsResponseDTO obtenerMetricas(String correoMentor, String periodo) {
+        Usuario mentor = usuarioRepository.findByCorreo(correoMentor)
+                .orElseThrow(() -> new IllegalArgumentException("Mentor no encontrado"));
+
+        List<Entrevista> todas = entrevistaRepository.findByMentor_CorreoAndActivoTrue(correoMentor);
+
+        LocalDate ahora = LocalDate.now();
+        LocalDate desde;
+        if ("mes".equalsIgnoreCase(periodo)) {
+            desde = ahora.withDayOfMonth(1);
+        } else if ("3meses".equalsIgnoreCase(periodo)) {
+            desde = ahora.minusMonths(3).withDayOfMonth(1);
+        } else {
+            desde = ahora.withDayOfYear(1);
+        }
+
+        List<Entrevista> filtradas = todas.stream()
+                .filter(e -> !e.getFecha().isBefore(desde))
+                .collect(Collectors.toList());
+
+        int realizadas = (int) filtradas.stream().filter(e -> "Completada".equals(e.getEstado())).count();
+        int pendientes = (int) filtradas.stream().filter(e -> "Programada".equals(e.getEstado())).count();
+
+        Double calificacionPromedio = calcularPromedioCalificacion(filtradas);
+
+        Integer tiempoPromedio = configuracionDisponibilidadMentorRepository
+                .findByMentor_CorreoAndActivoTrue(correoMentor)
+                .map(ConfiguracionDisponibilidadMentor::getDuracionEntrevista)
+                .orElse(null);
+
+        List<MonthlyMetricDTO> desempenioMensual = agruparPorMes(filtradas);
+        List<CompetenciaMetricDTO> evaluacionCompetencias = calcularCompetencias(filtradas);
+
+        List<FeedbackRecentDTO> evaluacionesRecientes = filtradas.stream()
+                .filter(e -> "Completada".equals(e.getEstado()) && e.getResultado() != null)
+                .sorted(Comparator.comparing(Entrevista::getFecha).reversed()
+                        .thenComparing(Comparator.comparing(Entrevista::getFechaModificacion,
+                                Comparator.nullsLast(Comparator.reverseOrder()))))
+                .limit(5)
+                .map(e -> FeedbackRecentDTO.builder()
+                        .estudianteNombre(e.getEstudiante().getNombreCompleto())
+                        .fecha(e.getFecha().toString())
+                        .puntaje(calcularPromedioEntrevista(e))
+                        .resultado(e.getResultado())
+                        .build())
+                .collect(Collectors.toList());
+
+        int totalCompletadas = (int) todas.stream().filter(e -> "Completada".equals(e.getEstado())).count();
+        long aprobadas = todas.stream()
+                .filter(e -> "Completada".equals(e.getEstado()) && "Alta".equals(e.getResultado()))
+                .count();
+        Double tasaAprobacion = totalCompletadas > 0
+                ? Math.round((double) aprobadas / totalCompletadas * 100.0 * 10.0) / 10.0
+                : 0.0;
+        Double calificacionGlobal = calcularPromedioCalificacion(todas);
+
+        return MentorMetricsResponseDTO.builder()
+                .entrevistasRealizadas(realizadas)
+                .entrevistasPendientes(pendientes)
+                .tiempoPromedioMinutos(tiempoPromedio)
+                .calificacionPromedio(calificacionPromedio)
+                .desempenioMensual(desempenioMensual)
+                .evaluacionCompetencias(evaluacionCompetencias)
+                .evaluacionesRecientes(evaluacionesRecientes)
+                .totalEntrevistas(totalCompletadas)
+                .tasaAprobacion(tasaAprobacion)
+                .calificacionGlobal(calificacionGlobal)
+                .build();
+    }
+
+    private Double calcularPromedioCalificacion(List<Entrevista> entrevistas) {
+        List<Entrevista> completadas = entrevistas.stream()
+                .filter(e -> "Completada".equals(e.getEstado()))
+                .collect(Collectors.toList());
+        if (completadas.isEmpty()) return 0.0;
+        double sum = 0;
+        for (Entrevista e : completadas) {
+            Double avg = calcularPromedioEntrevista(e);
+            if (avg != null) sum += avg;
+        }
+        return Math.round((sum / completadas.size()) * 10.0) / 10.0;
+    }
+
+    private Double calcularPromedioEntrevista(Entrevista ent) {
+        if (ent.getCompetenciasEvaluadas() != null && !ent.getCompetenciasEvaluadas().isEmpty()) {
+            double sumVal = 0;
+            for (EntrevistaCompetencia ec : ent.getCompetenciasEvaluadas()) {
+                sumVal += ec.getNivelSeleccionado();
+            }
+            double avg = sumVal / ent.getCompetenciasEvaluadas().size();
+            // Normalize 0-3 scale to 1-5 scale
+            avg = 1.0 + (avg / 3.0) * 4.0;
+            return Math.round(avg * 10.0) / 10.0;
+        } else if (ent.getCompetenciaComunicacion() != null && ent.getCompetenciaTecnica() != null &&
+                ent.getCompetenciaProactividad() != null && ent.getCompetenciaResolucion() != null) {
+            double avg = (ent.getCompetenciaComunicacion() + ent.getCompetenciaTecnica() +
+                          ent.getCompetenciaProactividad() + ent.getCompetenciaResolucion()) / 4.0;
+            return Math.round(avg * 10.0) / 10.0;
+        }
+        return null;
+    }
+
+    private List<MonthlyMetricDTO> agruparPorMes(List<Entrevista> entrevistas) {
+        Map<String, List<Entrevista>> porMes = new LinkedHashMap<>();
+        for (Entrevista e : entrevistas) {
+            if (!"Completada".equals(e.getEstado())) continue;
+            String key = e.getFecha().getYear() + "-" + String.format("%02d", e.getFecha().getMonthValue());
+            porMes.computeIfAbsent(key, k -> new ArrayList<>()).add(e);
+        }
+
+        String[] meses = {"", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                          "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"};
+
+        return porMes.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    int anio = Integer.parseInt(entry.getKey().split("-")[0]);
+                    int mes = Integer.parseInt(entry.getKey().split("-")[1]);
+                    List<Entrevista> lista = entry.getValue();
+                    int count = lista.size();
+                    double sumScore = 0;
+                    int scoreCount = 0;
+                    for (Entrevista e : lista) {
+                        Double avg = calcularPromedioEntrevista(e);
+                        if (avg != null) {
+                            sumScore += avg;
+                            scoreCount++;
+                        }
+                    }
+                    double avgScore = scoreCount > 0 ? Math.round((sumScore / scoreCount) * 10.0) / 10.0 : 0.0;
+                    Integer duracion = configuracionDisponibilidadMentorRepository
+                            .findByMentor_CorreoAndActivoTrue(entrevistas.get(0).getMentor().getCorreo())
+                            .map(ConfiguracionDisponibilidadMentor::getDuracionEntrevista)
+                            .orElse(0);
+                    return MonthlyMetricDTO.builder()
+                            .mes(mes)
+                            .anio(anio)
+                            .nombreMes(meses[mes])
+                            .entrevistas(count)
+                            .tiempoPromedio(duracion)
+                            .calificacionPromedio(avgScore)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private List<CompetenciaMetricDTO> calcularCompetencias(List<Entrevista> entrevistas) {
+        List<Entrevista> completadas = entrevistas.stream()
+                .filter(e -> "Completada".equals(e.getEstado()))
+                .collect(Collectors.toList());
+
+        boolean hasDynamic = completadas.stream()
+                .anyMatch(e -> e.getCompetenciasEvaluadas() != null && !e.getCompetenciasEvaluadas().isEmpty());
+
+        if (hasDynamic) {
+            Map<String, List<Integer>> porCompetencia = new LinkedHashMap<>();
+            for (Entrevista e : completadas) {
+                if (e.getCompetenciasEvaluadas() != null) {
+                    for (EntrevistaCompetencia ec : e.getCompetenciasEvaluadas()) {
+                        porCompetencia.computeIfAbsent(ec.getNombreCompetencia(), k -> new ArrayList<>())
+                                .add(ec.getNivelSeleccionado());
+                    }
+                }
+            }
+            return porCompetencia.entrySet().stream()
+                    .map(entry -> {
+                        List<Integer> valores = entry.getValue();
+                        double avg = valores.stream().mapToInt(Integer::intValue).average().orElse(0);
+                        double normalized = 1.0 + (avg / 3.0) * 4.0;
+                        normalized = Math.round(normalized * 10.0) / 10.0;
+                        return CompetenciaMetricDTO.builder()
+                                .nombre(entry.getKey())
+                                .totalEvaluaciones(valores.size())
+                                .puntajePromedio(normalized)
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        // Fallback to 4 legacy competencies
+        Map<String, List<Integer>> legacy = new LinkedHashMap<>();
+        legacy.put("Habilidades Técnicas", new ArrayList<>());
+        legacy.put("Comunicación", new ArrayList<>());
+        legacy.put("Resolución de Problemas", new ArrayList<>());
+        legacy.put("Trabajo en Equipo", new ArrayList<>());
+
+        for (Entrevista e : completadas) {
+            if (e.getCompetenciaComunicacion() != null) legacy.get("Comunicación").add(e.getCompetenciaComunicacion());
+            if (e.getCompetenciaTecnica() != null) legacy.get("Habilidades Técnicas").add(e.getCompetenciaTecnica());
+            if (e.getCompetenciaProactividad() != null) legacy.get("Trabajo en Equipo").add(e.getCompetenciaProactividad());
+            if (e.getCompetenciaResolucion() != null) legacy.get("Resolución de Problemas").add(e.getCompetenciaResolucion());
+        }
+
+        return legacy.entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                .map(entry -> {
+                    List<Integer> valores = entry.getValue();
+                    double avg = valores.stream().mapToInt(Integer::intValue).average().orElse(0);
+                    avg = Math.round(avg * 10.0) / 10.0;
+                    return CompetenciaMetricDTO.builder()
+                            .nombre(entry.getKey())
+                            .totalEvaluaciones(valores.size())
+                            .puntajePromedio(avg)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { apiFetch } from '@/lib/api';
 import styles from '../styles/PathMentorMetrics.module.css';
 
 // SVG Icons
@@ -47,20 +49,6 @@ const StarIcon = () => (
   </svg>
 );
 
-const ArrowUpRight = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="7" y1="17" x2="17" y2="7" />
-    <polyline points="7 7 17 7 17 17" />
-  </svg>
-);
-
-const ArrowDownLeft = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="17" y1="7" x2="7" y2="17" />
-    <polyline points="17 17 7 17 7 7" />
-  </svg>
-);
-
 interface MonthlyMetric {
   month: string;
   interviews: number;
@@ -81,37 +69,99 @@ interface RecentFeedback {
   result: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja';
 }
 
+interface MentorMetricsData {
+  entrevistasRealizadas: number;
+  entrevistasPendientes: number;
+  tiempoPromedioMinutos: number;
+  calificacionPromedio: number;
+  desempenioMensual: Array<{
+    mes: number;
+    anio: number;
+    nombreMes: string;
+    entrevistas: number;
+    tiempoPromedio: number;
+    calificacionPromedio: number;
+  }>;
+  evaluacionCompetencias: Array<{
+    nombre: string;
+    totalEvaluaciones: number;
+    puntajePromedio: number;
+  }>;
+  evaluacionesRecientes: Array<{
+    estudianteNombre: string;
+    fecha: string;
+    puntaje: number;
+    resultado: string;
+  }>;
+  totalEntrevistas: number;
+  tasaAprobacion: number;
+  calificacionGlobal: number;
+}
+
 export default function PathMentorMetrics() {
+  const { data: session, status } = useSession();
   const [timeFilter, setTimeFilter] = useState('Este Mes');
+  const [metrics, setMetrics] = useState<MentorMetricsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data matching the UI screenshots
-  const monthlyPerformance: MonthlyMetric[] = [
-    { month: 'Enero', interviews: 12, avgTime: 45, avgScore: 4.1 },
-    { month: 'Febrero', interviews: 15, avgTime: 43, avgScore: 4.2 },
-    { month: 'Marzo', interviews: 14, avgTime: 44, avgScore: 4.0 },
-    { month: 'Abril', interviews: 18, avgTime: 41, avgScore: 4.3 },
-    { month: 'Mayo', interviews: 16, avgTime: 42, avgScore: 4.3 },
-  ];
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.backendJwt) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        setLoading(true);
+        const periodoMap: Record<string, string> = {
+          'Este Mes': 'mes',
+          'Últimos 3 Meses': '3meses',
+          'Este Año': 'anio',
+        };
+        const periodo = periodoMap[timeFilter] || 'anio';
+        const data = await apiFetch<MentorMetricsData>(
+          `/api/entrevistas/mentor/metrics?periodo=${periodo}`,
+          { signal: controller.signal },
+          session?.backendJwt
+        );
+        if (!controller.signal.aborted) {
+          setMetrics(data);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        console.error("Error cargando métricas:", err);
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [status, session, timeFilter]);
 
-  const competencies: CompetenceRating[] = [
-    { name: 'Habilidades Técnicas', count: 16, score: 4.2 },
-    { name: 'Comunicación', count: 16, score: 4.5 },
-    { name: 'Resolución de Problemas', count: 16, score: 3.8 },
-    { name: 'Trabajo en Equipo', count: 16, score: 4.3 },
-  ];
+  const monthlyPerformance: MonthlyMetric[] = (metrics?.desempenioMensual || []).map(m => ({
+    month: m.nombreMes,
+    interviews: m.entrevistas,
+    avgTime: m.tiempoPromedio,
+    avgScore: m.calificacionPromedio,
+  }));
 
-  const recentFeedbacks: RecentFeedback[] = [
-    { name: 'María González', date: '2026-05-28', score: 5, result: 'Aprobado' },
-    { name: 'Carlos Pérez', date: '2026-05-26', score: 4, result: 'Con Observaciones' },
-    { name: 'Ana Martínez', date: '2026-05-24', score: 5, result: 'Aprobado' },
-    { name: 'Luis Torres', date: '2026-05-22', score: 3, result: 'Requiere Mejora' },
-  ];
+  const competencies: CompetenceRating[] = (metrics?.evaluacionCompetencias || []).map(c => ({
+    name: c.nombre,
+    count: c.totalEvaluaciones,
+    score: c.puntajePromedio,
+  }));
+
+  const recentFeedbacks: RecentFeedback[] = (metrics?.evaluacionesRecientes || []).map(f => ({
+    name: f.estudianteNombre,
+    date: f.fecha,
+    score: f.puntaje ?? 0,
+    result: (f.resultado === 'Alta' ? 'Alta' :
+             f.resultado === 'Media' ? 'Media' :
+             f.resultado === 'Baja' ? 'Baja' :
+             'Aprobado') as RecentFeedback['result'],
+  }));
 
   return (
     <div className={styles.page}>
-      {/* CONTENT */}
       <main className={styles.container}>
-        {/* HEADER */}
         <div className={styles.headerContainer}>
           <div className={styles.header}>
             <h1>Mis Métricas</h1>
@@ -130,58 +180,40 @@ export default function PathMentorMetrics() {
           </div>
         </div>
 
-        {/* METRICS CARDS */}
         <section className={styles.metricsGrid}>
           <div className={styles.metricCard}>
             <div className={`${styles.metricIcon} ${styles.iconBlue}`}>
               <BarChartIcon />
             </div>
-            <h2>16</h2>
+            <h2>{loading ? '...' : metrics?.entrevistasRealizadas ?? 0}</h2>
             <p>Entrevistas Realizadas</p>
-            <div className={`${styles.trendContainer} ${styles.trendPositive}`}>
-              <span className={styles.trendIcon}><ArrowUpRight /></span>
-              <span>+3 vs mes anterior</span>
-            </div>
           </div>
 
           <div className={styles.metricCard}>
             <div className={`${styles.metricIcon} ${styles.iconIndigo}`}>
               <BarChartIcon />
             </div>
-            <h2>8</h2>
+            <h2>{loading ? '...' : metrics?.entrevistasPendientes ?? 0}</h2>
             <p>Entrevistas Pendientes</p>
-            <div className={`${styles.trendContainer} ${styles.trendPositive}`}>
-              <span className={styles.trendIcon}><ArrowUpRight /></span>
-              <span>+2 vs mes anterior</span>
-            </div>
           </div>
 
           <div className={styles.metricCard}>
             <div className={`${styles.metricIcon} ${styles.iconGreen}`}>
               <BarChartIcon />
             </div>
-            <h2>42 min</h2>
+            <h2>{loading ? '...' : metrics?.tiempoPromedioMinutos != null ? `${metrics.tiempoPromedioMinutos} min` : 'N/A'}</h2>
             <p>Tiempo Promedio</p>
-            <div className={`${styles.trendContainer} ${styles.trendPositive}`}>
-              <span className={styles.trendIcon}><ArrowDownLeft /></span>
-              <span>-5 min vs mes anterior</span>
-            </div>
           </div>
 
           <div className={styles.metricCard}>
             <div className={`${styles.metricIcon} ${styles.iconYellow}`}>
               <BarChartIcon />
             </div>
-            <h2>4.3</h2>
+            <h2>{loading ? '...' : metrics?.calificacionPromedio != null ? metrics.calificacionPromedio.toFixed(1) : 'N/A'}</h2>
             <p>Calificación Promedio</p>
-            <div className={`${styles.trendContainer} ${styles.trendPositive}`}>
-              <span className={styles.trendIcon}><ArrowUpRight /></span>
-              <span>+0.2 vs mes anterior</span>
-            </div>
           </div>
         </section>
 
-        {/* DESEMPEÑO MENSUAL */}
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionIcon}><CalendarIcon /></span>
@@ -191,42 +223,47 @@ export default function PathMentorMetrics() {
             </div>
           </div>
 
-          <div className={styles.monthlyContainer}>
-            {monthlyPerformance.map((item, idx) => (
-              <div key={idx} className={styles.monthlyCard}>
-                <div className={styles.monthlyGrid}>
-                  <div className={styles.monthlyCol}>
-                    <span className={styles.monthlyLabel}>Mes</span>
-                    <span className={styles.monthlyVal}>{item.month}</span>
-                  </div>
-                  <div className={styles.monthlyCol}>
-                    <span className={styles.monthlyLabel}>Entrevistas</span>
-                    <span className={styles.monthlyVal}>
-                      <span className={styles.monthlyValIconBlue}><UserIcon /></span>
-                      {item.interviews}
-                    </span>
-                  </div>
-                  <div className={styles.monthlyCol}>
-                    <span className={styles.monthlyLabel}>Tiempo Promedio</span>
-                    <span className={styles.monthlyVal}>
-                      <span className={styles.monthlyValIcon}><ClockIcon /></span>
-                      {item.avgTime} min
-                    </span>
-                  </div>
-                  <div className={styles.monthlyCol}>
-                    <span className={styles.monthlyLabel}>Calificación Promedio</span>
-                    <span className={styles.monthlyVal}>
-                      <span className={styles.monthlyValIconYellow}><StarIcon /></span>
-                      {item.avgScore.toFixed(1)}
-                    </span>
+          {loading ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>Cargando...</p>
+          ) : monthlyPerformance.length === 0 ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>No hay datos de desempeño mensual</p>
+          ) : (
+            <div className={styles.monthlyContainer}>
+              {monthlyPerformance.map((item, idx) => (
+                <div key={idx} className={styles.monthlyCard}>
+                  <div className={styles.monthlyGrid}>
+                    <div className={styles.monthlyCol}>
+                      <span className={styles.monthlyLabel}>Mes</span>
+                      <span className={styles.monthlyVal}>{item.month}</span>
+                    </div>
+                    <div className={styles.monthlyCol}>
+                      <span className={styles.monthlyLabel}>Entrevistas</span>
+                      <span className={styles.monthlyVal}>
+                        <span className={styles.monthlyValIconBlue}><UserIcon /></span>
+                        {item.interviews}
+                      </span>
+                    </div>
+                    <div className={styles.monthlyCol}>
+                      <span className={styles.monthlyLabel}>Tiempo Promedio</span>
+                      <span className={styles.monthlyVal}>
+                        <span className={styles.monthlyValIcon}><ClockIcon /></span>
+                        {item.avgTime} min
+                      </span>
+                    </div>
+                    <div className={styles.monthlyCol}>
+                      <span className={styles.monthlyLabel}>Calificación Promedio</span>
+                      <span className={styles.monthlyVal}>
+                        <span className={styles.monthlyValIconYellow}><StarIcon /></span>
+                        {item.avgScore.toFixed(1)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* EVALUACIÓN POR COMPETENCIAS */}
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionIcon}><BarChartIcon /></span>
@@ -236,31 +273,36 @@ export default function PathMentorMetrics() {
             </div>
           </div>
 
-          <div className={styles.competencyList}>
-            {competencies.map((comp, idx) => (
-              <div key={idx} className={styles.competencyRow}>
-                <div className={styles.competencyMeta}>
-                  <span className={styles.competencyName}>
-                    {comp.name}
-                    <span className={styles.competencyCount}>({comp.count} evaluaciones)</span>
-                  </span>
-                  <span className={styles.competencyScore}>
-                    {comp.score.toFixed(1)}
-                    <span className={styles.competencyScoreMax}>/5</span>
-                  </span>
+          {loading ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>Cargando...</p>
+          ) : competencies.length === 0 ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>No hay evaluaciones por competencias</p>
+          ) : (
+            <div className={styles.competencyList}>
+              {competencies.map((comp, idx) => (
+                <div key={idx} className={styles.competencyRow}>
+                  <div className={styles.competencyMeta}>
+                    <span className={styles.competencyName}>
+                      {comp.name}
+                      <span className={styles.competencyCount}>({comp.count} evaluaciones)</span>
+                    </span>
+                    <span className={styles.competencyScore}>
+                      {comp.score.toFixed(1)}
+                      <span className={styles.competencyScoreMax}>/5</span>
+                    </span>
+                  </div>
+                  <div className={styles.progressContainer}>
+                    <div
+                      className={styles.progressBar}
+                      style={{ width: `${(comp.score / 5) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className={styles.progressContainer}>
-                  <div
-                    className={styles.progressBar}
-                    style={{ width: `${(comp.score / 5) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* EVALUACIONES RECIENTES */}
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionIcon}><CheckIcon /></span>
@@ -270,47 +312,52 @@ export default function PathMentorMetrics() {
             </div>
           </div>
 
-          <div className={styles.recentList}>
-            {recentFeedbacks.map((feedback, idx) => (
-              <div key={idx} className={styles.recentCard}>
-                <div className={styles.recentLeft}>
-                  <div className={styles.recentAvatar}>
-                    {feedback.name.charAt(0)}
+          {loading ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>Cargando...</p>
+          ) : recentFeedbacks.length === 0 ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>No hay evaluaciones recientes</p>
+          ) : (
+            <div className={styles.recentList}>
+              {recentFeedbacks.map((feedback, idx) => (
+                <div key={idx} className={styles.recentCard}>
+                  <div className={styles.recentLeft}>
+                    <div className={styles.recentAvatar}>
+                      {feedback.name.charAt(0)}
+                    </div>
+                    <div className={styles.recentInfo}>
+                      <span className={styles.recentName}>{feedback.name}</span>
+                      <span className={styles.recentDate}>{feedback.date}</span>
+                    </div>
                   </div>
-                  <div className={styles.recentInfo}>
-                    <span className={styles.recentName}>{feedback.name}</span>
-                    <span className={styles.recentDate}>{feedback.date}</span>
+                  <div className={styles.recentRight}>
+                    <div className={styles.recentScore}>
+                      <span className={styles.recentScoreIcon}><StarIcon /></span>
+                      <span>{feedback.score}</span>
+                    </div>
+                    <span
+                      className={`${styles.recentBadge} ${
+                        feedback.result === 'Aprobado' || feedback.result === 'Alta'
+                          ? styles.badgeAprobado
+                          : feedback.result === 'Requiere Mejora' || feedback.result === 'Baja'
+                          ? styles.badgeMejora
+                          : styles.badgeObservaciones
+                      }`}
+                    >
+                      {feedback.result === 'Alta'
+                        ? 'Alta probabilidad'
+                        : feedback.result === 'Media'
+                        ? 'Media probabilidad'
+                        : feedback.result === 'Baja'
+                        ? 'Baja probabilidad'
+                        : feedback.result}
+                    </span>
                   </div>
                 </div>
-                <div className={styles.recentRight}>
-                  <div className={styles.recentScore}>
-                    <span className={styles.recentScoreIcon}><StarIcon /></span>
-                    <span>{feedback.score}</span>
-                  </div>
-                  <span
-                    className={`${styles.recentBadge} ${
-                      feedback.result === 'Aprobado' || feedback.result === 'Alta'
-                        ? styles.badgeAprobado
-                        : feedback.result === 'Requiere Mejora' || feedback.result === 'Baja'
-                        ? styles.badgeMejora
-                        : styles.badgeObservaciones
-                    }`}
-                  >
-                    {feedback.result === 'Alta'
-                      ? 'Alta probabilidad'
-                      : feedback.result === 'Media'
-                      ? 'Media probabilidad'
-                      : feedback.result === 'Baja'
-                      ? 'Baja probabilidad'
-                      : feedback.result}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* ESTADÍSTICAS GLOBALES */}
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionIcon}><BarChartIcon /></span>
@@ -320,22 +367,32 @@ export default function PathMentorMetrics() {
             </div>
           </div>
 
-          <div className={styles.globalRow}>
-            <div className={styles.globalBox}>
-              <div className={`${styles.globalVal} ${styles.valBlue}`}>74</div>
-              <div className={styles.globalLabel}>Entrevistas Totales</div>
-            </div>
+          {loading ? (
+            <p style={{ padding: '20px', color: '#6B7280' }}>Cargando...</p>
+          ) : (
+            <div className={styles.globalRow}>
+              <div className={styles.globalBox}>
+                <div className={`${styles.globalVal} ${styles.valBlue}`}>
+                  {metrics?.totalEntrevistas ?? 0}
+                </div>
+                <div className={styles.globalLabel}>Entrevistas Totales</div>
+              </div>
 
-            <div className={styles.globalBox}>
-              <div className={`${styles.globalVal} ${styles.valGreen}`}>92%</div>
-              <div className={styles.globalLabel}>Tasa de Aprobación</div>
-            </div>
+              <div className={styles.globalBox}>
+                <div className={`${styles.globalVal} ${styles.valGreen}`}>
+                  {metrics?.tasaAprobacion != null ? `${metrics.tasaAprobacion}%` : '0%'}
+                </div>
+                <div className={styles.globalLabel}>Tasa de Aprobación</div>
+              </div>
 
-            <div className={styles.globalBox}>
-              <div className={`${styles.globalVal} ${styles.valYellow}`}>4.3</div>
-              <div className={styles.globalLabel}>Calificación Promedio Global</div>
+              <div className={styles.globalBox}>
+                <div className={`${styles.globalVal} ${styles.valYellow}`}>
+                  {metrics?.calificacionGlobal != null ? metrics.calificacionGlobal.toFixed(1) : 'N/A'}
+                </div>
+                <div className={styles.globalLabel}>Calificación Promedio Global</div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
       </main>
     </div>
