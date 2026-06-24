@@ -23,7 +23,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.Locale;
+import java.util.Set;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +47,7 @@ import static java.util.stream.Collectors.toMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudianteService {
 
     private static final String ESTADO_DISPONIBLE = "DISPONIBLE";
@@ -49,6 +60,10 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private final UsuarioPathChallengeRepository usuarioPathChallengeRepository;
     private final UsuarioPathChallengeTaskRepository usuarioPathChallengeTaskRepository;
     private final ObjectMapper objectMapper;
+    private final S3Client s3Client;
+
+    @Value("${aws.bucket-name}")
+    private String bucketName;
 
     @Override
     @Transactional(readOnly = true)
@@ -321,6 +336,175 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         }
 
         return mapToResponse(challenge, avance, true);
+    }
+
+    @Override
+    @Transactional
+    public PathChallengeEstudianteResponseDTO subirArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            MultipartFile file
+    ) {
+        validarArchivoChallenge(file);
+
+        Usuario usuario = obtenerUsuario(correo);
+        PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findById(idPathChallengeTask)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe"));
+
+        if (!tarea.getPathChallenge().getIdPathChallenge().equals(idPathChallenge)) {
+            throw new IllegalArgumentException("La actividad no pertenece a este PathChallenge");
+        }
+
+        if (!"FILE_UPLOAD".equalsIgnoreCase(tarea.getTipoTarea())) {
+            throw new IllegalArgumentException("Esta actividad no permite subir archivos");
+        }
+
+        UsuarioPathChallenge avance = obtenerOCrearAvance(usuario, challenge);
+
+        UsuarioPathChallengeTask avanceTarea =
+                usuarioPathChallengeTaskRepository
+                        .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndPathChallengeTask_IdPathChallengeTaskAndActivoTrue(
+                                avance.getIdUsuarioPathChallenge(),
+                                idPathChallengeTask
+                        )
+                        .orElseGet(() -> {
+                            UsuarioPathChallengeTask nuevo = new UsuarioPathChallengeTask();
+                            nuevo.setUsuarioPathChallenge(avance);
+                            nuevo.setPathChallengeTask(tarea);
+                            nuevo.setActivo(true);
+                            nuevo.setFechaRegistro(LocalDateTime.now());
+                            return nuevo;
+                        });
+
+        if (StringUtils.hasText(avanceTarea.getArchivoUrl())) {
+            eliminarArchivoChallengeDeS3(avanceTarea.getArchivoUrl());
+        }
+
+        String nombreOriginal = file.getOriginalFilename();
+        String extension = obtenerExtension(nombreOriginal);
+
+        String s3Key = "pathchallenge-entregas/usuario_"
+                + usuario.getIdUsuario()
+                + "/pathchallenge_"
+                + idPathChallenge
+                + "/task_"
+                + idPathChallengeTask
+                + "_"
+                + System.currentTimeMillis()
+                + "."
+                + extension;
+
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .contentType(file.getContentType())
+                            .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error al almacenar el archivo en S3: " + e.getMessage(),
+                    e
+            );
+        }
+
+        avanceTarea.setArchivoNombre(nombreOriginal);
+        avanceTarea.setArchivoUrl(s3Key);
+        avanceTarea.setCompletada(true);
+        avanceTarea.setFechaCompletada(LocalDateTime.now());
+        avanceTarea.setRespuestaJson("""
+            {"uploaded":true,"fileName":"%s","s3Key":"%s"}
+            """.formatted(
+                escaparJson(nombreOriginal),
+                escaparJson(s3Key)
+        ).trim());
+
+        usuarioPathChallengeTaskRepository.save(avanceTarea);
+
+        List<PathChallengeTask> tareas = obtenerTareasChallenge(idPathChallenge);
+        Set<Integer> completedTaskIds = obtenerIdsTareasCompletadas(
+                avance.getIdUsuarioPathChallenge()
+        );
+
+        avance.setEstado(ESTADO_EN_PROGRESO);
+        avance.setProgresoPorcentaje(calcularProgreso(tareas, completedTaskIds));
+        avance.setFechaUltimoAvance(LocalDateTime.now());
+
+        usuarioPathChallengeRepository.save(avance);
+
+        return mapToResponse(challenge, avance, true);
+    }
+
+    private void validarArchivoChallenge(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Debes seleccionar un archivo.");
+        }
+
+        long maxSizeBytes = 10L * 1024L * 1024L;
+
+        if (file.getSize() > maxSizeBytes) {
+            throw new IllegalArgumentException("El archivo no debe superar los 10 MB.");
+        }
+
+        String extension = obtenerExtension(file.getOriginalFilename());
+
+        Set<String> extensionesPermitidas = Set.of(
+                "pdf",
+                "docx",
+                "xlsx",
+                "jpg",
+                "jpeg",
+                "png"
+        );
+
+        if (!extensionesPermitidas.contains(extension)) {
+            throw new IllegalArgumentException(
+                    "Formato no permitido. Solo se aceptan PDF, DOCX, XLSX, JPG o PNG."
+            );
+        }
+    }
+
+    private String obtenerExtension(String nombreArchivo) {
+        if (!StringUtils.hasText(nombreArchivo) || !nombreArchivo.contains(".")) {
+            throw new IllegalArgumentException("El archivo debe tener una extensión válida.");
+        }
+
+        return nombreArchivo
+                .substring(nombreArchivo.lastIndexOf(".") + 1)
+                .toLowerCase(Locale.ROOT);
+    }
+
+    private void eliminarArchivoChallengeDeS3(String s3Key) {
+        if (!StringUtils.hasText(s3Key)) {
+            return;
+        }
+
+        try {
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo eliminar archivo anterior de PathChallenge en S3: {}", e.getMessage());
+        }
+    }
+
+    private String escaparJson(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 
     private Usuario obtenerUsuario(String correo) {

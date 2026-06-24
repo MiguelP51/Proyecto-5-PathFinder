@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
@@ -12,12 +12,19 @@ import {
     Loader2,
     Save,
     Send,
+    Building2,
+    Download,
+    FileText,
+    Lock,
+    PlayCircle,
 } from "lucide-react";
 
 import {
     finishStudentPathChallenge,
     saveStudentPathChallengeProgress,
+    uploadStudentPathChallengeTaskFile,
 } from "@/lib/pathchallenge/student-service";
+
 import {
     StudentPathChallenge,
     StudentPathChallengeTask,
@@ -66,6 +73,14 @@ type TaskConfig = {
     placeholder?: string;
     minLength?: number;
     sections?: string[];
+    uploadTitle?: string;
+    uploadInstruction?: string;
+    acceptedExtensions?: string[];
+    acceptedLabel?: string;
+    maxSizeMb?: number;
+    uploadService?: string;
+    audioUrl?: string | null;
+    audioText?: string;
 };
 
 type JsonResponse = {
@@ -243,6 +258,7 @@ export function PathChallengeMissionClient({
 
     const [saving, setSaving] = useState(false);
     const [finishing, setFinishing] = useState(false);
+    const [uploadingTaskId, setUploadingTaskId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [finished, setFinished] = useState(challenge.status === "COMPLETADO");
@@ -337,6 +353,57 @@ export function PathChallengeMissionClient({
                 responseJson: response.responseJson,
             };
         });
+    };
+
+    const handleUploadTaskFile = async (
+        task: StudentPathChallengeTask,
+        file: File,
+    ) => {
+        setError(null);
+        setSuccessMessage(null);
+
+        if (!token) {
+            setError("No se encontró una sesión válida. Vuelve a iniciar sesión.");
+            return;
+        }
+
+        setUploadingTaskId(task.idPathChallengeTask);
+
+        try {
+            const updatedChallenge = await uploadStudentPathChallengeTaskFile(
+                challenge.idPathChallenge,
+                task.idPathChallengeTask,
+                file,
+                token,
+            );
+
+            const updatedTask = updatedChallenge.tasks.find(
+                (item) => item.idPathChallengeTask === task.idPathChallengeTask,
+            );
+
+            setResponses((previous) => ({
+                ...previous,
+                [task.idPathChallengeTask]: {
+                    ...previous[task.idPathChallengeTask],
+                    completed: true,
+                    fileName: updatedTask?.fileName ?? file.name,
+                    fileUrl: updatedTask?.fileUrl ?? "",
+                    responseJson:
+                        updatedTask?.responseJson ??
+                        JSON.stringify({
+                            uploaded: true,
+                            fileName: file.name,
+                        }),
+                },
+            }));
+
+            setSuccessMessage("Archivo subido correctamente.");
+        } catch (err) {
+            console.error(err);
+            setError("No se pudo subir el archivo. Verifica el formato e intenta nuevamente.");
+        } finally {
+            setUploadingTaskId(null);
+        }
     };
 
     const handleSave = async () => {
@@ -582,6 +649,8 @@ export function PathChallengeMissionClient({
                                 onChange={updateCurrentResponse}
                                 allTasks={orderedTasks}
                                 allResponses={responses}
+                                onUploadFile={handleUploadTaskFile}
+                                uploadingTaskId={uploadingTaskId}
                             />
                         </div>
 
@@ -650,6 +719,8 @@ interface TaskRendererProps {
     onChange: (value: TaskResponseState) => void;
     allTasks: StudentPathChallengeTask[];
     allResponses: Record<number, TaskResponseState>;
+    onUploadFile?: (task: StudentPathChallengeTask, file: File) => Promise<void>;
+    uploadingTaskId?: number | null;
 }
 
 function TaskRenderer({
@@ -658,6 +729,8 @@ function TaskRenderer({
                           onChange,
                           allTasks,
                           allResponses,
+                          onUploadFile,
+                          uploadingTaskId,
                       }: TaskRendererProps) {
     const taskType = normalizeTaskType(task.taskType);
     const config = getConfig(task);
@@ -941,6 +1014,103 @@ function TaskRenderer({
         );
     }
 
+    if (taskType === "FILE_UPLOAD") {
+        const isUploading = uploadingTaskId === task.idPathChallengeTask;
+        const acceptedExtensions = config.acceptedExtensions ?? [
+            ".pdf",
+            ".docx",
+            ".xlsx",
+            ".jpg",
+            ".jpeg",
+            ".png",
+        ];
+
+        const acceptValue = acceptedExtensions.join(",");
+
+        const handleFileChange = async (
+            event: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+            const file = event.target.files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            await onUploadFile?.(task, file);
+
+            event.target.value = "";
+        };
+
+        return (
+            <div className="space-y-5">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                        {config.uploadTitle ?? "Archivos adjuntos"}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {task.content}
+                    </p>
+                </div>
+
+                {config.audioText && (
+                    <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4">
+                        <p className="text-sm font-semibold text-[#7447D7]">
+                            Acompañamiento del supervisor
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">{config.audioText}</p>
+                    </div>
+                )}
+
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white px-6 py-10 text-center transition hover:border-[#7447D7] hover:bg-purple-50">
+                    {isUploading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-[#7447D7]" />
+                    ) : (
+                        <Save className="h-8 w-8 text-[#7447D7]" />
+                    )}
+
+                    <span className="mt-3 text-sm font-bold text-slate-900">
+          {isUploading
+              ? "Subiendo archivo..."
+              : config.uploadInstruction ??
+              "Arrastra y suelta archivos aquí o selecciona un archivo."}
+        </span>
+
+                    <span className="mt-1 text-xs text-slate-500">
+          Formatos permitidos: {config.acceptedLabel ?? acceptedExtensions.join(", ")}
+        </span>
+
+                    <span className="mt-1 text-xs text-slate-400">
+          Tamaño máximo: {config.maxSizeMb ?? 10} MB
+        </span>
+
+                    <input
+                        type="file"
+                        accept={acceptValue}
+                        disabled={isUploading}
+                        onChange={handleFileChange}
+                        className="hidden"
+                    />
+                </label>
+
+                {(response?.fileName || response?.fileUrl) && (
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div className="flex items-start gap-3">
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
+                            <div>
+                                <p className="text-sm font-bold text-emerald-800">
+                                    Archivo cargado correctamente
+                                </p>
+                                <p className="mt-1 text-sm text-emerald-700">
+                                    {response.fileName ?? "Archivo subido"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     if (taskType === "FINAL_REVIEW") {
         return (
             <div>
@@ -1085,6 +1255,12 @@ function TaskSummary({
 
     if (taskType === "TEXT_RESPONSE") {
         content = response?.responseText?.trim() || "Sin justificación registrada.";
+    }
+
+    if (taskType === "FILE_UPLOAD") {
+        content = response?.fileName
+            ? `Archivo subido: ${response.fileName}`
+            : "Sin archivo subido.";
     }
 
     return (

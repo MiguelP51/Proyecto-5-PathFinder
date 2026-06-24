@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -190,6 +192,40 @@ public class PathChallengeEstudianteController {
             log.error("Error finalizando PathChallenge: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error al finalizar PathChallenge"));
+        }
+    }
+
+    @PostMapping(
+            value = "/estudiante/{idPathChallenge}/tareas/{idPathChallengeTask}/archivo",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<ApiResponse<PathChallengeEstudianteResponseDTO>> subirArchivoTarea(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idPathChallenge,
+            @PathVariable Integer idPathChallengeTask,
+            @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            PathChallengeEstudianteResponseDTO challenge =
+                    pathChallengeEstudianteService.subirArchivoTarea(
+                            userDetails.getUsername(),
+                            idPathChallenge,
+                            idPathChallengeTask,
+                            file
+                    );
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("Archivo subido correctamente", challenge)
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo subir archivo de PathChallenge: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error subiendo archivo de PathChallenge: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al subir el archivo"));
         }
     }
 }

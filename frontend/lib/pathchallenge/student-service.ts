@@ -77,3 +77,22 @@ export async function getStartedStudentPathChallenges(
         token,
     );
 }
+
+export async function uploadStudentPathChallengeTaskFile(
+    pathChallengeId: string | number,
+    pathChallengeTaskId: string | number,
+    file: File,
+    token?: string | null,
+): Promise<StudentPathChallenge> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return apiFetch<StudentPathChallenge>(
+        `/api/pathchallenges/estudiante/${pathChallengeId}/tareas/${pathChallengeTaskId}/archivo`,
+        {
+            method: "POST",
+            body: formData,
+        },
+        token,
+    );
+}
