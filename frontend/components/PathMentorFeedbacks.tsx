@@ -14,7 +14,7 @@ interface Feedback {
   interviewTime?: string;
   position?: string;
   status: 'Publicado' | 'Borrador' | 'Pendiente';
-  result?: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones';
+  result?: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja';
   score?: number; // out of 5
   scores?: {
     general: number;
@@ -26,6 +26,11 @@ interface Feedback {
   areasMejora?: string;
   comentarios?: string;
   lastUpdated?: string;
+  competenciasEvaluadas?: Array<{
+    nombreCompetencia: string;
+    nivelSeleccionado: number;
+    descripcionNivel: string;
+  }>;
 }
 
 // Inline SVG Icons
@@ -119,7 +124,7 @@ export default function PathMentorFeedbacks() {
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
 
   // Form Fields States
-  const [formResult, setFormResult] = useState<'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | ''>('');
+  const [formResult, setFormResult] = useState<'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja' | ''>('');
   const [formScoreGeneral, setFormScoreGeneral] = useState(0);
   const [formScoreTechnical, setFormScoreTechnical] = useState(0);
   const [formScoreCommunication, setFormScoreCommunication] = useState(0);
@@ -127,6 +132,50 @@ export default function PathMentorFeedbacks() {
   const [formFortalezas, setFormFortalezas] = useState('');
   const [formAreasMejora, setFormAreasMejora] = useState('');
   const [formComentarios, setFormComentarios] = useState('');
+
+  // Competencies State
+  const [competencias, setCompetencias] = useState<any[]>([]);
+  const [selectedCompetencyLevels, setSelectedCompetencyLevels] = useState<Record<string, { nivel: number; descripcion: string }>>({});
+  const [hoveredLevels, setHoveredLevels] = useState<Record<string, number>>({});
+  const [customCompetencyName, setCustomCompetencyName] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  const getLevelDescription = (comp: any, level: number): string => {
+    if (level === 0) return comp.nivel0 || "Por debajo del criterio esperado";
+    if (level === 1) return comp.nivel1 || "Alcanza los criterios minimos";
+    if (level === 2) return comp.nivel2 || "Supera los criterios minimos";
+    if (level === 3) return comp.nivel3 || "Supera las expectativas";
+    return "";
+  };
+
+  const handleSelectLevel = (compName: string, level: number, descText: string) => {
+    setSelectedCompetencyLevels(prev => ({
+      ...prev,
+      [compName]: { nivel: level, descripcion: descText }
+    }));
+  };
+
+  const handleAddCustomCompetency = () => {
+    if (!customCompetencyName.trim()) return;
+    const name = customCompetencyName.trim();
+    if (competencias.some(c => c.nombre.toLowerCase() === name.toLowerCase())) {
+      toast.warning("La competencia ya existe");
+      return;
+    }
+    const newComp = {
+      nombre: name,
+      descripcion: "Competencia personalizada agregada por el mentor",
+      nivel0: "Por debajo de lo esperado para esta competencia",
+      nivel1: "Alcanza el criterio basico",
+      nivel2: "Supera el nivel basico",
+      nivel3: "Excelente desempeño",
+      puesto: "Personalizado"
+    };
+    setCompetencias(prev => [...prev, newComp]);
+    setCustomCompetencyName('');
+    setShowCustomInput(false);
+    toast.success("Competencia adicional agregada");
+  };
 
   useEffect(() => {
     if (status === 'authenticated' && session?.backendJwt) {
@@ -181,7 +230,7 @@ export default function PathMentorFeedbacks() {
           interviewTime: item.hora,
           status: statusVal,
           result: resultVal,
-          score: item.competenciaProactividad,
+          score: item.promedioCalificacion || item.competenciaProactividad,
           scores: {
             general: item.competenciaProactividad || 0,
             technical: item.competenciaTecnica || 0,
@@ -192,7 +241,8 @@ export default function PathMentorFeedbacks() {
           areasMejora: amej,
           comentarios: coms,
           lastUpdated: item.fecha,
-          position: item.puesto || 'Sin especificar'
+          position: item.puesto || 'Sin especificar',
+          competenciasEvaluadas: item.competenciasEvaluadas || []
         };
       });
       setFeedbacks(mapped);
@@ -236,13 +286,28 @@ export default function PathMentorFeedbacks() {
     setSelectedFeedback(item);
     setFormMode('ver');
     setFormResult(item.result || '');
-    setFormScoreGeneral(item.scores?.general || 0);
-    setFormScoreTechnical(item.scores?.technical || 0);
-    setFormScoreCommunication(item.scores?.communication || 0);
-    setFormScoreProblemSolving(item.scores?.problemSolving || 0);
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    
+    // Initialize competencies and levels
+    const mapped: Record<string, { nivel: number; descripcion: string }> = {};
+    if (item.competenciasEvaluadas) {
+      item.competenciasEvaluadas.forEach((c: any) => {
+        mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+      });
+      setCompetencias(item.competenciasEvaluadas.map((c: any) => ({
+        nombre: c.nombreCompetencia,
+        descripcion: '',
+        nivel0: c.nivelSeleccionado === 0 ? c.descripcionNivel : 'Por debajo del esperado',
+        nivel1: c.nivelSeleccionado === 1 ? c.descripcionNivel : 'Alcanza los criterios minimos',
+        nivel2: c.nivelSeleccionado === 2 ? c.descripcionNivel : 'Supera los criterios minimos',
+        nivel3: c.nivelSeleccionado === 3 ? c.descripcionNivel : 'Supera las expectativas'
+      })));
+    } else {
+      setCompetencias([]);
+    }
+    setSelectedCompetencyLevels(mapped);
     setActiveView('form');
   };
 
@@ -250,13 +315,10 @@ export default function PathMentorFeedbacks() {
     setSelectedFeedback(item);
     setFormMode('editar');
     setFormResult(item.result || '');
-    setFormScoreGeneral(item.scores?.general || 0);
-    setFormScoreTechnical(item.scores?.technical || 0);
-    setFormScoreCommunication(item.scores?.communication || 0);
-    setFormScoreProblemSolving(item.scores?.problemSolving || 0);
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    loadCompetencias(item.position || 'General', item.id, 'editar');
     setActiveView('form');
   };
 
@@ -270,10 +332,6 @@ export default function PathMentorFeedbacks() {
       try {
         const parsed = JSON.parse(draft);
         setFormResult(parsed.result || '');
-        setFormScoreGeneral(parsed.scoreGeneral || 0);
-        setFormScoreTechnical(parsed.scoreTechnical || 0);
-        setFormScoreCommunication(parsed.scoreCommunication || 0);
-        setFormScoreProblemSolving(parsed.scoreProblemSolving || 0);
         setFormFortalezas(parsed.fortalezas || '');
         setFormAreasMejora(parsed.areasMejora || '');
         setFormComentarios(parsed.comentarios || '');
@@ -283,31 +341,58 @@ export default function PathMentorFeedbacks() {
     } else {
       resetFormFields();
     }
+    loadCompetencias(item.position || 'General', item.id, 'registrar');
     setActiveView('form');
+  };
+
+  const loadCompetencias = async (puesto: string, interviewId: number, mode: 'registrar' | 'editar') => {
+    try {
+      const res = await apiFetch<any[]>(`/api/entrevistas/competencias?puesto=${encodeURIComponent(puesto)}`, {}, session?.backendJwt);
+      setCompetencias(res || []);
+      
+      const mapped: Record<string, { nivel: number; descripcion: string }> = {};
+      const draft = localStorage.getItem(`draft_feedback_${interviewId}`);
+      const existing = feedbacks.find(f => f.id === interviewId);
+      
+      if (mode === 'editar' && existing && existing.competenciasEvaluadas && existing.competenciasEvaluadas.length > 0) {
+        existing.competenciasEvaluadas.forEach((c: any) => {
+          mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+        });
+      } else if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed.competencyLevels) {
+            Object.assign(mapped, parsed.competencyLevels);
+          }
+        } catch (e) {}
+      } else {
+        // Default to level 1 for each loaded competency
+        (res || []).forEach(c => {
+          mapped[c.nombre] = { nivel: 1, descripcion: c.nivel1 || 'Alcanza los criterios minimos' };
+        });
+      }
+      setSelectedCompetencyLevels(mapped);
+    } catch (err) {
+      console.error("Error cargando competencias:", err);
+    }
   };
 
   const resetFormFields = () => {
     setFormResult('');
-    setFormScoreGeneral(0);
-    setFormScoreTechnical(0);
-    setFormScoreCommunication(0);
-    setFormScoreProblemSolving(0);
     setFormFortalezas('');
     setFormAreasMejora('');
     setFormComentarios('');
+    setSelectedCompetencyLevels({});
   };
 
   const handleSaveDraft = () => {
     if (!selectedFeedback) return;
     const draftData = {
       result: formResult,
-      scoreGeneral: formScoreGeneral,
-      scoreTechnical: formScoreTechnical,
-      scoreCommunication: formScoreCommunication,
-      scoreProblemSolving: formScoreProblemSolving,
       fortalezas: formFortalezas,
       areasMejora: formAreasMejora,
-      comentarios: formComentarios
+      comentarios: formComentarios,
+      competencyLevels: selectedCompetencyLevels
     };
     localStorage.setItem(`draft_feedback_${selectedFeedback.id}`, JSON.stringify(draftData));
     toast.success("Borrador guardado localmente.");
@@ -329,15 +414,32 @@ export default function PathMentorFeedbacks() {
         comentarios: formComentarios
       });
 
+      // Map dynamic competencies
+      const compPayload = competencias.map(c => {
+        const sel = selectedCompetencyLevels[c.nombre] || { nivel: 1, descripcion: c.nivel1 };
+        return {
+          nombreCompetencia: c.nombre,
+          nivelSeleccionado: sel.nivel,
+          descripcionNivel: sel.descripcion
+        };
+      });
+
+      let averageLevel = 0;
+      if (compPayload.length > 0) {
+        const total = compPayload.reduce((acc, curr) => acc + curr.nivelSeleccionado, 0);
+        averageLevel = Math.round((total / compPayload.length) * 1.66) + 1; // Map 0-3 to 1-5 stars for legacy compatibility
+      }
+
       await apiFetch(`/api/entrevistas/${selectedFeedback.id}/feedback`, {
         method: "POST",
         body: JSON.stringify({
           resultado: formResult,
           feedbackComentarios: commentsJson,
-          competenciaComunicacion: formScoreCommunication,
-          competenciaTecnica: formScoreTechnical,
-          competenciaProactividad: formScoreGeneral,
-          competenciaResolucion: formScoreProblemSolving
+          competenciaComunicacion: averageLevel || 3,
+          competenciaTecnica: averageLevel || 3,
+          competenciaProactividad: averageLevel || 3,
+          competenciaResolucion: averageLevel || 3,
+          competenciasEvaluadas: compPayload
         })
       }, session?.backendJwt);
 
@@ -492,14 +594,20 @@ export default function PathMentorFeedbacks() {
                             {item.result ? (
                               <span
                                 className={`${styles.resultBadge} ${
-                                  item.result === 'Aprobado'
+                                  item.result === 'Aprobado' || item.result === 'Alta'
                                     ? styles.resultAprobado
-                                    : item.result === 'Requiere Mejora'
+                                    : item.result === 'Requiere Mejora' || item.result === 'Baja'
                                     ? styles.resultMejora
                                     : styles.resultObservaciones
                                 }`}
                               >
-                                {item.result}
+                                {item.result === 'Alta'
+                                  ? 'Alta probabilidad'
+                                  : item.result === 'Media'
+                                  ? 'Media probabilidad'
+                                  : item.result === 'Baja'
+                                  ? 'Baja probabilidad'
+                                  : item.result}
                               </span>
                             ) : (
                               <span className={styles.resultEmpty}>-</span>
@@ -636,21 +744,27 @@ export default function PathMentorFeedbacks() {
                     disabled={formMode === 'ver'}
                   >
                     <option value="" disabled>Selecciona un resultado...</option>
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Requiere Mejora">Requiere Mejora</option>
-                    <option value="Con Observaciones">Con Observaciones</option>
+                    <option value="Alta">Alta probabilidad de éxito</option>
+                    <option value="Media">Media probabilidad de éxito</option>
+                    <option value="Baja">Baja probabilidad de éxito</option>
                   </select>
 
                   {formResult && (
                     <div className={styles.resultBadgeForm}>
                       <span className={`${styles.resultBadge} ${
-                        formResult === 'Aprobado'
+                        formResult === 'Aprobado' || formResult === 'Alta'
                           ? styles.resultAprobado
-                          : formResult === 'Requiere Mejora'
+                          : formResult === 'Requiere Mejora' || formResult === 'Baja'
                           ? styles.resultMejora
                           : styles.resultObservaciones
                       }`}>
-                        {formResult}
+                        {formResult === 'Alta'
+                          ? 'Alta probabilidad'
+                          : formResult === 'Media'
+                          ? 'Media probabilidad'
+                          : formResult === 'Baja'
+                          ? 'Baja probabilidad'
+                          : formResult}
                       </span>
                     </div>
                   )}
@@ -664,102 +778,119 @@ export default function PathMentorFeedbacks() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    Evaluación por Competencias
+                    Evaluación por Competencias (Rúbrica Factorial 0-3)
                   </div>
                 </div>
 
-                <div className={styles.starList}>
-                  {/* Calificación General */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Calificación General</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreGeneral(val)}
-                          >
-                            <StarIcon filled={val <= formScoreGeneral} />
-                          </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreGeneral}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
-                  </div>
+                <div className="space-y-6 mt-4">
+                  {competencias.length > 0 ? (
+                    competencias.map((comp) => {
+                      const currentSelection = selectedCompetencyLevels[comp.nombre] || { nivel: 1, descripcion: comp.nivel1 };
+                      const hoverVal = hoveredLevels[comp.nombre];
+                      const activeNivel = hoverVal !== undefined ? hoverVal : currentSelection.nivel;
+                      
+                      // Get text description of active level
+                      const activeDesc = getLevelDescription(comp, activeNivel);
 
-                  {/* Habilidades Técnicas */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Habilidades Técnicas</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreTechnical(val)}
-                          >
-                            <StarIcon filled={val <= formScoreTechnical} />
-                          </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreTechnical}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
-                  </div>
+                      return (
+                        <div key={comp.nombre} className="border-b border-slate-100 pb-6 last:border-b-0 last:pb-0">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="font-extrabold text-base text-slate-800">{comp.nombre}</h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">{comp.descripcion}</p>
+                            </div>
+                            
+                            {/* 0-3 buttons */}
+                            <div className="flex items-center gap-2">
+                              {[0, 1, 2, 3].map((lvl) => {
+                                const isSelected = currentSelection.nivel === lvl;
+                                const labelMap = ["Por debajo del esperado", "Alcanza criterios minimos", "Supera criterios minimos", "Supera expectativas"];
+                                
+                                return (
+                                  <button
+                                    key={lvl}
+                                    type="button"
+                                    disabled={formMode === 'ver'}
+                                    onClick={() => handleSelectLevel(comp.nombre, lvl, getLevelDescription(comp, lvl))}
+                                    onMouseEnter={() => formMode !== 'ver' && setHoveredLevels(prev => ({ ...prev, [comp.nombre]: lvl }))}
+                                    onMouseLeave={() => formMode !== 'ver' && setHoveredLevels(prev => {
+                                      const cpy = { ...prev };
+                                      delete cpy[comp.nombre];
+                                      return cpy;
+                                    })}
+                                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all duration-200 cursor-pointer ${
+                                      isSelected
+                                        ? "bg-[#7447D7] text-white border-[#7447D7] shadow-sm"
+                                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                                    }`}
+                                    title={labelMap[lvl]}
+                                  >
+                                    Nivel {lvl}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
 
-                  {/* Comunicación */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Comunicación</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
+                          {/* Rubric text description */}
+                          <div className="mt-3 bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-slate-600 leading-relaxed min-h-[60px] flex items-center">
+                            <p>
+                              <span className="font-bold text-[#7447D7] mr-2">
+                                Nivel {activeNivel} - {
+                                  activeNivel === 0 ? "Por debajo de lo esperado:" :
+                                  activeNivel === 1 ? "Alcanza los criterios minimos:" :
+                                  activeNivel === 2 ? "Supera los criterios minimos:" :
+                                  "Supera las expectativas:"
+                                }
+                              </span>
+                              {activeDesc}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">No hay competencias definidas para este puesto.</p>
+                  )}
+                  
+                  {/* Competencia personalizada */}
+                  {formMode !== 'ver' && (
+                    <div className="mt-6 pt-4 border-t border-dashed border-slate-200">
+                      {showCustomInput ? (
+                        <div className="flex gap-2 max-w-md">
+                          <input
+                            type="text"
+                            placeholder="Nombre de competencia adicional..."
+                            className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                            value={customCompetencyName}
+                            onChange={(e) => setCustomCompetencyName(e.target.value)}
+                          />
                           <button
-                            key={val}
                             type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreCommunication(val)}
+                            onClick={handleAddCustomCompetency}
+                            className="bg-[#7447D7] text-white text-xs font-bold px-4 py-2 rounded-xl"
                           >
-                            <StarIcon filled={val <= formScoreCommunication} />
+                            Agregar
                           </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreCommunication}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Resolución de Problemas */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Resolución de Problemas</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
                           <button
-                            key={val}
                             type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreProblemSolving(val)}
+                            onClick={() => setShowCustomInput(false)}
+                            className="border border-slate-200 text-slate-500 text-xs font-bold px-3 py-2 rounded-xl"
                           >
-                            <StarIcon filled={val <= formScoreProblemSolving} />
+                            Cancelar
                           </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreProblemSolving}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomInput(true)}
+                          className="text-[#7447D7] text-xs font-extrabold flex items-center gap-1.5 hover:underline"
+                        >
+                          + Agregar competencia adicional
+                        </button>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </section>
 

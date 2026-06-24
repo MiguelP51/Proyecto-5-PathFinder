@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
-import { Search, Plus, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Brain } from "lucide-react";
 import DISCQuestionFormModal from "@/components/admin/DISCQuestionFormModal";
 
 interface Opcion {
@@ -12,6 +12,7 @@ interface Opcion {
   valorRespuesta: number;
   ordenOpcion: number;
   activo: boolean;
+  categoriaDisc?: string;
 }
 
 interface PreguntaDISC {
@@ -114,6 +115,63 @@ export default function DISCQuestionsPage() {
         </button>
       </section>
 
+      {/* Sección Informativa: Cálculo de Pesos DISC */}
+      <section className="bg-gradient-to-br from-purple-50 via-indigo-50/40 to-slate-50 border border-purple-100 rounded-3xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-200">
+            <Brain className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-800">Cálculo de Pesos y Algoritmo de Perfiles DISC</h2>
+            <p className="text-xs text-slate-500">Explicación del sistema de puntuación para el cliente y administradores</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-600">
+          <div className="space-y-2 bg-white/60 p-4 rounded-2xl border border-slate-100">
+            <h3 className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              1. Estructura del Test
+            </h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Consiste en <strong>20 bloques</strong>. Los bloques 1-10 son de tipo <strong>"Me considero más"</strong> y los bloques 11-20 son de tipo <strong>"Me considero menos"</strong>. Cada bloque presenta 4 palabras alternativas.
+            </p>
+          </div>
+
+          <div className="space-y-2 bg-white/60 p-4 rounded-2xl border border-slate-100">
+            <h3 className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+              2. Asignación y Acumulación
+            </h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Cada palabra seleccionada corresponde a una dimensión: <strong>D</strong> (Dominancia), <strong>I</strong> (Influencia), <strong>S</strong> (Estabilidad) o <strong>C</strong> (Cumplimiento). Elegir una palabra sumará <strong>+1 punto</strong> a esa dimensión.
+            </p>
+          </div>
+
+          <div className="space-y-2 bg-white/60 p-4 rounded-2xl border border-slate-100">
+            <h3 className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              3. Perfil Dominante
+            </h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Si una dimensión tiene <strong>12 o más puntos</strong> (≥60%), es el perfil único dominante. De lo contrario, se toman las <strong>dos dimensiones más altas</strong> para formar un perfil combinado (ej. <em>D + I</em>).
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-purple-100/50 flex flex-wrap gap-4 justify-between items-center text-xs">
+          <span className="text-slate-400">
+            * Cada bloque en base de datos tiene configuradas sus opciones asociadas a <strong>D</strong> (Valor 1), <strong>I</strong> (Valor 2), <strong>S</strong> (Valor 3) y <strong>C</strong> (Valor 4).
+          </span>
+          <div className="flex gap-2">
+            <span className="px-2 py-1 bg-red-50 text-red-700 rounded-md font-bold text-[10px]">D: Dominancia</span>
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-bold text-[10px]">I: Influencia</span>
+            <span className="px-2 py-1 bg-green-50 text-green-700 rounded-md font-bold text-[10px]">S: Estabilidad</span>
+            <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-bold text-[10px]">C: Cumplimiento</span>
+          </div>
+        </div>
+      </section>
+
       {/* Controles de Búsqueda y Filtros */}
       <section className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="relative w-full md:max-w-md">
@@ -189,15 +247,28 @@ export default function DISCQuestionsPage() {
                 </p>
 
                 {/* Opciones */}
-                <div className="grid grid-cols-2 gap-2 max-w-xl pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl pt-2">
                   {item.opciones.map((opcion) => (
                     <div
                       key={opcion.idOpcionPreguntaDisc}
-                      className="flex justify-between items-center bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-xs"
+                      className="flex justify-between items-center bg-slate-50 border border-slate-100/70 px-3 py-2 rounded-xl text-xs hover:border-purple-200/50 transition-colors"
                     >
-                      <span className="text-slate-600 truncate">{opcion.textoOpcion}</span>
-                      <span className="font-bold text-purple-600 ml-2" title="Peso psicométrico">
-                        {opcion.valorRespuesta} pts
+                      <div className="flex items-center gap-2 truncate">
+                        <span className={`w-5 h-5 flex items-center justify-center rounded-lg text-[9px] font-black uppercase shadow-sm ${
+                          opcion.categoriaDisc === "D"
+                            ? "bg-red-50 text-red-700 border border-red-200/60"
+                            : opcion.categoriaDisc === "I"
+                            ? "bg-blue-50 text-blue-700 border border-blue-200/60"
+                            : opcion.categoriaDisc === "S"
+                            ? "bg-green-50 text-green-700 border border-green-200/60"
+                            : "bg-amber-50 text-amber-700 border border-amber-200/60"
+                        }`}>
+                          {opcion.categoriaDisc || "?"}
+                        </span>
+                        <span className="text-slate-700 font-semibold truncate">{opcion.textoOpcion}</span>
+                      </div>
+                      <span className="font-extrabold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg text-[10px] shrink-0 border border-purple-100" title="Valor en respuesta">
+                        Valor: {opcion.valorRespuesta}
                       </span>
                     </div>
                   ))}

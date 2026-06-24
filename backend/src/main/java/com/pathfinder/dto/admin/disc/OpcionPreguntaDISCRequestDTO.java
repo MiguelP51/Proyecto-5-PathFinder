@@ -10,4 +10,5 @@ public class OpcionPreguntaDISCRequestDTO {
     private Integer valorRespuesta;
     private String imagenUrl;
     private Integer ordenOpcion;
+    private String categoriaDisc;
 }

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.pathfinder.model.enums.CategoriaDISC;
+
 @Getter
 @Setter
 @Entity
@@ -24,6 +26,10 @@ public class OpcionPreguntaDISC extends AuditoriaBase {
 
     @Column(name = "valor_respuesta")
     private Integer valorRespuesta;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "categoria_disc", length = 1)
+    private CategoriaDISC categoriaDisc;
 
     @Column(name = "imagen_url", length = 255)
     private String imagenUrl;

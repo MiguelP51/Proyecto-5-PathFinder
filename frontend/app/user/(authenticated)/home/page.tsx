@@ -16,6 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 
 interface EstadoEstudianteResponse {
@@ -61,6 +62,29 @@ export default function StudentDashboard() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetProgress = async () => {
+    const confirmReset = window.confirm(
+      "¿Estás seguro de que deseas iniciar una nueva simulación? Esto archivará tu entrevista actual y reiniciará tus etapas de CV y preparación, pero conservarás tus resultados del test DISC."
+    );
+    if (!confirmReset) return;
+
+    try {
+      setResetting(true);
+      await apiFetch("/api/profile/reset", {
+        method: "POST",
+      }, session?.backendJwt);
+      
+      toast.success("¡Tu progreso de simulación ha sido reiniciado! Ahora puedes iniciar de nuevo.");
+      loadStudentStatus();
+    } catch (err) {
+      console.error("Error al reiniciar progreso:", err);
+      toast.error("No se pudo reiniciar el progreso de simulación.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -91,15 +115,6 @@ export default function StudentDashboard() {
         session?.backendJwt
       );
       setStudentStatus(data);
-
-      if (data && data.etapas?.EVALUACION_ENTREVISTA === "COMPLETADA") {
-        if (data.exploracionIniciada) {
-          router.push("/user/app/exploracion/dashboard");
-        } else {
-          router.push("/user/app/exploracion-intro");
-        }
-        return;
-      }
 
       // Cargar entrevista activa si está en etapa de agendamiento o posterior
       try {
@@ -188,6 +203,41 @@ export default function StudentDashboard() {
             </div>
           </div>
         </section>
+
+        {/* Banner de Carga/Exploracion si la entrevista esta completada */}
+        {studentStatus?.etapas?.EVALUACION_ENTREVISTA === "COMPLETADA" && (
+          <div className="mb-8 rounded-3xl border border-purple-200 bg-gradient-to-r from-purple-100 via-indigo-50 to-pink-50 dark:from-purple-950/30 dark:via-indigo-950/20 dark:to-pink-950/20 p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-lg shadow-purple-200/50">
+                <Sparkles className="h-6 w-6 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block font-extrabold">¡PREPARACIÓN COMPLETADA!</span>
+                <p className="text-base font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                  Has completado exitosamente todas las etapas de tu preparación de perfil.
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                  Tu perfil y simulación de entrevista ya cuentan con la retroalimentación de tu PathMentor. Ya puedes ingresar al Módulo de Exploración Laboral para buscar tus áreas y retos de interés.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto flex-shrink-0">
+              <Link
+                href={studentStatus.exploracionIniciada ? "/user/app/exploracion/dashboard" : "/user/app/exploracion-intro"}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white text-xs font-bold px-6 transition shadow-md shadow-purple-200/30 cursor-pointer text-center whitespace-nowrap"
+              >
+                Ir a Exploración Laboral
+              </Link>
+              <button
+                onClick={handleResetProgress}
+                disabled={resetting}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-[#7447D7] disabled:opacity-50 text-xs font-bold px-6 transition cursor-pointer text-center whitespace-nowrap"
+              >
+                {resetting ? "Reiniciando..." : "Iniciar Nueva Simulación"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Anuncios de Entrevista */}
         {activeInterview && activeInterview.estado === "Programada" && !activeInterview.virtualLink && (

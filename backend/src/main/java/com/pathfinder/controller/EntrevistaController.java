@@ -4,6 +4,8 @@ import com.pathfinder.dto.request.AgendarEntrevistaRequest;
 import com.pathfinder.dto.request.GuardarFeedbackRequest;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.model.entity.Competencia;
+import com.pathfinder.repository.CompetenciaRepository;
 import com.pathfinder.service.EntrevistaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class EntrevistaController {
 
     private final EntrevistaService entrevistaService;
+    private final CompetenciaRepository competenciaRepository;
 
     // POST /api/entrevistas/agendar — Agendar entrevista por estudiante (HU-EST-14)
     @PostMapping("/agendar")
@@ -123,12 +126,7 @@ public class EntrevistaController {
             entrevistaService.guardarFeedback(
                     id, 
                     userDetails.getUsername(), 
-                    req.getResultado(), 
-                    req.getFeedbackComentarios(),
-                    req.getCompetenciaComunicacion(),
-                    req.getCompetenciaTecnica(),
-                    req.getCompetenciaProactividad(),
-                    req.getCompetenciaResolucion()
+                    req
             );
             return ResponseEntity.ok(ApiResponse.success("Feedback registrado con éxito", null));
         } catch (IllegalStateException e) {
@@ -136,6 +134,28 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error guardando feedback de entrevista: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al registrar el feedback: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/entrevistas/competencias — Obtener catálogo de competencias por puesto
+    @GetMapping("/competencias")
+    public ResponseEntity<ApiResponse<List<Competencia>>> getCompetencias(
+            @RequestParam(required = false) String puesto) {
+        try {
+            List<Competencia> lista;
+            if (puesto != null && !puesto.trim().isEmpty()) {
+                lista = competenciaRepository.findByPuestoIgnoreCase(puesto.trim());
+                // Si está vacío, cargar las de puesto "General" como fallback
+                if (lista.isEmpty()) {
+                    lista = competenciaRepository.findByPuestoIgnoreCase("General");
+                }
+            } else {
+                lista = competenciaRepository.findAll();
+            }
+            return ResponseEntity.ok(ApiResponse.success("Competencias obtenidas con éxito", lista));
+        } catch (Exception e) {
+            log.error("Error obteniendo competencias: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener competencias"));
         }
     }
 }

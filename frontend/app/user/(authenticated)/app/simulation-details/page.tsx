@@ -23,6 +23,12 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 
+interface CompetenciaEvaluada {
+  nombreCompetencia: string;
+  nivelSeleccionado: number;
+  descripcionNivel: string;
+}
+
 interface Entrevista {
   idEntrevista: number;
   idEstudiante: number;
@@ -47,6 +53,8 @@ interface Entrevista {
   competenciaResolucion: number;
   motivoCancelacion?: string;
   promedioCalificacion?: number;
+  puesto?: string;
+  competenciasEvaluadas?: CompetenciaEvaluada[];
   nombresCompetencias?: {
     competenciaComunicacion?: string;
     competenciaTecnica?: string;
@@ -68,6 +76,29 @@ export default function SimulationDetailsPage() {
   const [showMotiveModal, setShowMotiveModal] = useState(false);
   const [motiveText, setMotiveText] = useState("");
   const [isRescheduleAction, setIsRescheduleAction] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetProgress = async () => {
+    const confirmReset = window.confirm(
+      "¿Estás seguro de que deseas iniciar una nueva simulación? Esto archivará tu entrevista actual y reiniciará tus etapas de CV y preparación, pero conservarás tus resultados del test DISC."
+    );
+    if (!confirmReset) return;
+
+    try {
+      setResetting(true);
+      await apiFetch("/api/profile/reset", {
+        method: "POST",
+      }, session?.backendJwt);
+      
+      toast.success("¡Tu progreso de simulación ha sido reiniciado! Ahora puedes iniciar de nuevo.");
+      router.push("/user/home");
+    } catch (err) {
+      console.error("Error al reiniciar progreso:", err);
+      toast.error("No se pudo reiniciar el progreso de simulación.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -415,6 +446,16 @@ export default function SimulationDetailsPage() {
                         <span className="font-bold text-slate-700 capitalize">{entrevista.tipo}</span>
                       </div>
                     </div>
+
+                    {entrevista.puesto && (
+                      <div className="flex gap-3 items-start sm:col-span-2 border-t border-slate-100 pt-4">
+                        <Award className="h-5 w-5 text-[#7447D7] mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-xs text-slate-400 block uppercase font-bold tracking-wider">Puesto Postulado</span>
+                          <span className="font-bold text-slate-700">{entrevista.puesto}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {entrevista.estado === "Programada" && entrevista.tipo === "virtual" && (
@@ -503,16 +544,22 @@ export default function SimulationDetailsPage() {
                     </div>
 
                     <div className={`p-4 rounded-xl border text-center font-bold ${
-                      entrevista.resultado === "APROBADO" || entrevista.resultado === "Aprobado"
+                      entrevista.resultado === "APROBADO" || entrevista.resultado === "Aprobado" || entrevista.resultado === "Alta"
                         ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                        : entrevista.resultado === "APROBADO_CON_OBSERVACIONES" || entrevista.resultado === "Aprobado con observaciones"
+                        : entrevista.resultado === "APROBADO_CON_OBSERVACIONES" || entrevista.resultado === "Aprobado con observaciones" || entrevista.resultado === "Media"
                         ? "bg-amber-50 border-amber-200 text-amber-800"
                         : "bg-red-50 border-red-200 text-red-800"
                     }`}>
                       <Award className="h-8 w-8 mx-auto mb-2 opacity-80" />
-                      <span className="text-md block tracking-wide uppercase">
-                        {entrevista.resultado || "Aprobado"}
-                      </span>
+                       <span className="text-md block tracking-wide uppercase">
+                         {entrevista.resultado === "Alta"
+                           ? "Alta probabilidad"
+                           : entrevista.resultado === "Media"
+                           ? "Media probabilidad"
+                           : entrevista.resultado === "Baja"
+                           ? "Baja probabilidad"
+                           : (entrevista.resultado || "Alta probabilidad")}
+                       </span>
                     </div>
 
                     {entrevista.promedioCalificacion != null && (
@@ -522,48 +569,94 @@ export default function SimulationDetailsPage() {
                         </span>
                         <div className="flex justify-center items-baseline gap-1">
                           <span className="text-3xl font-extrabold text-[#7447D7]">{entrevista.promedioCalificacion}</span>
-                          <span className="text-sm font-bold text-slate-400">/ 5.0</span>
+                          <span className="text-sm font-bold text-slate-400">
+                            {entrevista.competenciasEvaluadas && entrevista.competenciasEvaluadas.length > 0 ? " / 3.0" : " / 5.0"}
+                          </span>
                         </div>
                       </div>
                     )}
+
+                    <button
+                      onClick={handleResetProgress}
+                      disabled={resetting}
+                      className="w-full h-10 rounded-xl bg-purple-100 hover:bg-purple-200 text-[#7447D7] disabled:opacity-50 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer mt-4"
+                    >
+                      {resetting ? "Reiniciando..." : "Iniciar Nueva Simulación"}
+                    </button>
 
                     <div className="border-t border-slate-100 pt-4 space-y-4">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                         Calificación por Competencia
                       </span>
 
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>{entrevista.nombresCompetencias?.competenciaComunicacion || "Comunicación"}</span>
-                            <span className="text-[#7447D7]">{entrevista.competenciaComunicacion || 5}/5</span>
-                          </div>
-                          {renderStars(entrevista.competenciaComunicacion)}
-                        </div>
+                      <div className="space-y-4">
+                        {entrevista.competenciasEvaluadas && entrevista.competenciasEvaluadas.length > 0 ? (
+                          entrevista.competenciasEvaluadas.map((comp, idx) => (
+                            <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2">
+                              <div className="flex justify-between text-xs font-extrabold text-slate-800">
+                                <span className="font-extrabold">{comp.nombreCompetencia}</span>
+                                <span className="text-[#7447D7]">{comp.nivelSeleccionado} / 3</span>
+                              </div>
+                              
+                              <div className="flex gap-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                {[0, 1, 2, 3].map((lvl) => (
+                                  <div
+                                    key={lvl}
+                                    className={`flex-1 rounded-full ${
+                                      lvl <= comp.nivelSeleccionado
+                                        ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6]"
+                                        : "bg-slate-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
 
-                        <div>
-                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>{entrevista.nombresCompetencias?.competenciaTecnica || "Habilidad Técnica"}</span>
-                            <span className="text-[#7447D7]">{entrevista.competenciaTecnica || 5}/5</span>
-                          </div>
-                          {renderStars(entrevista.competenciaTecnica)}
-                        </div>
+                              <p className="text-[11px] text-slate-600 leading-relaxed italic mt-1">
+                                <span className="font-bold text-[#7447D7]">
+                                  {comp.nivelSeleccionado === 0 ? "Nivel 0 (Bajo lo esperado): " :
+                                   comp.nivelSeleccionado === 1 ? "Nivel 1 (Mínimo): " :
+                                   comp.nivelSeleccionado === 2 ? "Nivel 2 (Supera Mínimo): " :
+                                   "Nivel 3 (Excelente): "}
+                                </span>
+                                {comp.descripcionNivel || "Sin descripción disponible."}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="space-y-3">
+                            <div>
+                              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                <span>{entrevista.nombresCompetencias?.competenciaComunicacion || "Comunicación"}</span>
+                                <span className="text-[#7447D7]">{entrevista.competenciaComunicacion || 5}/5</span>
+                              </div>
+                              {renderStars(entrevista.competenciaComunicacion)}
+                            </div>
 
-                        <div>
-                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>{entrevista.nombresCompetencias?.competenciaProactividad || "Proactividad"}</span>
-                            <span className="text-[#7447D7]">{entrevista.competenciaProactividad || 5}/5</span>
-                          </div>
-                          {renderStars(entrevista.competenciaProactividad)}
-                        </div>
+                            <div>
+                              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                <span>{entrevista.nombresCompetencias?.competenciaTecnica || "Habilidad Técnica"}</span>
+                                <span className="text-[#7447D7]">{entrevista.competenciaTecnica || 5}/5</span>
+                              </div>
+                              {renderStars(entrevista.competenciaTecnica)}
+                            </div>
 
-                        <div>
-                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                            <span>{entrevista.nombresCompetencias?.competenciaResolucion || "Resolución de Problemas"}</span>
-                            <span className="text-[#7447D7]">{entrevista.competenciaResolucion || 5}/5</span>
+                            <div>
+                              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                <span>{entrevista.nombresCompetencias?.competenciaProactividad || "Proactividad"}</span>
+                                <span className="text-[#7447D7]">{entrevista.competenciaProactividad || 5}/5</span>
+                              </div>
+                              {renderStars(entrevista.competenciaProactividad)}
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                <span>{entrevista.nombresCompetencias?.competenciaResolucion || "Resolución de Problemas"}</span>
+                                <span className="text-[#7447D7]">{entrevista.competenciaResolucion || 5}/5</span>
+                              </div>
+                              {renderStars(entrevista.competenciaResolucion)}
+                            </div>
                           </div>
-                          {renderStars(entrevista.competenciaResolucion)}
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>

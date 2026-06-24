@@ -36,7 +36,7 @@ const values = [
 ];
 
 const team = [
-  { name: 'Joaquin', role: 'PathMentor', area: 'Recursos Humanos', image: '/joaquin.jpg' },
+  { name: 'Joaquin Cruz', role: 'PathMentor', area: 'Recursos Humanos', image: '/joaquin.jpg' },
   { name: 'Luis Fernandez', role: 'PathMentor', area: 'Finanzas', image: '/luis-fernandez.jpg' },
   { name: 'Erika Gaspar', role: 'PathMentor', area: 'Comercial', image: '/erika-gaspar.jpg' },
   { name: 'Jhoel Montes', role: 'PathMentor', area: 'Desarrollador', image: '/jhoel-montes.jpg' },

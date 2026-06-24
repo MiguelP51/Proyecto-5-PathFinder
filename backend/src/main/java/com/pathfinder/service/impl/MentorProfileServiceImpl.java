@@ -136,7 +136,9 @@ public class MentorProfileServiceImpl implements MentorProfileService {
         long total = entrevistas.size();
         long aprobadas = entrevistas.stream()
                 .filter(e -> "Completada".equalsIgnoreCase(e.getEstado())
-                        && "Aprobado".equalsIgnoreCase(e.getResultado()))
+                        && ("Aprobado".equalsIgnoreCase(e.getResultado()) 
+                            || "Alta".equalsIgnoreCase(e.getResultado()) 
+                            || "Media".equalsIgnoreCase(e.getResultado())))
                 .count();
         double tasa = total > 0 ? Math.round((double) aprobadas / total * 10000.0) / 100.0 : 0.0;
 

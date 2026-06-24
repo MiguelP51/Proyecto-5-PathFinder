@@ -160,6 +160,13 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
             opcion.setImagenUrl(opcionRequest.getImagenUrl());
             opcion.setOrdenOpcion(opcionRequest.getOrdenOpcion());
             opcion.setActivo(true);
+            if (opcionRequest.getCategoriaDisc() != null) {
+                try {
+                    opcion.setCategoriaDisc(CategoriaDISC.valueOf(opcionRequest.getCategoriaDisc().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    // Ignore or default
+                }
+            }
 
             pregunta.getOpciones().add(opcion);
         });
@@ -200,6 +207,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
                 .imagenUrl(opcion.getImagenUrl())
                 .ordenOpcion(opcion.getOrdenOpcion())
                 .activo(opcion.getActivo())
+                .categoriaDisc(opcion.getCategoriaDisc() != null ? opcion.getCategoriaDisc().name() : null)
                 .build();
     }
 

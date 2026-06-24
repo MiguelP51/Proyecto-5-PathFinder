@@ -42,5 +42,16 @@ public class EntrevistaResponseDTO {
     private Map<String, String> nombresCompetencias;
     private String puesto;
     private Boolean emailEnviado;
+    private java.util.List<CompetenciaEvaluadaResponseDTO> competenciasEvaluadas;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CompetenciaEvaluadaResponseDTO {
+        private String nombreCompetencia;
+        private Integer nivelSeleccionado;
+        private String descripcionNivel;
+    }
 }
 

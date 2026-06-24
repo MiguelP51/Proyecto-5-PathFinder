@@ -66,13 +66,13 @@ export default function Footer() {
 
           <ul className={styles.contactList}>
             <li>
-              <span>✉</span> contacto@pathfinder.com
+              <span>✉</span> fgad@pucp.edu.pe
             </li>
             <li>
-              <span>☏</span> +51 999 999 999
+              <span>☏</span> (511) 626-2000 anexo 4477
             </li>
             <li>
-              <span>⌖</span> Lima, Perú
+              <span>⌖</span> Av. Universitaria 1801, San Miguel, Lima, Perú
             </li>
           </ul>
 
