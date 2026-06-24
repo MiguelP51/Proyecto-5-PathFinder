@@ -1,6 +1,7 @@
 package com.pathfinder.service.impl;
 
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
+import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
 import com.pathfinder.model.entity.*;
 import com.pathfinder.model.enums.*;
@@ -444,5 +445,69 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             ent.setFechaModificacion(java.time.LocalDateTime.now());
         }
         entrevistaRepository.saveAll(activeInterviews);
+    }
+
+    @Override
+    @Transactional
+    public EntrevistaResponseDTO reprogramar(Integer idEntrevista, String correoMentor, ReprogramarEntrevistaRequest request) {
+        Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
+                .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada"));
+
+        if (!entrevista.getMentor().getCorreo().equals(correoMentor)) {
+            throw new IllegalStateException("No tienes permisos para reprogramar esta entrevista");
+        }
+
+        if (!"Programada".equals(entrevista.getEstado())) {
+            throw new IllegalStateException("Solo se puede reprogramar una entrevista en estado 'Programada'");
+        }
+
+        if (entrevista.getFeedbackComentarios() != null && !entrevista.getFeedbackComentarios().trim().isEmpty()) {
+            throw new IllegalStateException("No puedes reprogramar esta entrevista porque ya has registrado tu evaluación");
+        }
+
+        LocalDate nuevaFecha = LocalDate.parse(request.getNuevaFecha());
+        String nuevaHora = request.getNuevaHora();
+
+        if (nuevaFecha.isBefore(LocalDate.now())) {
+            throw new IllegalStateException("No se puede reprogramar a una fecha pasada");
+        }
+
+        if (feriadoRepository.existsByFechaAndActivoTrue(nuevaFecha)) {
+            throw new IllegalStateException("La fecha seleccionada es un día feriado. Por favor, elige otra fecha");
+        }
+
+        boolean colision = entrevistaRepository.existsByMentor_IdUsuarioAndFechaAndHoraAndActivoTrue(
+                entrevista.getMentor().getIdUsuario(), nuevaFecha, nuevaHora);
+        if (colision) {
+            throw new IllegalStateException("El horario seleccionado ya no está disponible");
+        }
+
+        entrevista.setFecha(nuevaFecha);
+        entrevista.setHora(nuevaHora);
+        entrevista.setFechaModificacion(LocalDateTime.now());
+        entrevistaRepository.save(entrevista);
+
+        // Notificar al estudiante
+        notificacionService.crearNotificacion(
+                "REAGENDACION",
+                "Tu entrevista con " + entrevista.getMentor().getNombreCompleto()
+                        + " ha sido reprogramada para el " + nuevaFecha + " a las " + nuevaHora,
+                entrevista.getEstudiante().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
+
+        // Notificar al mentor como confirmación
+        notificacionService.crearNotificacion(
+                "ENTREVISTA_REPROGRAMADA",
+                "Has reprogramado la entrevista con " + entrevista.getEstudiante().getNombreCompleto()
+                        + " para el " + nuevaFecha + " a las " + nuevaHora,
+                correoMentor,
+                entrevista.getIdEntrevista()
+        );
+
+        log.info("Entrevista ID {} reprogramada por mentor {}: nueva fecha {}, nueva hora {}",
+                idEntrevista, correoMentor, nuevaFecha, nuevaHora);
+
+        return mapToDTO(entrevista);
     }
 }

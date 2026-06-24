@@ -2,6 +2,7 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
 import com.pathfinder.dto.request.GuardarFeedbackRequest;
+import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
 import com.pathfinder.model.entity.Competencia;
@@ -60,6 +61,23 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error cancelando/reagendando entrevista: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al procesar cancelación/reagendamiento: " + e.getMessage()));
+        }
+    }
+
+    // PUT /api/entrevistas/{id}/reprogramar — Reprogramar entrevista por el mentor (solo si no ha evaluado)
+    @PutMapping("/{id}/reprogramar")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> reprogramar(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer id,
+            @RequestBody ReprogramarEntrevistaRequest request) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.reprogramar(id, userDetails.getUsername(), request);
+            return ResponseEntity.ok(ApiResponse.success("Entrevista reprogramada exitosamente", dto));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error reprogramando entrevista: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al reprogramar entrevista: " + e.getMessage()));
         }
     }
 
