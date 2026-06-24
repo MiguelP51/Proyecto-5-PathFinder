@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface AdminDISCQuestionService {
 
-    List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc);
+    List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc, boolean incluirInactivas);
 
     PreguntaDISCResponseDTO obtenerPregunta(Integer idPreguntaDisc);
 

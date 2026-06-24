@@ -62,6 +62,13 @@ public class MentorProfileServiceImpl implements MentorProfileService {
     }
 
     @Override
+    public MentorProfileResponse obtenerPerfilPorId(Integer idUsuario) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + idUsuario));
+        return obtenerPerfil(usuario.getCorreo());
+    }
+
+    @Override
     @Transactional
     public MentorProfileResponse guardarPerfil(String correo, MentorProfileRequest request) {
         Usuario usuario = obtenerUsuario(correo);
@@ -136,7 +143,9 @@ public class MentorProfileServiceImpl implements MentorProfileService {
         long total = entrevistas.size();
         long aprobadas = entrevistas.stream()
                 .filter(e -> "Completada".equalsIgnoreCase(e.getEstado())
-                        && "Aprobado".equalsIgnoreCase(e.getResultado()))
+                        && ("Aprobado".equalsIgnoreCase(e.getResultado()) 
+                            || "Alta".equalsIgnoreCase(e.getResultado()) 
+                            || "Media".equalsIgnoreCase(e.getResultado())))
                 .count();
         double tasa = total > 0 ? Math.round((double) aprobadas / total * 10000.0) / 100.0 : 0.0;
 

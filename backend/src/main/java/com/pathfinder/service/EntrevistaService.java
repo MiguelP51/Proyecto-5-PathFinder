@@ -9,6 +9,7 @@ public interface EntrevistaService {
     EntrevistaResponseDTO obtenerEntrevistaActivaEstudiante(String correoEstudiante);
     List<EntrevistaResponseDTO> obtenerEntrevistasMentor(String correoMentor);
     boolean guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink);
-    void guardarFeedback(Integer idEntrevista, String correoMentor, String resultado, String feedback, Integer comunicacion, Integer tecnica, Integer proactividad, Integer resolucion);
+    void guardarFeedback(Integer idEntrevista, String correoMentor, com.pathfinder.dto.request.GuardarFeedbackRequest request);
     void cancelarOReagendarEntrevistaEstudiante(String correoEstudiante, String motivo, boolean esReagendado);
+    void archivarEntrevistasEstudiante(String correoEstudiante);
 }

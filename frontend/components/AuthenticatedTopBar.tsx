@@ -79,11 +79,6 @@ export default function AuthenticatedTopBar({
         {/* RIGHT */}
         <div className="flex min-w-0 items-center gap-3">
 
-          {/* SESION */}
-          <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
-            Sesión activa
-          </span>
-
           {/* USER */}
           <div className="flex min-w-0 items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
 

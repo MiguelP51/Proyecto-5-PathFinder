@@ -193,7 +193,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
     @Override
     @Transactional
-    public void guardarFeedback(Integer idEntrevista, String correoMentor, String resultado, String feedback, Integer comunicacion, Integer tecnica, Integer proactividad, Integer resolucion) {
+    public void guardarFeedback(Integer idEntrevista, String correoMentor, com.pathfinder.dto.request.GuardarFeedbackRequest request) {
         Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
                 .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada"));
 
@@ -201,14 +201,45 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             throw new IllegalStateException("No tienes permisos para evaluar esta entrevista");
         }
 
-        entrevista.setResultado(resultado);
-        entrevista.setFeedbackComentarios(feedback);
-        entrevista.setCompetenciaComunicacion(comunicacion);
-        entrevista.setCompetenciaTecnica(tecnica);
-        entrevista.setCompetenciaProactividad(proactividad);
-        entrevista.setCompetenciaResolucion(resolucion);
+        entrevista.setResultado(request.getResultado());
+        entrevista.setFeedbackComentarios(request.getFeedbackComentarios());
+        
+        // Mantener legacy para compatibilidad si están presentes
+        if (request.getCompetenciaComunicacion() != null) {
+            entrevista.setCompetenciaComunicacion(request.getCompetenciaComunicacion());
+        }
+        if (request.getCompetenciaTecnica() != null) {
+            entrevista.setCompetenciaTecnica(request.getCompetenciaTecnica());
+        }
+        if (request.getCompetenciaProactividad() != null) {
+            entrevista.setCompetenciaProactividad(request.getCompetenciaProactividad());
+        }
+        if (request.getCompetenciaResolucion() != null) {
+            entrevista.setCompetenciaResolucion(request.getCompetenciaResolucion());
+        }
+
         entrevista.setEstado("Completada");
         entrevista.setFechaModificacion(LocalDateTime.now());
+
+        // Guardar competencias evaluadas dinámicas
+        if (entrevista.getCompetenciasEvaluadas() == null) {
+            entrevista.setCompetenciasEvaluadas(new java.util.ArrayList<>());
+        } else {
+            entrevista.getCompetenciasEvaluadas().clear();
+        }
+
+        if (request.getCompetenciasEvaluadas() != null) {
+            for (com.pathfinder.dto.request.GuardarFeedbackRequest.CompetenciaEvaluadaDTO compDto : request.getCompetenciasEvaluadas()) {
+                EntrevistaCompetencia ec = new EntrevistaCompetencia();
+                ec.setEntrevista(entrevista);
+                ec.setNombreCompetencia(compDto.getNombreCompetencia());
+                ec.setNivelSeleccionado(compDto.getNivelSeleccionado());
+                ec.setDescripcionNivel(compDto.getDescripcionNivel());
+                ec.setActivo(true);
+                ec.setFechaRegistro(LocalDateTime.now());
+                entrevista.getCompetenciasEvaluadas().add(ec);
+            }
+        }
         
         entrevistaRepository.save(entrevista);
 
@@ -332,7 +363,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
         // Calcular promedio de calificación (1 decimal)
         Double promedio = null;
-        if (ent.getCompetenciaComunicacion() != null && ent.getCompetenciaTecnica() != null &&
+        if (ent.getCompetenciasEvaluadas() != null && !ent.getCompetenciasEvaluadas().isEmpty()) {
+            double sumVal = 0;
+            for (EntrevistaCompetencia ec : ent.getCompetenciasEvaluadas()) {
+                sumVal += ec.getNivelSeleccionado();
+            }
+            double avg = sumVal / ent.getCompetenciasEvaluadas().size();
+            promedio = Math.round(avg * 10.0) / 10.0;
+        } else if (ent.getCompetenciaComunicacion() != null && ent.getCompetenciaTecnica() != null &&
             ent.getCompetenciaProactividad() != null && ent.getCompetenciaResolucion() != null) {
             double avg = (ent.getCompetenciaComunicacion() + ent.getCompetenciaTecnica() +
                           ent.getCompetenciaProactividad() + ent.getCompetenciaResolucion()) / 4.0;
@@ -353,6 +391,18 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         }
         if (puesto == null || puesto.trim().isEmpty()) {
             puesto = "Sin especificar";
+        }
+
+        // Mapear competencias dinámicas evaluadas
+        List<EntrevistaResponseDTO.CompetenciaEvaluadaResponseDTO> compsMapped = new java.util.ArrayList<>();
+        if (ent.getCompetenciasEvaluadas() != null && !ent.getCompetenciasEvaluadas().isEmpty()) {
+            compsMapped = ent.getCompetenciasEvaluadas().stream()
+                    .map(c -> EntrevistaResponseDTO.CompetenciaEvaluadaResponseDTO.builder()
+                            .nombreCompetencia(c.getNombreCompetencia())
+                            .nivelSeleccionado(c.getNivelSeleccionado())
+                            .descripcionNivel(c.getDescripcionNivel())
+                            .build())
+                    .collect(Collectors.toList());
         }
 
         return EntrevistaResponseDTO.builder()
@@ -381,6 +431,18 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 .promedioCalificacion(promedio)
                 .nombresCompetencias(nombresCompetencias)
                 .puesto(puesto)
+                .competenciasEvaluadas(compsMapped)
                 .build();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void archivarEntrevistasEstudiante(String correoEstudiante) {
+        List<Entrevista> activeInterviews = entrevistaRepository.findByEstudiante_CorreoAndActivoTrue(correoEstudiante);
+        for (Entrevista ent : activeInterviews) {
+            ent.setActivo(false);
+            ent.setFechaModificacion(java.time.LocalDateTime.now());
+        }
+        entrevistaRepository.saveAll(activeInterviews);
     }
 }

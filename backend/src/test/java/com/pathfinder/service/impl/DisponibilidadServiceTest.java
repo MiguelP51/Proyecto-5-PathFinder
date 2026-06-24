@@ -4,6 +4,7 @@ import com.pathfinder.dto.response.DisponibilidadDTO;
 import com.pathfinder.dto.response.MentorDisponibilidadCompletaDTO;
 import com.pathfinder.model.entity.Usuario;
 import com.pathfinder.model.enums.RolUsuario;
+import com.pathfinder.repository.FeriadoRepository;
 import com.pathfinder.repository.UsuarioRepository;
 import com.pathfinder.service.DisponibilidadService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,9 @@ class DisponibilidadServiceTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private FeriadoRepository feriadoRepository;
 
     private static final String MENTOR_EMAIL = "mentor@test.com";
     private Integer mentorId;
@@ -174,7 +178,7 @@ class DisponibilidadServiceTest {
 
         disponibilidadService.guardarDisponibilidadCompleta(MENTOR_EMAIL, dto);
 
-        LocalDate nextMonday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        LocalDate nextMonday = obtenerLunesNoFeriado();
         List<String> slots = disponibilidadService.obtenerSlotsDisponibles(mentorId, nextMonday.toString());
 
         assertThat(slots).containsExactly("09:00", "10:15");
@@ -224,7 +228,7 @@ class DisponibilidadServiceTest {
 
         disponibilidadService.guardarDisponibilidadCompleta(MENTOR_EMAIL, dto);
 
-        LocalDate nextMonday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        LocalDate nextMonday = obtenerLunesNoFeriado();
         List<String> slots = disponibilidadService.obtenerSlotsDisponibles(mentorId, nextMonday.toString());
 
         assertThat(slots).isEmpty();
@@ -249,9 +253,17 @@ class DisponibilidadServiceTest {
 
         disponibilidadService.guardarDisponibilidadCompleta(MENTOR_EMAIL, dto);
 
-        LocalDate nextMonday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        LocalDate nextMonday = obtenerLunesNoFeriado();
         List<String> slots = disponibilidadService.obtenerSlotsDisponibles(mentorId, nextMonday.toString());
 
         assertThat(slots).containsExactly("21:00");
+    }
+
+    private LocalDate obtenerLunesNoFeriado() {
+        LocalDate date = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        while (feriadoRepository.existsByFechaAndActivoTrue(date)) {
+            date = date.plusWeeks(1);
+        }
+        return date;
     }
 }

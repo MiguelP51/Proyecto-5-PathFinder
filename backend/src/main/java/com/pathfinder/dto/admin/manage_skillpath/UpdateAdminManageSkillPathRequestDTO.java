@@ -1,12 +1,15 @@
 package com.pathfinder.dto.admin.manage_skillpath;
 
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class UpdateAdminManageSkillPathRequestDTO {
     private String titulo;
     private String plataforma;
+
+    @Size(max = 100, message = "La descripción no debe superar los 100 caracteres")
     private String descripcion;
     private String urlExterno;
     private String dificultad;

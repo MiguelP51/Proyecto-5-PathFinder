@@ -1,11 +1,29 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import styles from "../../styles/PathMentorNavbar.module.css";
+import {
+  Layers,
+  ChevronLeft,
+  LayoutDashboard,
+  Calendar,
+  Clock,
+  MessageSquare,
+  BarChart3,
+  User,
+  Home,
+  Map,
+  Info,
+  Mail,
+  Target,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Compass,
+} from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -13,134 +31,199 @@ interface Props {
 }
 
 export default function MentorSidebar({ open, onClose }: Props) {
-  const pathname = usePathname();
-  const router = useRouter();
   const { data: session } = useSession();
+  const pathname = usePathname();
 
-  /* DYNAMIC SIDEBAR WIDTH & RESIZE LISTENER */
-  useEffect(() => {
-    // Since the sidebar is an overlay on all resolutions, it never pushes page content
-    document.documentElement.style.setProperty("--sidebar-width", "0px");
-  }, []);
+  const [panelExpanded, setPanelExpanded] = useState(true);
+  const [explorarExpanded, setExplorarExpanded] = useState(true);
 
   const userName = session?.user?.name || "Mentor";
   const userEmail = session?.user?.email || "";
   const userImage = session?.user?.image || session?.user?.avatarUrl || "";
 
-  // Helper to check if a route is active
-  const isActive = (route: string) => {
-    return pathname === route;
+  const initials = userName
+    ? userName
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "M";
+
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return pathname === href || pathname === "/home";
+    }
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
-  const navLinks = [
-    { label: "Dashboard", href: "/mentor/home", icon: "📊" },
-    { label: "Mis Entrevistas", href: "/mentor/interviews", icon: "📅" },
-    { label: "Disponibilidad", href: "/mentor/availability", icon: "🕒" },
-    { label: "Feedback", href: "/mentor/feedbacks", icon: "💬" },
-    { label: "Mis Métricas", href: "/mentor/metrics", icon: "📈" },
-    { label: "Mi Perfil", href: "/mentor/profile", icon: "👤" },
-  ];
+  const linkClass = (href: string) => {
+    const active = isActive(href);
+    return `flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all duration-200 ${
+      active
+        ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] text-white shadow-lg shadow-purple-200/50"
+        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#7447D7] dark:hover:text-white"
+    }`;
+  };
+
+  const renderLink = (
+    href: string,
+    label: string,
+    icon: React.ReactNode
+  ) => {
+    return (
+      <Link href={href} className={linkClass(href)} onClick={onClose}>
+        {icon}
+        <span>{label}</span>
+      </Link>
+    );
+  };
+
+  const renderAccordionTrigger = (
+    label: string,
+    isExpanded: boolean,
+    onToggle: () => void,
+    icon: React.ReactNode
+  ) => {
+    return (
+      <div
+        onClick={onToggle}
+        className="flex items-center justify-between px-3 py-2 cursor-pointer select-none rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+      >
+        <span className="text-xs font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
+          {icon}
+          {label}
+        </span>
+        <span className="text-slate-400 dark:text-slate-500 transition-transform duration-200">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <>
       {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-[190] bg-black/45 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm transition-opacity duration-300 md:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-[200] flex flex-col bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 shadow-xl transition-all duration-300
-          w-full h-auto max-h-[85vh] border-b rounded-b-3xl overflow-y-auto
-          md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none
+        className={`fixed left-0 top-0 z-50 flex flex-col bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300
+          w-full h-auto max-h-[85vh] border-b border-slate-100 dark:border-slate-800 rounded-b-3xl
+          md:w-72 md:h-full md:max-h-full md:border-r md:border-b-0 md:rounded-b-none
           ${open 
             ? "translate-y-0 md:translate-x-0 md:translate-y-0" 
             : "-translate-y-full md:-translate-x-full md:translate-y-0"
-          }
-          md:w-[320px]
-        `}
+          }`}
       >
-        {/* Close Button on Mobile Drawer */}
-        {open && (
+        {/* Header - Logo */}
+        <div className="flex items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-md shadow-purple-200">
+              <Layers className="h-5 w-5" />
+            </div>
+            <span className="font-black tracking-wide text-slate-800 dark:text-slate-100 text-lg">
+              PATHFINDER
+            </span>
+          </div>
+
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 text-slate-500 hover:text-slate-700 md:hidden"
-            aria-label="Cerrar menú"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
           >
-            <X className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5 hidden md:block" />
+            <X className="h-5 w-5 md:hidden" />
           </button>
-        )}
-
-        {/* HEADER */}
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logoContainer}>
-            <div className={styles.logoCircle}>P</div>
-            <h1 className={styles.logoText}>
-              PATH<span>MENTOR</span>
-            </h1>
-          </div>
         </div>
 
-        {/* USER INFO BAR (NextAuth Session) */}
-        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 p-5 bg-slate-50/50 dark:bg-slate-850/50">
-          {userImage ? (
-            <img
-              src={userImage}
-              alt="avatar"
-              className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-            />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white">
-              {userName.charAt(0).toUpperCase()}
+        {/* User Card */}
+        <div className="px-6 pb-4 space-y-4">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 p-3">
+            {userImage ? (
+              <img
+                src={userImage}
+                alt="avatar"
+                className="h-11 w-11 rounded-full object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] font-bold text-white text-sm">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">
+                {userName}
+              </p>
+              <p className="truncate text-xs text-slate-400 dark:text-slate-500">
+                {userEmail || "mentor@pathfinder.com"}
+              </p>
             </div>
-          )}
-          <div className="min-w-0">
-            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">
-              {userName}
-            </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{userEmail}</p>
           </div>
         </div>
 
-        {/* NAV */}
-        <div className={styles.topSection}>
-          <p className={styles.panelTitle}>PANEL MENTOR</p>
+        {/* Scrollable Links Container */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
+          {/* Section: PANEL MENTOR */}
+          <div className="group relative space-y-1.5">
+            {renderAccordionTrigger(
+              "Panel Mentor",
+              panelExpanded,
+              () => setPanelExpanded(!panelExpanded),
+              <LayoutDashboard className="h-4 w-4" />
+            )}
 
-          <nav className={styles.navLinks}>
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={onClose}
-                className={
-                  isActive(link.href) ? styles.activeLink : styles.link
-                }
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  gap: "12px",
-                  padding: "0 18px",
-                  fontSize: "16px",
-                }}
-              >
-                <span>{link.icon}</span>
-                <span>{link.label}</span>
-              </Link>
-            ))}
-          </nav>
+            {/* Accordion Vertical List */}
+            {panelExpanded && (
+              <div className="space-y-1.5 pl-2 border-l border-slate-100 dark:border-slate-800 ml-3">
+                {renderLink("/mentor/home", "Dashboard", <LayoutDashboard className="h-5 w-5" />)}
+                {renderLink("/mentor/interviews", "Mis Entrevistas", <Calendar className="h-5 w-5" />)}
+                {renderLink("/mentor/availability", "Disponibilidad", <Clock className="h-5 w-5" />)}
+                {renderLink("/mentor/feedbacks", "Feedback", <MessageSquare className="h-5 w-5" />)}
+                {renderLink("/mentor/metrics", "Mis Métricas", <BarChart3 className="h-5 w-5" />)}
+                {renderLink("/mentor/profile", "Mi Perfil", <User className="h-5 w-5" />)}
+              </div>
+            )}
+          </div>
+
+          {/* Section: EXPLORAR */}
+          <div className="group relative space-y-1.5">
+            {renderAccordionTrigger(
+              "Explorar",
+              explorarExpanded,
+              () => setExplorarExpanded(!explorarExpanded),
+              <Compass className="h-4 w-4" />
+            )}
+
+            {/* Accordion Vertical List */}
+            {explorarExpanded && (
+              <div className="space-y-1.5 pl-2 border-l border-slate-100 dark:border-slate-800 ml-3">
+                {renderLink("/", "Inicio", <Home className="h-5 w-5" />)}
+                {renderLink("/areas", "Áreas", <Map className="h-5 w-5" />)}
+                {renderLink("/about", "Sobre nosotros", <Info className="h-5 w-5" />)}
+                {renderLink("/contact", "Contacto", <Mail className="h-5 w-5" />)}
+                {renderLink("/simulation", "Simulación", <Target className="h-5 w-5" />)}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* FOOTER */}
-        <div className={styles.bottomSection + " flex flex-col gap-3"}>
+        {/* Footer items */}
+        <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-1">
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-xl text-red-500 hover:bg-red-50 font-semibold border border-transparent hover:border-red-100 transition-all duration-200 text-sm"
+            className="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-red-500 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950/20"
           >
-            🚪 Cerrar sesión
+            <LogOut className="h-5 w-5" />
+            <span>Cerrar sesión</span>
           </button>
         </div>
       </aside>

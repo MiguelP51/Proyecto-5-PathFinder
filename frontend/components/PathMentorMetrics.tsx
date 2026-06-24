@@ -78,7 +78,7 @@ interface RecentFeedback {
   name: string;
   date: string;
   score: number;
-  result: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones';
+  result: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja';
 }
 
 export default function PathMentorMetrics() {
@@ -289,14 +289,20 @@ export default function PathMentorMetrics() {
                   </div>
                   <span
                     className={`${styles.recentBadge} ${
-                      feedback.result === 'Aprobado'
+                      feedback.result === 'Aprobado' || feedback.result === 'Alta'
                         ? styles.badgeAprobado
-                        : feedback.result === 'Requiere Mejora'
+                        : feedback.result === 'Requiere Mejora' || feedback.result === 'Baja'
                         ? styles.badgeMejora
                         : styles.badgeObservaciones
                     }`}
                   >
-                    {feedback.result}
+                    {feedback.result === 'Alta'
+                      ? 'Alta probabilidad'
+                      : feedback.result === 'Media'
+                      ? 'Media probabilidad'
+                      : feedback.result === 'Baja'
+                      ? 'Baja probabilidad'
+                      : feedback.result}
                   </span>
                 </div>
               </div>

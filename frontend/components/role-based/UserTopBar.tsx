@@ -94,20 +94,25 @@ export default function UserTopBar({
         {/* RIGHT */}
         <div className="flex min-w-0 items-center gap-3">
 
-          {/* SESION */}
-          <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
-            Sesión activa
-          </span>
-
           {/* THEME TOGGLE */}
           {mounted && (
             <button
               type="button"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:border-slate-700 dark:text-slate-300 dark:hover:border-purple-400 dark:hover:text-purple-400 cursor-pointer animate-pulse"
+              className="inline-flex h-10 px-3 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:border-slate-750 dark:text-slate-300 dark:hover:border-purple-400 dark:hover:text-purple-400 cursor-pointer gap-1.5"
               aria-label="Alternar modo oscuro"
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === "dark" ? (
+                <>
+                  <Sun className="h-5 w-5" />
+                  <span className="text-xs font-semibold">Modo claro</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="h-5 w-5" />
+                  <span className="text-xs font-semibold">Modo oscuro</span>
+                </>
+              )}
             </button>
           )}
 

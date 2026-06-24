@@ -85,4 +85,19 @@ public class ProfileController {
                     .body(ApiResponse.error("Error confirmando el perfil"));
         }
     }
+
+    // POST /api/profile/reset — reiniciar progreso de simulación (Phase 4)
+    @PostMapping("/reset")
+    public ResponseEntity<ApiResponse<EstadoEstudianteResponse>> reiniciarProgreso(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            EstadoEstudianteResponse estado =
+                    perfilEstudianteService.reiniciarProgreso(userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Progreso reiniciado correctamente", estado));
+        } catch (Exception e) {
+            log.error("Error al reiniciar progreso: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error al reiniciar el progreso de simulación"));
+        }
+    }
 }

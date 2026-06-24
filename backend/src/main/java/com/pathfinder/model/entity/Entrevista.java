@@ -41,7 +41,7 @@ public class Entrevista extends AuditoriaBase {
 
     // Campos de evaluación (Feedback) - HU-PM-06
     @Column(name = "resultado", length = 50)
-    private String resultado; // "Aprobado", "Requiere Mejora", "Con Observaciones"
+    private String resultado; // "Alta", "Media", "Baja" (Probabilidad de éxito)
 
     @Column(name = "feedback_comentarios", columnDefinition = "TEXT")
     private String feedbackComentarios;
@@ -63,5 +63,8 @@ public class Entrevista extends AuditoriaBase {
 
     @Column(name = "puesto", length = 100)
     private String puesto;
+
+    @OneToMany(mappedBy = "entrevista", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<EntrevistaCompetencia> competenciasEvaluadas = new java.util.ArrayList<>();
 }
 

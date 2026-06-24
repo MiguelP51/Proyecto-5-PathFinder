@@ -8,6 +8,7 @@ interface OpcionDISC {
   textoOpcion: string;
   valorRespuesta: number;
   ordenOpcion: number;
+  categoriaDisc?: string;
 }
 
 interface FormDataDISC {
@@ -42,13 +43,14 @@ export default function DISCQuestionFormModal({ onClose, onSuccess, editingItem 
     opciones: editingItem?.opciones?.map((o: any) => ({
       idOpcionPreguntaDisc: o.idOpcionPreguntaDisc,
       textoOpcion: o.textoOpcion || '',
-      valorRespuesta: o.valorRespuesta || 0,
-      ordenOpcion: o.ordenOpcion || 1
+      valorRespuesta: o.valorRespuesta !== undefined ? o.valorRespuesta : 0,
+      ordenOpcion: o.ordenOpcion || 1,
+      categoriaDisc: o.categoriaDisc || 'D'
     })) || [
-        { textoOpcion: '', valorRespuesta: 0, ordenOpcion: 1 },
-        { textoOpcion: '', valorRespuesta: 0, ordenOpcion: 2 },
-        { textoOpcion: '', valorRespuesta: 0, ordenOpcion: 3 },
-        { textoOpcion: '', valorRespuesta: 0, ordenOpcion: 4 }
+        { textoOpcion: '', valorRespuesta: 1, ordenOpcion: 1, categoriaDisc: 'D' },
+        { textoOpcion: '', valorRespuesta: 2, ordenOpcion: 2, categoriaDisc: 'I' },
+        { textoOpcion: '', valorRespuesta: 3, ordenOpcion: 3, categoriaDisc: 'S' },
+        { textoOpcion: '', valorRespuesta: 4, ordenOpcion: 4, categoriaDisc: 'C' }
       ]
   });
 
@@ -89,7 +91,7 @@ export default function DISCQuestionFormModal({ onClose, onSuccess, editingItem 
   const agregarOpcion = () => {
     setFormData(prev => ({
       ...prev,
-      opciones: [...prev.opciones, { textoOpcion: '', valorRespuesta: 0, ordenOpcion: prev.opciones.length + 1 }]
+      opciones: [...prev.opciones, { textoOpcion: '', valorRespuesta: 0, ordenOpcion: prev.opciones.length + 1, categoriaDisc: 'D' }]
     }));
   };
 
@@ -207,8 +209,29 @@ export default function DISCQuestionFormModal({ onClose, onSuccess, editingItem 
                     <input required type="text" placeholder="Texto de la opción..." value={opcion.textoOpcion} onChange={(e) => handleOptionChange(idx, 'textoOpcion', e.target.value)} className="w-full bg-white border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-purple-500" />
                   </div>
 
-                  <div className="w-24">
-                    <input type="number" placeholder="Peso" value={opcion.valorRespuesta} onChange={(e) => handleOptionChange(idx, 'valorRespuesta', parseInt(e.target.value) || 0)} className="w-full bg-white border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-purple-500 text-center" title="Peso de respuesta para la dimensión" />
+                  <div className="w-20">
+                    <select
+                      value={opcion.categoriaDisc || 'D'}
+                      onChange={(e) => handleOptionChange(idx, 'categoriaDisc', e.target.value)}
+                      className="w-full bg-white border rounded-lg px-2 py-1.5 text-xs font-bold outline-none focus:border-purple-500 bg-white"
+                      title="Dimensión DISC"
+                    >
+                      <option value="D">D</option>
+                      <option value="I">I</option>
+                      <option value="S">S</option>
+                      <option value="C">C</option>
+                    </select>
+                  </div>
+
+                  <div className="w-20">
+                    <input
+                      type="number"
+                      placeholder="Valor"
+                      value={opcion.valorRespuesta}
+                      onChange={(e) => handleOptionChange(idx, 'valorRespuesta', parseInt(e.target.value) || 0)}
+                      className="w-full bg-white border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-purple-500 text-center font-semibold"
+                      title="Valor/Peso de la respuesta"
+                    />
                   </div>
 
                   {formData.opciones.length > 2 && (

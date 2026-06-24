@@ -9,11 +9,13 @@ import com.pathfinder.model.entity.PreguntaDISC;
 import com.pathfinder.model.entity.TipoPreguntaDISC;
 import com.pathfinder.model.enums.CategoriaDISC;
 import com.pathfinder.repository.PreguntaDISCRepository;
+import com.pathfinder.repository.RespuestaPreguntaDISCRepository;
 import com.pathfinder.repository.TipoPreguntaDISCRepository;
 import com.pathfinder.service.AdminDISCQuestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
@@ -25,12 +27,21 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
 
     private final PreguntaDISCRepository preguntaDISCRepository;
     private final TipoPreguntaDISCRepository tipoPreguntaDISCRepository;
+    private final RespuestaPreguntaDISCRepository respuestaPreguntaDISCRepository;
 
     @Override
-    public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc) {
-        List<PreguntaDISC> preguntas = categoriaDisc == null
-                ? preguntaDISCRepository.findByActivoTrueOrderByOrdenPreguntaAsc()
-                : preguntaDISCRepository.findByCategoriaDiscAndActivoTrueOrderByOrdenPreguntaAsc(categoriaDisc);
+    public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc, boolean incluirInactivas) {
+        List<PreguntaDISC> preguntas;
+
+        if (incluirInactivas) {
+            preguntas = categoriaDisc == null
+                    ? preguntaDISCRepository.findAllByOrderByOrdenPreguntaAsc()
+                    : preguntaDISCRepository.findByCategoriaDiscOrderByOrdenPreguntaAsc(categoriaDisc);
+        } else {
+            preguntas = categoriaDisc == null
+                    ? preguntaDISCRepository.findByActivoTrueOrderByOrdenPreguntaAsc()
+                    : preguntaDISCRepository.findByCategoriaDiscAndActivoTrueOrderByOrdenPreguntaAsc(categoriaDisc);
+        }
 
         return preguntas.stream()
                 .map(this::toResponse)
@@ -86,15 +97,20 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
     }
 
     @Override
+    @Transactional
     public void eliminarPregunta(Integer idPreguntaDisc) {
-        PreguntaDISC pregunta = buscarPregunta(idPreguntaDisc);
-        pregunta.setActivo(false);
+        PreguntaDISC pregunta = preguntaDISCRepository.findById(idPreguntaDisc)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró la pregunta DISC solicitada"
+                ));
 
-        if (pregunta.getOpciones() != null) {
-            pregunta.getOpciones().forEach(opcion -> opcion.setActivo(false));
-        }
+        // Borrar primero las respuestas de usuarios asociadas a esta pregunta
+        // para evitar violación de FK al eliminar la pregunta
+        respuestaPreguntaDISCRepository.deleteAllByPreguntaDiscId(idPreguntaDisc);
 
-        preguntaDISCRepository.save(pregunta);
+        // Borrar la pregunta y sus opciones (cascade = ALL desde PreguntaDISC -> OpcionPreguntaDISC)
+        preguntaDISCRepository.delete(pregunta);
     }
 
     private PreguntaDISC buscarPregunta(Integer idPreguntaDisc) {
@@ -160,6 +176,13 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
             opcion.setImagenUrl(opcionRequest.getImagenUrl());
             opcion.setOrdenOpcion(opcionRequest.getOrdenOpcion());
             opcion.setActivo(true);
+            if (opcionRequest.getCategoriaDisc() != null) {
+                try {
+                    opcion.setCategoriaDisc(CategoriaDISC.valueOf(opcionRequest.getCategoriaDisc().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    // Ignore or default
+                }
+            }
 
             pregunta.getOpciones().add(opcion);
         });
@@ -200,6 +223,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
                 .imagenUrl(opcion.getImagenUrl())
                 .ordenOpcion(opcion.getOrdenOpcion())
                 .activo(opcion.getActivo())
+                .categoriaDisc(opcion.getCategoriaDisc() != null ? opcion.getCategoriaDisc().name() : null)
                 .build();
     }
 

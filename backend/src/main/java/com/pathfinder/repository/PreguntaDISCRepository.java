@@ -17,7 +17,14 @@ public interface PreguntaDISCRepository extends JpaRepository<PreguntaDISC, Inte
     @EntityGraph(attributePaths = {"tipoPreguntaDisc", "opciones"})
     List<PreguntaDISC> findByCategoriaDiscAndActivoTrueOrderByOrdenPreguntaAsc(CategoriaDISC categoriaDisc);
 
+    // Para admin: listar todas las preguntas (activas e inactivas)
+    @EntityGraph(attributePaths = {"tipoPreguntaDisc", "opciones"})
+    List<PreguntaDISC> findAllByOrderByOrdenPreguntaAsc();
+
+    @EntityGraph(attributePaths = {"tipoPreguntaDisc", "opciones"})
+    List<PreguntaDISC> findByCategoriaDiscOrderByOrdenPreguntaAsc(CategoriaDISC categoriaDisc);
+
     Long countByActivoTrue();
 
     Long countByCategoriaDiscAndActivoTrue(CategoriaDISC categoriaDisc);
-}
+}

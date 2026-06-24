@@ -19,9 +19,10 @@ public class AdminDISCQuestionController {
 
     @GetMapping
     public List<PreguntaDISCResponseDTO> listarPreguntas(
-            @RequestParam(required = false) CategoriaDISC categoriaDisc
+            @RequestParam(required = false) CategoriaDISC categoriaDisc,
+            @RequestParam(defaultValue = "true") boolean incluirInactivas
     ) {
-        return adminDISCQuestionService.listarPreguntas(categoriaDisc);
+        return adminDISCQuestionService.listarPreguntas(categoriaDisc, incluirInactivas);
     }
 
     @GetMapping("/{idPreguntaDisc}")

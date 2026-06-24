@@ -140,7 +140,7 @@ function ContactInfo() {
           </span>
           <div>
             <h3>Email</h3>
-            <a href="mailto:contacto@pathfinder.com">contacto@pathfinder.com</a>
+            <a href="mailto:fgad@pucp.edu.pe">fgad@pucp.edu.pe</a>
             <p>Respuesta en 24-48 horas</p>
           </div>
         </div>
@@ -151,7 +151,7 @@ function ContactInfo() {
           </span>
           <div>
             <h3>Teléfono</h3>
-            <a href="tel:+1234567890">+1 (234) 567-890</a>
+            <a href="tel:+5116262000">(511) 626-2000 anexo 4477</a>
             <p>Lun - Vie, 9:00 AM - 6:00 PM</p>
           </div>
         </div>

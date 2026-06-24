@@ -3,6 +3,7 @@ package com.pathfinder.service;
 import com.opencsv.CSVReader;
 import com.pathfinder.dto.admin.manage_skillpath.*;
 import com.pathfinder.model.entity.SkillPath;
+import com.pathfinder.model.entity.SubArea;
 import com.pathfinder.repository.SkillPathRepository;
 import com.pathfinder.repository.SubAreaRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -171,6 +172,7 @@ public class AdminManageSkillPathService {
         List<String> errores = new ArrayList<>();
         int procesados = 0;
         int creados = 0;
+        List<SubArea> subAreas = subAreaRepository.findAll();
 
         try (CSVReader csvReader = new CSVReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             List<String[]> rows = csvReader.readAll();
@@ -196,7 +198,29 @@ public class AdminManageSkillPathService {
                     skillPath.setUsuario(null);
                     skillPath.setTitulo(row[0]);
                     skillPath.setPlataforma(row.length > 1 ? row[1] : "");
-                    skillPath.setAreaNombre(row.length > 2 ? row[2] : "");
+
+                    String subareaCsv = row.length > 2 ? row[2].trim() : "";
+                    SubArea matchedSubarea = subAreas.stream()
+                            .filter(sa -> sa.getNombre().equalsIgnoreCase(subareaCsv))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (matchedSubarea != null) {
+                        skillPath.setSubareaId(String.valueOf(matchedSubarea.getIdSubarea()));
+                        skillPath.setSubareaNombre(matchedSubarea.getNombre());
+                        skillPath.setAreaId(matchedSubarea.getAreaId());
+                        skillPath.setAreaNombre(matchedSubarea.getAreaNombre());
+                        
+                        if (Boolean.FALSE.equals(matchedSubarea.getActivo())) {
+                            skillPath.setEstadoPublicacion("BORRADOR");
+                        } else {
+                            skillPath.setEstadoPublicacion("ACTIVA");
+                        }
+                    } else {
+                        skillPath.setAreaNombre(subareaCsv);
+                        skillPath.setEstadoPublicacion("BORRADOR");
+                    }
+
                     skillPath.setDificultad(row.length > 3 ? row[3] : "");
                     skillPath.setDuracionLabel(duracionLabel);
                     skillPath.setUrlExterno(row.length > 5 ? row[5] : "");
