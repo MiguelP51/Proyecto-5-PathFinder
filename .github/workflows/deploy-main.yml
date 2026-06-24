@@ -1,0 +1,98 @@
+name: Deploy to AWS EC2 (Main)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar cambios
+        id: changes
+        run: |
+          echo "Detectando cambios..."
+          FRONT_CHANGED=false
+          BACK_CHANGED=false
+
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-tree -r --name-only HEAD)
+          fi
+
+          echo "$CHANGED_FILES"
+
+          if echo "$CHANGED_FILES" | grep '^frontend/'; then
+            FRONT_CHANGED=true
+          fi
+
+          if echo "$CHANGED_FILES" | grep '^backend/'; then
+            BACK_CHANGED=true
+          fi
+
+          echo "FRONT_CHANGED=$FRONT_CHANGED" >> $GITHUB_ENV
+          echo "BACK_CHANGED=$BACK_CHANGED" >> $GITHUB_ENV
+
+      - name: Configurar variables de producción
+        run: |
+          echo "HOST=${{ secrets.EC2_HOST_MAIN }}" >> $GITHUB_ENV
+          echo "USER=${{ secrets.EC2_USER_MAIN }}" >> $GITHUB_ENV
+          echo "KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ secrets.EC2_SSH_KEY_MAIN }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Deploy en EC2 (Producción)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ env.USER }}
+          key: ${{ env.KEY }}
+          command_timeout: 20m
+          script: |
+            echo "================================="
+            echo " INICIANDO DEPLOY MAIN/PROD "
+            echo "================================="
+
+            cd /home/ubuntu/Proyecto-5-PathFinder
+
+            echo "Actualizando repositorio..."
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "Deteniendo contenedores..."
+            docker-compose -f docker-compose.prod.yml down
+
+            echo "Limpiando Docker..."
+            docker system prune -af
+
+            if [ "${FRONT_CHANGED}" = "true" ]; then
+              echo "Rebuild frontend..."
+              docker-compose -f docker-compose.prod.yml build frontend
+            else
+              echo "Frontend sin cambios"
+            fi
+
+            if [ "${BACK_CHANGED}" = "true" ]; then
+              echo "Rebuild backend..."
+              docker-compose -f docker-compose.prod.yml build backend
+            else
+              echo "Backend sin cambios"
+            fi
+
+            echo "Levantando servicios..."
+            docker-compose -f docker-compose.prod.yml up -d
+
+            echo "Contenedores activos:"
+            docker ps
+
+            echo "================================="
+            echo " DEPLOY COMPLETADO "
+            echo "================================="
