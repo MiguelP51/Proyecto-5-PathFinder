@@ -30,10 +30,18 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
     private final RespuestaPreguntaDISCRepository respuestaPreguntaDISCRepository;
 
     @Override
-    public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc) {
-        List<PreguntaDISC> preguntas = categoriaDisc == null
-                ? preguntaDISCRepository.findByActivoTrueOrderByOrdenPreguntaAsc()
-                : preguntaDISCRepository.findByCategoriaDiscAndActivoTrueOrderByOrdenPreguntaAsc(categoriaDisc);
+    public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc, boolean incluirInactivas) {
+        List<PreguntaDISC> preguntas;
+
+        if (incluirInactivas) {
+            preguntas = categoriaDisc == null
+                    ? preguntaDISCRepository.findAllByOrderByOrdenPreguntaAsc()
+                    : preguntaDISCRepository.findByCategoriaDiscOrderByOrdenPreguntaAsc(categoriaDisc);
+        } else {
+            preguntas = categoriaDisc == null
+                    ? preguntaDISCRepository.findByActivoTrueOrderByOrdenPreguntaAsc()
+                    : preguntaDISCRepository.findByCategoriaDiscAndActivoTrueOrderByOrdenPreguntaAsc(categoriaDisc);
+        }
 
         return preguntas.stream()
                 .map(this::toResponse)
@@ -97,17 +105,12 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
                         "No se encontró la pregunta DISC solicitada"
                 ));
 
-        boolean hasAnswers = respuestaPreguntaDISCRepository.existsByPreguntaDisc_IdPreguntaDisc(idPreguntaDisc);
+        // Borrar primero las respuestas de usuarios asociadas a esta pregunta
+        // para evitar violación de FK al eliminar la pregunta
+        respuestaPreguntaDISCRepository.deleteAllByPreguntaDiscId(idPreguntaDisc);
 
-        if (hasAnswers) {
-            pregunta.setActivo(false);
-            if (pregunta.getOpciones() != null) {
-                pregunta.getOpciones().forEach(opcion -> opcion.setActivo(false));
-            }
-            preguntaDISCRepository.save(pregunta);
-        } else {
-            preguntaDISCRepository.delete(pregunta);
-        }
+        // Borrar la pregunta y sus opciones (cascade = ALL desde PreguntaDISC -> OpcionPreguntaDISC)
+        preguntaDISCRepository.delete(pregunta);
     }
 
     private PreguntaDISC buscarPregunta(Integer idPreguntaDisc) {

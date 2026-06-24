@@ -103,7 +103,7 @@ export default function DISCQuestionsPage() {
   const handleEliminarPregunta = async (item: PreguntaDISC) => {
     if (
       !confirm(
-        `¿Seguro que deseas eliminar esta pregunta? Se borrará permanentemente de la base de datos si no tiene respuestas de estudiantes. De lo contrario, se desactivará lógicamente para conservar el historial.`
+        `¿Seguro que deseas eliminar permanentemente la pregunta "${item.enunciado.substring(0, 60)}..."?\n\nEsta acción eliminará la pregunta, sus opciones y sus respuestas asociadas de la base de datos. No se puede deshacer.`
       )
     )
       return;
@@ -182,8 +182,7 @@ export default function DISCQuestionsPage() {
 
   const filteredPreguntas = preguntas.filter(
     (p) =>
-      p.enunciado?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      p.activo
+      p.enunciado?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -347,7 +346,11 @@ export default function DISCQuestionsPage() {
               filteredPreguntas.map((item) => (
                 <div
                   key={item.idPreguntaDisc}
-                  className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center hover:shadow-md transition"
+                  className={`bg-white rounded-3xl border p-6 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center hover:shadow-md transition ${
+                    item.activo
+                      ? "border-slate-200/80"
+                      : "border-slate-200/40 opacity-60 bg-slate-50/60"
+                  }`}
                 >
                   <div className="flex-1 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -371,6 +374,11 @@ export default function DISCQuestionsPage() {
                       {item.obligatoria && (
                         <span className="text-rose-500 text-[10px] font-bold uppercase tracking-wider">
                           * Obligatoria
+                        </span>
+                      )}
+                      {!item.activo && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300">
+                          Inactiva
                         </span>
                       )}
                     </div>
