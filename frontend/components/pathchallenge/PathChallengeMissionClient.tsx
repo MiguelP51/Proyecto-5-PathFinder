@@ -3,6 +3,7 @@
 import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     ArrowRight,
@@ -254,6 +255,7 @@ export function PathChallengeMissionClient({
                                                backHref = `/user/app/challenges/${challenge.idPathChallenge}`,
                                                backLabel = "Volver al briefing",
                                            }: PathChallengeMissionClientProps) {
+    const router = useRouter();
     const { data: session } = useSession();
     const token = getSessionToken(session);
 
@@ -294,6 +296,7 @@ export function PathChallengeMissionClient({
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [finished, setFinished] = useState(challenge.status === "COMPLETADO");
+    const [showCompletionModal, setShowCompletionModal] = useState(false);
 
     const currentTask = orderedTasks[currentIndex];
     const currentResponse = currentTask
@@ -312,6 +315,14 @@ export function PathChallengeMissionClient({
     const allRequiredCompleted = actionTasks.every((task) =>
         isTaskComplete(task, responses[task.idPathChallengeTask]),
     );
+
+    const finalReviewTask = orderedTasks.find(
+        (task) => normalizeTaskType(task.taskType) === "FINAL_REVIEW",
+    );
+
+    const finalReviewConfig = finalReviewTask ? getConfig(finalReviewTask) : {};
+
+    const completionModal = finalReviewConfig.successModal;
 
     const isFinalReviewTask = (task: StudentPathChallengeTask) =>
         normalizeTaskType(task.taskType) === "FINAL_REVIEW";
@@ -587,7 +598,8 @@ export function PathChallengeMissionClient({
             );
 
             setFinished(true);
-            setSuccessMessage("Misión enviada correctamente.");
+            setSuccessMessage(null);
+            setShowCompletionModal(true);
         } catch (err) {
             console.error(err);
             setError("No se pudo enviar la misión. Revisa tu avance e intenta nuevamente.");
@@ -642,6 +654,74 @@ export function PathChallengeMissionClient({
 
     return (
         <main className="min-h-screen bg-slate-50">
+            {showCompletionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+                    <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-center shadow-2xl">
+                        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <CheckCircle2 className="h-12 w-12" />
+                        </div>
+
+                        <h2 className="mt-6 text-3xl font-extrabold text-slate-900">
+                            {completionModal?.title ?? "¡Misión completada!"}
+                        </h2>
+
+                        <p className="mx-auto mt-3 max-w-md text-base leading-7 text-slate-500">
+                            {completionModal?.message ??
+                                "Tu misión ha sido enviada correctamente."}
+                        </p>
+
+                        <div className="mt-8 rounded-3xl bg-slate-50 p-6">
+                            <p className="text-sm font-bold text-slate-700">Has ganado:</p>
+
+                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                                <div className="rounded-2xl bg-white p-4">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-[#7447D7]">
+                                        <CheckCircle2 className="h-6 w-6" />
+                                    </div>
+                                    <p className="mt-3 text-sm font-bold text-slate-800">
+                                        Insignia {completionModal?.badgeName ?? "PathChallenge"}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-white p-4">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                                        <span className="text-lg font-extrabold">XP</span>
+                                    </div>
+                                    <p className="mt-3 text-sm font-bold text-slate-800">
+                                        {completionModal?.points ?? challenge.xp} puntos
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={() => router.push("/user/app")}
+                                className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                            >
+                                Volver al inicio
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => router.push("/user/app/challenges")}
+                                className="rounded-2xl bg-[#7447D7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#6338c5]"
+                            >
+                                Ver más misiones
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowCompletionModal(false)}
+                            className="mt-5 text-sm font-semibold text-slate-400 transition hover:text-slate-600"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
             <section className="mx-auto max-w-6xl px-6 py-8 lg:px-8">
                 <div className="mb-6">
                     <Link
