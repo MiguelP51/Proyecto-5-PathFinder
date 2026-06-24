@@ -30,8 +30,10 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.InputStream;
 import java.util.Locale;
 import java.util.Set;
 import java.time.LocalDateTime;
@@ -441,6 +443,95 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         return mapToResponse(challenge, avance, true);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] descargarArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        UsuarioPathChallengeTask avanceTarea = obtenerAvanceTareaConArchivo(
+                correo,
+                idPathChallenge,
+                idPathChallengeTask
+        );
+
+        try (InputStream inputStream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(avanceTarea.getArchivoUrl())
+                        .build()
+        )) {
+            return inputStream.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error al descargar el archivo desde S3: " + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String obtenerNombreArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        UsuarioPathChallengeTask avanceTarea = obtenerAvanceTareaConArchivo(
+                correo,
+                idPathChallenge,
+                idPathChallengeTask
+        );
+
+        if (StringUtils.hasText(avanceTarea.getArchivoNombre())) {
+            return avanceTarea.getArchivoNombre();
+        }
+
+        return "archivo-pathchallenge";
+    }
+
+    private UsuarioPathChallengeTask obtenerAvanceTareaConArchivo(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        Usuario usuario = obtenerUsuario(correo);
+        PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findById(idPathChallengeTask)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe"));
+
+        if (!tarea.getPathChallenge().getIdPathChallenge().equals(challenge.getIdPathChallenge())) {
+            throw new IllegalArgumentException("La actividad no pertenece a este PathChallenge");
+        }
+
+        UsuarioPathChallenge avance = usuarioPathChallengeRepository
+                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallengeAndActivoTrue(
+                        usuario.getIdUsuario(),
+                        idPathChallenge
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe avance para este PathChallenge"
+                ));
+
+        UsuarioPathChallengeTask avanceTarea = usuarioPathChallengeTaskRepository
+                .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndPathChallengeTask_IdPathChallengeTaskAndActivoTrue(
+                        avance.getIdUsuarioPathChallenge(),
+                        idPathChallengeTask
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe archivo para esta actividad"
+                ));
+
+        if (!StringUtils.hasText(avanceTarea.getArchivoUrl())) {
+            throw new IllegalArgumentException("La ruta del archivo no está disponible");
+        }
+
+        return avanceTarea;
+    }
+
     private void validarArchivoChallenge(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Debes seleccionar un archivo.");
@@ -805,7 +896,15 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                                     .responseText(avanceTarea != null ? avanceTarea.getRespuestaTexto() : null)
                                     .selectedOption(avanceTarea != null ? avanceTarea.getOpcionSeleccionada() : null)
                                     .fileName(avanceTarea != null ? avanceTarea.getArchivoNombre() : null)
-                                    .fileUrl(avanceTarea != null ? avanceTarea.getArchivoUrl() : null)
+                                    .fileUrl(
+                                            avanceTarea != null && StringUtils.hasText(avanceTarea.getArchivoUrl())
+                                                    ? "/api/pathchallenges/estudiante/"
+                                                    + challenge.getIdPathChallenge()
+                                                    + "/tareas/"
+                                                    + tarea.getIdPathChallengeTask()
+                                                    + "/archivo/download"
+                                                    : null
+                                    )
                                     .responseJson(avanceTarea != null ? avanceTarea.getRespuestaJson() : null)
                                     .build();
                         })

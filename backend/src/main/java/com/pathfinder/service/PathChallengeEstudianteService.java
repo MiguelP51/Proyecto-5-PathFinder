@@ -46,4 +46,16 @@ public interface PathChallengeEstudianteService {
             Integer idPathChallengeTask,
             MultipartFile file
     );
+
+    byte[] descargarArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    );
+
+    String obtenerNombreArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    );
 }

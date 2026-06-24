@@ -16,7 +16,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpHeaders;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
@@ -227,5 +230,98 @@ public class PathChallengeEstudianteController {
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Error al subir el archivo"));
         }
+    }
+
+    @GetMapping("/estudiante/{idPathChallenge}/tareas/{idPathChallengeTask}/archivo/download")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<byte[]> descargarArchivoTarea(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idPathChallenge,
+            @PathVariable Integer idPathChallengeTask
+    ) {
+        try {
+            byte[] data = pathChallengeEstudianteService.descargarArchivoTarea(
+                    userDetails.getUsername(),
+                    idPathChallenge,
+                    idPathChallengeTask
+            );
+
+            String nombreArchivo = pathChallengeEstudianteService.obtenerNombreArchivoTarea(
+                    userDetails.getUsername(),
+                    idPathChallenge,
+                    idPathChallengeTask
+            );
+
+            MediaType mediaType = obtenerMediaTypePorNombre(nombreArchivo);
+            String disposition = debeAbrirseEnNavegador(nombreArchivo)
+                    ? "inline"
+                    : "attachment";
+
+            String nombreCodificado = URLEncoder
+                    .encode(nombreArchivo, StandardCharsets.UTF_8)
+                    .replace("+", "%20");
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            disposition + "; filename*=UTF-8''" + nombreCodificado
+                    )
+                    .body(data);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo descargar archivo de PathChallenge: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error descargando archivo de PathChallenge: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private MediaType obtenerMediaTypePorNombre(String nombreArchivo) {
+        if (nombreArchivo == null) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        String nombre = nombreArchivo.toLowerCase();
+
+        if (nombre.endsWith(".pdf")) {
+            return MediaType.APPLICATION_PDF;
+        }
+
+        if (nombre.endsWith(".png")) {
+            return MediaType.IMAGE_PNG;
+        }
+
+        if (nombre.endsWith(".jpg") || nombre.endsWith(".jpeg")) {
+            return MediaType.IMAGE_JPEG;
+        }
+
+        if (nombre.endsWith(".docx")) {
+            return MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            );
+        }
+
+        if (nombre.endsWith(".xlsx")) {
+            return MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+        }
+
+        return MediaType.APPLICATION_OCTET_STREAM;
+    }
+
+    private boolean debeAbrirseEnNavegador(String nombreArchivo) {
+        if (nombreArchivo == null) {
+            return false;
+        }
+
+        String nombre = nombreArchivo.toLowerCase();
+
+        return nombre.endsWith(".pdf")
+                || nombre.endsWith(".png")
+                || nombre.endsWith(".jpg")
+                || nombre.endsWith(".jpeg");
     }
 }

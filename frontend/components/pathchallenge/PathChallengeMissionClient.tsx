@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import {
+    downloadStudentPathChallengeTaskFile,
     finishStudentPathChallenge,
     saveStudentPathChallengeProgress,
     uploadStudentPathChallengeTaskFile,
@@ -289,6 +290,7 @@ export function PathChallengeMissionClient({
     const [saving, setSaving] = useState(false);
     const [finishing, setFinishing] = useState(false);
     const [uploadingTaskId, setUploadingTaskId] = useState<number | null>(null);
+    const [downloadingTaskId, setDownloadingTaskId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [finished, setFinished] = useState(challenge.status === "COMPLETADO");
@@ -460,6 +462,71 @@ export function PathChallengeMissionClient({
             setError("No se pudo subir el archivo. Verifica el formato e intenta nuevamente.");
         } finally {
             setUploadingTaskId(null);
+        }
+    };
+
+    const shouldOpenInBrowser = (fileName?: string | null, blob?: Blob) => {
+        const normalizedName = fileName?.toLowerCase() ?? "";
+        const normalizedType = blob?.type?.toLowerCase() ?? "";
+
+        return (
+            normalizedType.includes("application/pdf") ||
+            normalizedType.startsWith("image/") ||
+            normalizedName.endsWith(".pdf") ||
+            normalizedName.endsWith(".png") ||
+            normalizedName.endsWith(".jpg") ||
+            normalizedName.endsWith(".jpeg")
+        );
+    };
+
+    const openOrDownloadBlob = (blob: Blob, fileName: string) => {
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (shouldOpenInBrowser(fileName, blob)) {
+            window.open(blobUrl, "_blank", "noopener,noreferrer");
+        } else {
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 60_000);
+    };
+
+    const handleOpenTaskFile = async (task: StudentPathChallengeTask) => {
+        setError(null);
+        setSuccessMessage(null);
+
+        if (!token) {
+            setError("No se encontró una sesión válida. Vuelve a iniciar sesión.");
+            return;
+        }
+
+        setDownloadingTaskId(task.idPathChallengeTask);
+
+        try {
+            const blob = await downloadStudentPathChallengeTaskFile(
+                challenge.idPathChallenge,
+                task.idPathChallengeTask,
+                token,
+            );
+
+            const localResponse = responses[task.idPathChallengeTask];
+
+            openOrDownloadBlob(
+                blob,
+                localResponse?.fileName ?? task.fileName ?? "archivo-pathchallenge",
+            );
+        } catch (err) {
+            console.error(err);
+            setError("No se pudo abrir o descargar el archivo.");
+        } finally {
+            setDownloadingTaskId(null);
         }
     };
 
@@ -730,7 +797,9 @@ export function PathChallengeMissionClient({
                                 allTasks={orderedTasks}
                                 allResponses={responses}
                                 onUploadFile={handleUploadTaskFile}
+                                onOpenFile={handleOpenTaskFile}
                                 uploadingTaskId={uploadingTaskId}
+                                downloadingTaskId={downloadingTaskId}
                             />
                         </div>
 
@@ -800,7 +869,9 @@ interface TaskRendererProps {
     allTasks: StudentPathChallengeTask[];
     allResponses: Record<number, TaskResponseState>;
     onUploadFile?: (task: StudentPathChallengeTask, file: File) => Promise<void>;
+    onOpenFile?: (task: StudentPathChallengeTask) => Promise<void>;
     uploadingTaskId?: number | null;
+    downloadingTaskId?: number | null;
 }
 
 function TaskRenderer({
@@ -810,7 +881,9 @@ function TaskRenderer({
                           allTasks,
                           allResponses,
                           onUploadFile,
+                          onOpenFile,
                           uploadingTaskId,
+                          downloadingTaskId,
                       }: TaskRendererProps) {
     const taskType = normalizeTaskType(task.taskType);
     const config = getConfig(task);
@@ -1320,15 +1393,52 @@ function TaskRenderer({
 
                 {(response?.fileName || response?.fileUrl) && (
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                        <div className="flex items-start gap-3">
-                            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
-                            <div>
-                                <p className="text-sm font-bold text-emerald-800">
-                                    Archivo cargado correctamente
-                                </p>
-                                <p className="mt-1 text-sm text-emerald-700">
-                                    {response.fileName ?? "Archivo subido"}
-                                </p>
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
+                                <div>
+                                    <p className="text-sm font-bold text-emerald-800">
+                                        Archivo cargado correctamente
+                                    </p>
+                                    <p className="mt-1 text-sm text-emerald-700">
+                                        {response.fileName ?? "Archivo subido"}
+                                    </p>
+                                    <p className="mt-1 text-xs text-emerald-600">
+                                        Puedes reemplazar el archivo si subiste uno incorrecto.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenFile?.(task)}
+                                    disabled={downloadingTaskId === task.idPathChallengeTask}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {downloadingTaskId === task.idPathChallengeTask ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <FileText className="h-4 w-4" />
+                                    )}
+                                    Ver/descargar
+                                </button>
+
+                                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6338c5]">
+                                    {isUploading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Save className="h-4 w-4" />
+                                    )}
+                                    Reemplazar
+                                    <input
+                                        type="file"
+                                        accept={acceptValue}
+                                        disabled={isUploading}
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                    />
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -1385,6 +1495,16 @@ function TaskRenderer({
                         fileUrl={uploadResponse?.fileUrl}
                         emptyTitle="Archivo entregado pendiente"
                         emptyText="Cuando el estudiante suba el perfil completado en la actividad anterior, aparecerá aquí para revisión."
+                        onOpen={
+                            uploadTask && uploadResponse?.fileName
+                                ? () => onOpenFile?.(uploadTask)
+                                : undefined
+                        }
+                        isOpening={
+                            uploadTask
+                                ? downloadingTaskId === uploadTask.idPathChallengeTask
+                                : false
+                        }
                     />
                 </div>
 
@@ -1580,6 +1700,8 @@ function ReviewFileCard({
                             fileUrl,
                             emptyTitle,
                             emptyText,
+                            onOpen,
+                            isOpening,
                         }: {
     title: string;
     subtitle: string;
@@ -1588,6 +1710,8 @@ function ReviewFileCard({
     fileUrl?: string | null;
     emptyTitle: string;
     emptyText: string;
+    onOpen?: () => void;
+    isOpening?: boolean;
 }) {
     const hasFile = Boolean(fileName && !fileName.toLowerCase().includes("pendiente"));
     const canOpen = isPublicUrl(fileUrl);
@@ -1631,7 +1755,21 @@ function ReviewFileCard({
 
             {hasFile && (
                 <div className="mt-4">
-                    {canOpen ? (
+                    {onOpen ? (
+                        <button
+                            type="button"
+                            onClick={onOpen}
+                            disabled={isOpening}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isOpening ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <FileText className="h-4 w-4" />
+                            )}
+                            Ver/descargar archivo
+                        </button>
+                    ) : canOpen ? (
                         <a
                             href={fileUrl ?? "#"}
                             target="_blank"
@@ -1643,8 +1781,7 @@ function ReviewFileCard({
                         </a>
                     ) : (
                         <div className="rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-500">
-                            Archivo registrado. La vista directa estará disponible cuando se
-                            configure una URL pública o prefirmada.
+                            El archivo está registrado, pero todavía no tiene vista directa configurada.
                         </div>
                     )}
                 </div>

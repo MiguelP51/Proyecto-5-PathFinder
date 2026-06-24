@@ -96,3 +96,46 @@ export async function uploadStudentPathChallengeTaskFile(
         token,
     );
 }
+
+function buildPathChallengeFileUrl(path: string) {
+    const rawBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+    let baseUrl = rawBaseUrl.replace(/\/$/, "");
+
+    if (baseUrl.endsWith("/api") && path.startsWith("/api/")) {
+        baseUrl = baseUrl.slice(0, -4);
+    }
+
+    return `${baseUrl}${path}`;
+}
+
+export async function downloadStudentPathChallengeTaskFile(
+    pathChallengeId: string | number,
+    pathChallengeTaskId: string | number,
+    token?: string | null,
+): Promise<Blob> {
+    const response = await fetch(
+        buildPathChallengeFileUrl(
+            `/api/pathchallenges/estudiante/${pathChallengeId}/tareas/${pathChallengeTaskId}/archivo/download`,
+        ),
+        {
+            method: "GET",
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            cache: "no-store",
+        },
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+
+        console.error("Error obteniendo archivo PathChallenge:", {
+            status: response.status,
+            body: errorText,
+        });
+
+        throw new Error("No se pudo abrir o descargar el archivo.");
+    }
+
+    return response.blob();
+}
