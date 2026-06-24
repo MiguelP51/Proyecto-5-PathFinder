@@ -50,6 +50,12 @@ public class AdminDISCQuestionController {
         adminDISCQuestionService.eliminarPregunta(idPreguntaDisc);
     }
 
+    @DeleteMapping("/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetQuestionsAndHistory() {
+        adminDISCQuestionService.resetQuestionsAndHistory();
+    }
+
     @GetMapping("/types")
     public List<com.pathfinder.model.entity.TipoPreguntaDISC> listarTiposPregunta() {
         return adminDISCQuestionService.listarTiposPregunta();

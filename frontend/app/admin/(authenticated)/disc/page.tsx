@@ -180,6 +180,38 @@ export default function DISCQuestionsPage() {
     }
   };
 
+  const handleResetTestDISC = async () => {
+    if (
+      !confirm(
+        "⚠️ ¡ATENCIÓN! Esta acción es de alto riesgo e irreversible.\n\n" +
+        "Se eliminarán de forma permanente de la base de datos:\n" +
+        "1. Todos los tests DISC completados por los estudiantes (Historial de resultados).\n" +
+        "2. Todas las respuestas dadas a las preguntas del test.\n" +
+        "3. Las preguntas duplicadas e inactivas.\n\n" +
+        "Se restablecerá exactamente el set oficial de 20 preguntas basadas en el Excel de la plantilla con sus opciones y pesos oficiales.\n\n" +
+        "¿Estás seguro de que deseas proceder con el restablecimiento completo?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiFetch(
+        "/api/admin/disc/questions/reset",
+        { method: "DELETE" },
+        session?.backendJwt
+      );
+      alert("¡El test DISC y el historial de respuestas se han restablecido correctamente!");
+      cargarPreguntas();
+    } catch (err) {
+      console.error("Error al restablecer test DISC:", err);
+      alert("Error al restablecer el test DISC: " + (err instanceof Error ? err.message : err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredPreguntas = preguntas.filter(
     (p) =>
       p.enunciado?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -200,16 +232,25 @@ export default function DISCQuestionsPage() {
           </p>
         </div>
         {activeTab === 'disc' ? (
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setIsFormOpen(true);
-            }}
-            className="flex items-center gap-2 self-start rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 shadow-md shadow-purple-200 transition text-sm font-bold cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nueva Pregunta</span>
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleResetTestDISC}
+              className="flex items-center gap-2 self-start rounded-xl bg-red-50 hover:bg-red-100 text-red-650 border border-red-200 px-4 py-2.5 transition text-sm font-bold cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Restablecer Test e Historial</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setIsFormOpen(true);
+              }}
+              className="flex items-center gap-2 self-start rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 shadow-md shadow-purple-200 transition text-sm font-bold cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nueva Pregunta</span>
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setIsCompModalOpen(true)}

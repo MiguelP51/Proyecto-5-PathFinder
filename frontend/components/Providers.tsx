@@ -5,7 +5,7 @@ import SessionTimeoutHandler from "./SessionTimeoutHandler";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
       <SessionTimeoutHandler>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           {children}

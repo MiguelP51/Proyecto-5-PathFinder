@@ -21,4 +21,6 @@ public interface AdminDISCQuestionService {
     void eliminarPregunta(Integer idPreguntaDisc);
 
     List<TipoPreguntaDISC> listarTiposPregunta();
+
+    void resetQuestionsAndHistory();
 }
