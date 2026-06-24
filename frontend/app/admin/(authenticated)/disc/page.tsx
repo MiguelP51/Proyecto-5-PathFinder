@@ -103,7 +103,7 @@ export default function DISCQuestionsPage() {
   const handleEliminarPregunta = async (item: PreguntaDISC) => {
     if (
       !confirm(
-        `¿Seguro que deseas desactivar esta pregunta? Se realizará una desactivación lógica para conservar el historial de respuestas.`
+        `¿Seguro que deseas eliminar esta pregunta? Se borrará permanentemente de la base de datos si no tiene respuestas de estudiantes. De lo contrario, se desactivará lógicamente para conservar el historial.`
       )
     )
       return;
@@ -116,7 +116,7 @@ export default function DISCQuestionsPage() {
       );
       cargarPreguntas();
     } catch (err) {
-      alert("Error al desactivar la pregunta");
+      alert("Error al eliminar la pregunta");
     }
   };
 
@@ -424,7 +424,7 @@ export default function DISCQuestionsPage() {
                       className="flex items-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-xl transition cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      <span>Desactivar</span>
+                      <span>Eliminar</span>
                     </button>
                   </div>
                 </div>

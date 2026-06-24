@@ -137,6 +137,9 @@ export default function PathMentorFeedbacks() {
   const [allCompetencias, setAllCompetencias] = useState<any[]>([]);
   const [selectedCompetencyNames, setSelectedCompetencyNames] = useState<string[]>([]);
   const [selectedCompetencyLevels, setSelectedCompetencyLevels] = useState<Record<string, { nivel: number; descripcion: string }>>({});
+  const [compSearchTerm, setCompSearchTerm] = useState('');
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   
   // Custom Competency Form States
   const [isAddingCompetency, setIsAddingCompetency] = useState(false);
@@ -465,11 +468,8 @@ export default function PathMentorFeedbacks() {
           }
         } catch (e) {}
       } else {
-        // By default, select all loaded competencies
-        selectedNames = (res || []).map(c => c.nombre);
-        (res || []).forEach(c => {
-          mapped[c.nombre] = { nivel: 1, descripcion: c.nivel1 || 'Alcanza los criterios minimos' };
-        });
+        // By default, select NO competencies (as requested by user)
+        selectedNames = [];
       }
       setSelectedCompetencyNames(selectedNames);
       setSelectedCompetencyLevels(mapped);
@@ -894,28 +894,42 @@ export default function PathMentorFeedbacks() {
                   {formMode !== 'ver' && (
                     <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 shadow-sm">
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Dimensiones a evaluar en esta sesión:</h4>
+                      
+                      {/* Buscador de Competencias */}
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          placeholder="Buscar dimensiones de competencias..."
+                          value={compSearchTerm}
+                          onChange={(e) => setCompSearchTerm(e.target.value)}
+                          className="w-full px-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] bg-white text-slate-800"
+                        />
+                      </div>
+
                       <div className="flex flex-wrap gap-2">
-                        {allCompetencias.map((comp) => {
-                          const isChecked = selectedCompetencyNames.includes(comp.nombre);
-                          return (
-                            <label
-                              key={comp.nombre}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
-                                isChecked
-                                  ? "bg-[#7447D7]/10 text-[#7447D7] border-[#7447D7]/30"
-                                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-350"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => handleToggleCompetency(comp.nombre)}
-                                className="rounded text-[#7447D7] focus:ring-[#7447D7]"
-                              />
-                              <span>{comp.nombre}</span>
-                            </label>
-                          );
-                        })}
+                        {allCompetencias
+                          .filter((comp) => normalizeText(comp.nombre).includes(normalizeText(compSearchTerm)))
+                          .map((comp) => {
+                            const isChecked = selectedCompetencyNames.includes(comp.nombre);
+                            return (
+                              <label
+                                key={comp.nombre}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
+                                  isChecked
+                                    ? "bg-[#7447D7]/10 text-[#7447D7] border-[#7447D7]/30"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-350"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleCompetency(comp.nombre)}
+                                  className="rounded text-[#7447D7] focus:ring-[#7447D7]"
+                                />
+                                <span>{comp.nombre}</span>
+                              </label>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -951,6 +965,32 @@ export default function PathMentorFeedbacks() {
                                 <td className="px-6 py-4">
                                   <div className="font-extrabold text-slate-800 text-sm">{compName}</div>
                                   {comp.descripcion && <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">{comp.descripcion}</p>}
+                                  
+                                  {/* Toggle Detalle */}
+                                  <div className="mt-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedDetails(prev => ({ ...prev, [compName]: !prev[compName] }))}
+                                      className="text-[#7447D7] dark:text-purple-400 text-[10px] font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {expandedDetails[compName] ? "Ocultar detalle" : "Ver detalle"}
+                                    </button>
+                                  </div>
+
+                                  {/* Caja de Detalle Expansible */}
+                                  {expandedDetails[compName] && (
+                                    <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border border-slate-150 dark:border-slate-700 text-[10px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+                                      <span className="font-extrabold block text-[#7447D7] dark:text-purple-400 mb-1">
+                                        Nivel {currentSelection.nivel}: {
+                                          currentSelection.nivel === 0 ? "Por debajo de lo esperado" :
+                                          currentSelection.nivel === 1 ? "Alcanza los criterios mínimos" :
+                                          currentSelection.nivel === 2 ? "Supera los criterios mínimos" :
+                                          "Supera las expectativas"
+                                        }
+                                      </span>
+                                      {currentSelection.descripcion}
+                                    </div>
+                                  )}
                                 </td>
                                 {[0, 1, 2, 3].map((lvl) => (
                                   <td key={lvl} className="px-4 py-4 text-center">
@@ -1007,47 +1047,6 @@ export default function PathMentorFeedbacks() {
                       </tbody>
                     </table>
                   </div>
-
-                  {/* Rúbricas Descriptivas de los Niveles Seleccionados (Solo Lectura) */}
-                  {selectedCompetencyNames.length > 0 && (
-                    <div className="mt-4 space-y-3">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Criterios detallados de nivel seleccionados:</h5>
-                      {selectedCompetencyNames.map((compName) => {
-                        const comp = allCompetencias.find(c => c.nombre === compName) || {
-                          nombre: compName,
-                          descripcion: '',
-                          nivel0: 'Por debajo del esperado',
-                          nivel1: 'Alcanza los criterios mínimos',
-                          nivel2: 'Supera los criterios mínimos',
-                          nivel3: 'Supera las expectativas'
-                        };
-                        const currentSelection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
-                        const levelLabels = ["Por debajo de lo esperado", "Alcanza los criterios mínimos", "Supera los criterios mínimos", "Supera las expectativas"];
-
-                        return (
-                          <div key={compName} className="bg-slate-50/70 border border-slate-100/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <span className="font-extrabold text-xs text-slate-800">{compName}</span>
-                              <p className="mt-1 text-xs text-slate-600 leading-relaxed font-medium">
-                                <span className={`inline-block mr-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                  currentSelection.nivel === 0
-                                    ? "bg-red-50 text-red-700"
-                                    : currentSelection.nivel === 1
-                                    ? "bg-blue-50 text-blue-700"
-                                    : currentSelection.nivel === 2
-                                    ? "bg-green-50 text-green-700"
-                                    : "bg-purple-50 text-purple-700"
-                                }`}>
-                                  Nivel {currentSelection.nivel} - {levelLabels[currentSelection.nivel]}:
-                                </span>
-                                {currentSelection.descripcion}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                   
                   {/* Botón para Añadir Competencia */}
                   {formMode !== 'ver' && (
@@ -1147,6 +1146,18 @@ export default function PathMentorFeedbacks() {
                         <polyline points="7 3 7 8 15 8" />
                       </svg>
                       Guardar Borrador
+                    </button>
+
+                    <button
+                      type="button"
+                      className="px-4 py-2.5 rounded-xl border border-purple-200 bg-purple-50 text-[#7447D7] hover:bg-purple-100 text-xs font-extrabold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => setShowPreviewModal(true)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      Vista Previa
                     </button>
 
                     <button
@@ -1302,6 +1313,216 @@ export default function PathMentorFeedbacks() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW MODAL */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-100 flex flex-col p-6 relative">
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowPreviewModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Modal Content - Replicating student page style */}
+            <div className="mt-4 space-y-6">
+              
+              {/* Header */}
+              <div>
+                <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1.5 flex-shrink-0">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  Evaluación Completada (Vista Previa Estudiante)
+                </span>
+                <h2 className="text-2xl font-black text-slate-950 mt-2">Detalles de tu Simulación</h2>
+                <p className="text-xs text-slate-500 mt-1">Reunión de simulación de entrevista laboral para retroalimentación</p>
+              </div>
+
+              {/* Information Row */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 grid gap-4 grid-cols-2 md:grid-cols-4 text-xs">
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Tu PathMentor</span>
+                  <span className="font-bold text-slate-700">{session?.user?.name || "Mentor"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Fecha de la Cita</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.interviewDate}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Horario</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.interviewTime || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Puesto Postulado</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.position || "Sin especificar"}</span>
+                </div>
+              </div>
+
+              {/* Main Content Layout */}
+              <div className="grid gap-6 md:grid-cols-3">
+                
+                {/* Left side: Comments */}
+                <div className="md:col-span-2 space-y-6">
+                  
+                  {formFortalezas && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                        💪 Fortalezas Clave
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formFortalezas}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formAreasMejora && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+                        📈 Áreas de Mejora
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formAreasMejora}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formComentarios && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
+                        💬 Observaciones y Recomendaciones
+                      </span>
+                      <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          "{formComentarios}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: Final score & Competencies */}
+                <div className="space-y-6">
+                  
+                  {/* Recommended Decision */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">Resultado Final</h4>
+                      <p className="text-[10px] text-slate-400">Decisión de postulación recomendada</p>
+                    </div>
+
+                    <div className={`p-3.5 rounded-xl border text-center font-bold text-xs ${
+                      formResult === "Alta"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : formResult === "Media"
+                        ? "bg-amber-50 border-amber-200 text-amber-800"
+                        : "bg-red-50 border-red-200 text-red-800"
+                    }`}>
+                      <span className="text-md block tracking-wide uppercase">
+                        {formResult === "Alta"
+                          ? "Alta probabilidad"
+                          : formResult === "Media"
+                          ? "Media probabilidad"
+                          : formResult === "Baja"
+                          ? "Baja probabilidad"
+                          : "Sin resultado"}
+                      </span>
+                    </div>
+
+                    {/* Calculated Average */}
+                    {(() => {
+                      const keys = selectedCompetencyNames;
+                      if (keys.length === 0) return null;
+                      const total = keys.reduce((acc, curr) => acc + (selectedCompetencyLevels[curr]?.nivel || 0), 0);
+                      const avg = (total / keys.length).toFixed(1);
+                      return (
+                        <div className="p-3 rounded-xl border border-purple-100 bg-purple-50/20 text-center">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Promedio General</span>
+                          <span className="text-2xl font-extrabold text-[#7447D7]">{avg} / 3.0</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Competencies Breakdown */}
+                  {selectedCompetencyNames.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Calificación por Competencia</span>
+                      
+                      <div className="space-y-4">
+                        {selectedCompetencyNames.map((compName) => {
+                          const comp = allCompetencias.find(c => c.nombre === compName) || {
+                            nivel1: "Alcanza los criterios mínimos"
+                          };
+                          const selection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
+                          return (
+                            <div key={compName} className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-1.5 text-[11px]">
+                              <div className="flex justify-between font-extrabold text-slate-800">
+                                <span>{compName}</span>
+                                <span className="text-[#7447D7]">{selection.nivel} / 3</span>
+                              </div>
+
+                              <div className="flex gap-0.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                {[0, 1, 2, 3].map((lvl) => (
+                                  <div
+                                    key={lvl}
+                                    className={`flex-1 rounded-full ${
+                                      lvl <= selection.nivel
+                                        ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6]"
+                                        : "bg-slate-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+
+                              <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                                <span className="font-bold text-[#7447D7]">
+                                  {selection.nivel === 0 ? "Nivel 0 (Bajo esperado): " :
+                                   selection.nivel === 1 ? "Nivel 1 (Mínimo): " :
+                                   selection.nivel === 2 ? "Nivel 2 (Supera Mínimo): " :
+                                   "Nivel 3 (Excelente): "}
+                                </span>
+                                {selection.descripcion}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-xs font-bold shadow-sm transition cursor-pointer"
+              >
+                Cerrar Vista Previa
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -128,6 +128,7 @@ export default function MentorProfileForm() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -139,6 +140,7 @@ export default function MentorProfileForm() {
   const [experiences, setExperiences] = useState<WorkExperience[]>([]);
 
   useEffect(() => {
+    if (profileLoaded) return;
     if (status === "authenticated" && session?.user?.email) {
       setFullName(session.user?.name || "");
       setEmail(session.user?.email || "");
@@ -157,13 +159,14 @@ export default function MentorProfileForm() {
             setSpecializationAreas(mapped.specializationAreas);
           if (mapped.educations.length > 0) setEducations(mapped.educations);
           if (mapped.experiences.length > 0) setExperiences(mapped.experiences);
+          setProfileLoaded(true);
         })
         .catch(() => {})
         .finally(() => setIsLoadingData(false));
     } else if (status === "unauthenticated") {
       setIsLoadingData(false);
     }
-  }, [status, session]);
+  }, [status, session, profileLoaded]);
 
   const handlePhotoChange = (file: File) => {
     setPhotoUrl(URL.createObjectURL(file));

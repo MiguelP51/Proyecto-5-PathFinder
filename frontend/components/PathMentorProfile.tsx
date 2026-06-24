@@ -133,10 +133,12 @@ export default function PathMentorProfile() {
     metrics: { totalEntrevistas: 0, tasaAprobacion: 0, calificacionPromedio: 0, aniosExperiencia: 0 },
   });
 
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [editFields, setEditFields] = useState(profile);
 
   useEffect(() => {
     if (!session?.backendJwt) return;
+    if (profileLoaded) return;
     setLoading(true);
     apiFetch<ProfileData>('/api/mentor/profile', {}, session.backendJwt)
       .then((data) => {
@@ -148,6 +150,7 @@ export default function PathMentorProfile() {
         };
         setProfile(safe);
         setEditFields(safe);
+        setProfileLoaded(true);
       })
       .catch(() => {
         setProfile((prev) => ({
@@ -162,7 +165,7 @@ export default function PathMentorProfile() {
         }));
       })
       .finally(() => setLoading(false));
-  }, [session]);
+  }, [session, profileLoaded]);
 
   const handleStartEdit = () => {
     setEditFields(profile);

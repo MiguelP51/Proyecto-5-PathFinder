@@ -247,15 +247,6 @@ export default function UserSidebar({ open, onClose }: Props) {
               </p>
             </div>
           </div>
-
-          {/* Level Progress (XP Card) */}
-          <div className="rounded-xl border border-amber-200/70 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/30 p-3 flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300 shadow-sm shadow-amber-100/20 dark:shadow-none font-bold">
-            <div className="flex items-center gap-2">
-              <Award className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-              <span>Nivel 5</span>
-            </div>
-            <span className="text-amber-600/90 dark:text-amber-400/90">2450/3000 XP</span>
-          </div>
         </div>
 
         {/* Scrollable Links Container */}

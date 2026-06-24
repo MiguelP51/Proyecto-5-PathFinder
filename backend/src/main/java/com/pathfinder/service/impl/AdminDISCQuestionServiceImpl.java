@@ -9,11 +9,13 @@ import com.pathfinder.model.entity.PreguntaDISC;
 import com.pathfinder.model.entity.TipoPreguntaDISC;
 import com.pathfinder.model.enums.CategoriaDISC;
 import com.pathfinder.repository.PreguntaDISCRepository;
+import com.pathfinder.repository.RespuestaPreguntaDISCRepository;
 import com.pathfinder.repository.TipoPreguntaDISCRepository;
 import com.pathfinder.service.AdminDISCQuestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
@@ -25,6 +27,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
 
     private final PreguntaDISCRepository preguntaDISCRepository;
     private final TipoPreguntaDISCRepository tipoPreguntaDISCRepository;
+    private final RespuestaPreguntaDISCRepository respuestaPreguntaDISCRepository;
 
     @Override
     public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc) {
@@ -86,15 +89,25 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
     }
 
     @Override
+    @Transactional
     public void eliminarPregunta(Integer idPreguntaDisc) {
-        PreguntaDISC pregunta = buscarPregunta(idPreguntaDisc);
-        pregunta.setActivo(false);
+        PreguntaDISC pregunta = preguntaDISCRepository.findById(idPreguntaDisc)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró la pregunta DISC solicitada"
+                ));
 
-        if (pregunta.getOpciones() != null) {
-            pregunta.getOpciones().forEach(opcion -> opcion.setActivo(false));
+        boolean hasAnswers = respuestaPreguntaDISCRepository.existsByPreguntaDisc_IdPreguntaDisc(idPreguntaDisc);
+
+        if (hasAnswers) {
+            pregunta.setActivo(false);
+            if (pregunta.getOpciones() != null) {
+                pregunta.getOpciones().forEach(opcion -> opcion.setActivo(false));
+            }
+            preguntaDISCRepository.save(pregunta);
+        } else {
+            preguntaDISCRepository.delete(pregunta);
         }
-
-        preguntaDISCRepository.save(pregunta);
     }
 
     private PreguntaDISC buscarPregunta(Integer idPreguntaDisc) {
