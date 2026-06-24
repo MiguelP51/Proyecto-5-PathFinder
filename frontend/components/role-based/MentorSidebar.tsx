@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Compass,
 } from "lucide-react";
 
 interface Props {
@@ -60,8 +61,8 @@ export default function MentorSidebar({ open, onClose }: Props) {
     const active = isActive(href);
     return `flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all duration-200 ${
       active
-        ? "bg-gradient-to-r from-blue-600 to-indigo-650 text-white shadow-lg shadow-blue-200/50"
-        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white"
+        ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] text-white shadow-lg shadow-purple-200/50"
+        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#7447D7] dark:hover:text-white"
     }`;
   };
 
@@ -127,7 +128,7 @@ export default function MentorSidebar({ open, onClose }: Props) {
         {/* Header - Logo */}
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-650 text-white shadow-md shadow-blue-200">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-md shadow-purple-200">
               <Layers className="h-5 w-5" />
             </div>
             <span className="font-black tracking-wide text-slate-800 dark:text-slate-100 text-lg">
@@ -154,7 +155,7 @@ export default function MentorSidebar({ open, onClose }: Props) {
                 className="h-11 w-11 rounded-full object-cover shadow-sm"
               />
             ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 font-bold text-white text-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] font-bold text-white text-sm">
                 {initials}
               </div>
             )}

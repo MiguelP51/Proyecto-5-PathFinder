@@ -32,7 +32,7 @@ export default function MentorTopBar({ onMenuClick }: Props) {
         <button
           type="button"
           onClick={onMenuClick}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition hover:border-blue-600 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400 cursor-pointer"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:hover:border-purple-400 dark:hover:text-purple-400 cursor-pointer"
           aria-label="Abrir menú"
         >
           <Menu className="h-5 w-5" />
@@ -58,10 +58,20 @@ export default function MentorTopBar({ onMenuClick }: Props) {
           <button
             type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-blue-600 hover:text-blue-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-400 dark:hover:text-blue-400 cursor-pointer mr-3"
+            className="inline-flex h-10 px-3 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:border-slate-700 dark:text-slate-300 dark:hover:border-purple-400 dark:hover:text-purple-400 cursor-pointer mr-3 gap-1.5"
             aria-label="Alternar modo oscuro"
           >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {theme === "dark" ? (
+              <>
+                <Sun className="h-5 w-5" />
+                <span className="text-xs font-semibold">Modo claro</span>
+              </>
+            ) : (
+              <>
+                <Moon className="h-5 w-5" />
+                <span className="text-xs font-semibold">Modo oscuro</span>
+              </>
+            )}
           </button>
         )}
 
@@ -78,7 +88,7 @@ export default function MentorTopBar({ onMenuClick }: Props) {
                 className={styles.avatarImg}
               />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-base font-bold border-2 border-slate-200">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#7447D7] to-[#D43EE6] flex items-center justify-center text-white text-base font-bold border-2 border-slate-200">
                 {name.charAt(0).toUpperCase()}
               </div>
             )}
@@ -98,7 +108,7 @@ export default function MentorTopBar({ onMenuClick }: Props) {
               callbackUrl: "/",
             })
           }
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition hover:border-blue-600 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400 cursor-pointer"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition hover:border-[#7447D7] hover:text-[#7447D7] dark:hover:border-purple-400 dark:hover:text-purple-400 cursor-pointer"
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
         >

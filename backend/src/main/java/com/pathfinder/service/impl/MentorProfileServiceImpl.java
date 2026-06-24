@@ -62,6 +62,13 @@ public class MentorProfileServiceImpl implements MentorProfileService {
     }
 
     @Override
+    public MentorProfileResponse obtenerPerfilPorId(Integer idUsuario) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + idUsuario));
+        return obtenerPerfil(usuario.getCorreo());
+    }
+
+    @Override
     @Transactional
     public MentorProfileResponse guardarPerfil(String correo, MentorProfileRequest request) {
         Usuario usuario = obtenerUsuario(correo);

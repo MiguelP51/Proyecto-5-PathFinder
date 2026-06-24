@@ -64,6 +64,26 @@ export default function SimulationSchedulePage() {
   const [error, setError] = useState("");
   const [isRescheduling, setIsRescheduling] = useState(false);
 
+  // Mentor profile modal states
+  const [showMentorProfileModal, setShowMentorProfileModal] = useState(false);
+  const [mentorProfileDetails, setMentorProfileDetails] = useState<any>(null);
+  const [loadingProfileDetails, setLoadingProfileDetails] = useState(false);
+
+  const handleVerPerfilCompleto = async (mentorId: number) => {
+    try {
+      setLoadingProfileDetails(true);
+      setShowMentorProfileModal(true);
+      const res = await apiFetch<any>(`/api/mentor/profile/${mentorId}`, {}, session?.backendJwt);
+      setMentorProfileDetails(res);
+    } catch (err) {
+      console.error("Error cargando perfil completo del mentor:", err);
+      toast.error("No se pudo cargar el perfil detallado del mentor.");
+      setShowMentorProfileModal(false);
+    } finally {
+      setLoadingProfileDetails(false);
+    }
+  };
+
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -391,7 +411,7 @@ export default function SimulationSchedulePage() {
                     <h4 className="text-xs font-bold text-[#7447D7] uppercase tracking-wider">Acerca del PathMentor</h4>
                     {selectedMentor.perfilProfesional && (
                       <p className="text-xs text-slate-600 leading-relaxed italic">
-                        "{selectedMentor.perfilProfesional}"
+                        &ldquo;{selectedMentor.perfilProfesional}&rdquo;
                       </p>
                     )}
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 pt-2 border-t border-purple-100/30">
@@ -412,6 +432,15 @@ export default function SimulationSchedulePage() {
                       {selectedMentor.celular && (
                         <span>📞 {selectedMentor.celular}</span>
                       )}
+                    </div>
+                    <div className="pt-2 border-t border-purple-100/30">
+                      <button
+                        type="button"
+                        onClick={() => handleVerPerfilCompleto(selectedMentor.idUsuario)}
+                        className="text-xs font-bold text-[#7447D7] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        Ver perfil completo →
+                      </button>
                     </div>
                   </div>
                 )}
@@ -639,6 +668,173 @@ export default function SimulationSchedulePage() {
         )}
 
       </main>
+
+      {/* MODAL: PERFIL COMPLETO DE MENTOR */}
+      {showMentorProfileModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 flex flex-col p-6 relative">
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => { setShowMentorProfileModal(false); setMentorProfileDetails(null); }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {loadingProfileDetails ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-[#7447D7]" />
+                <p className="text-slate-500 text-xs font-semibold">Cargando perfil completo...</p>
+              </div>
+            ) : mentorProfileDetails ? (
+              <div className="space-y-6">
+
+                {/* Profile Header */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <img
+                    src={mentorProfileDetails.avatarUrl || "https://avatar.iran.liara.run/public/boy"}
+                    alt={mentorProfileDetails.nombreCompleto}
+                    className="h-20 w-20 rounded-full object-cover border-2 border-purple-100 shadow-sm"
+                  />
+                  <div className="text-center sm:text-left space-y-1">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                      {mentorProfileDetails.nombreCompleto}
+                    </h3>
+                    {mentorProfileDetails.titulo && (
+                      <p className="text-sm font-bold text-[#7447D7] dark:text-purple-400">
+                        {mentorProfileDetails.titulo}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-slate-400 font-semibold pt-1">
+                      {mentorProfileDetails.ubicacion && <span>📍 {mentorProfileDetails.ubicacion}</span>}
+                      <span>✉️ {mentorProfileDetails.correo}</span>
+                      {mentorProfileDetails.telefono && <span>📞 {mentorProfileDetails.telefono}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metrics */}
+                {mentorProfileDetails.metrics && (
+                  <div className="grid grid-cols-3 gap-3 bg-purple-50/20 dark:bg-purple-950/10 p-4 rounded-2xl border border-purple-100/30 text-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase block">Entrevistas</span>
+                      <span className="text-lg font-black text-slate-800 dark:text-slate-200">{mentorProfileDetails.metrics.totalEntrevistas}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase block">Aprobación</span>
+                      <span className="text-lg font-black text-slate-800 dark:text-slate-200">{mentorProfileDetails.metrics.tasaAprobacion}%</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase block">Calificación</span>
+                      <div className="flex items-center justify-center gap-1 mt-0.5 text-amber-500">
+                        <span className="text-sm font-black">{mentorProfileDetails.metrics.calificacionPromedio}</span>
+                        <span>★</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content Sections */}
+                <div className="space-y-5 text-slate-700 dark:text-slate-300">
+
+                  {mentorProfileDetails.bio && (
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Biografía</h4>
+                      <p className="text-xs leading-relaxed font-semibold italic bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                        &ldquo;{mentorProfileDetails.bio}&rdquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {mentorProfileDetails.especialidades && mentorProfileDetails.especialidades.length > 0 && (
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Especialidades</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {mentorProfileDetails.especialidades.map((esp: string) => (
+                          <span key={esp} className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/20 text-[#7447D7] dark:text-purple-400 text-[10px] font-bold border border-purple-100/30">
+                            {esp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mentorProfileDetails.areasExpertise && mentorProfileDetails.areasExpertise.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Áreas de Expertise</h4>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {mentorProfileDetails.areasExpertise.map((area: any) => (
+                          <div key={area.id || area.nombre} className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-[11px] font-semibold space-y-1.5">
+                            <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                              <span>{area.nombre}</span>
+                              <span className="text-[#7447D7] dark:text-purple-400">{area.aniosExperiencia} años</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6] rounded-full" style={{ width: `${Math.min(100, (area.aniosExperiencia / 15) * 100)}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mentorProfileDetails.certificaciones && mentorProfileDetails.certificaciones.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Certificaciones</h4>
+                      <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
+                        {mentorProfileDetails.certificaciones.map((cert: any) => (
+                          <div key={cert.id || cert.titulo} className="flex justify-between items-center text-xs font-semibold p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10">
+                            <div>
+                              <div className="font-bold text-slate-800 dark:text-slate-200">{cert.titulo}</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{cert.emisor}</div>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-extrabold">{cert.anio}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mentorProfileDetails.linkedinUrl && (
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                      <a
+                        href={mentorProfileDetails.linkedinUrl.startsWith("http") ? mentorProfileDetails.linkedinUrl : `https://${mentorProfileDetails.linkedinUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0077B5] hover:bg-[#006396] text-white text-xs font-bold shadow-sm transition"
+                      >
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>
+                        Ver Perfil de LinkedIn
+                      </a>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-16 text-slate-500">No se pudo recuperar el perfil del mentor.</div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="flex justify-end mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => { setShowMentorProfileModal(false); setMentorProfileDetails(null); }}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
