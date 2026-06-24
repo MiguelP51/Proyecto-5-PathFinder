@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, Sun, Moon, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
+import Link from "next/link";
 import NotificationBell from "./NotificationBell";
 import styles from "../../styles/PathMentorTopbar.module.css";
 
@@ -37,12 +39,16 @@ export default function MentorTopBar({ onMenuClick }: Props) {
         </button>
 
         {/* LOGO */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white font-bold text-base shadow-sm">P</div>
-          <span className="font-extrabold tracking-wider text-slate-800 dark:text-slate-100 text-sm">
-            PATH<span className="text-blue-500">MENTOR</span>
-          </span>
-        </div>
+        <Link href="/mentor/home">
+          <Image
+            src="/assets/logo-pf.png"
+            alt="PathFinder"
+            width={118}
+            height={40}
+            className="h-10 w-auto"
+            priority
+          />
+        </Link>
       </div>
 
       {/* RIGHT SECTION: Notification + Profile */}

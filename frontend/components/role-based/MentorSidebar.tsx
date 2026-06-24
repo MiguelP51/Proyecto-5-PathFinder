@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -76,12 +77,16 @@ export default function MentorSidebar({ open, onClose }: Props) {
 
         {/* HEADER */}
         <div className={styles.sidebarHeader}>
-          <div className={styles.logoContainer}>
-            <div className={styles.logoCircle}>P</div>
-            <h1 className={styles.logoText}>
-              PATH<span>MENTOR</span>
-            </h1>
-          </div>
+          <Link href="/mentor/home" className="flex items-center">
+            <Image
+              src="/assets/logo-pf.png"
+              alt="PathFinder"
+              width={118}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
         </div>
 
         {/* USER INFO BAR (NextAuth Session) */}
