@@ -25,6 +25,7 @@ const tipoIcon: Record<string, string> = {
   NUEVA_ENTREVISTA: '📅',
   CANCELACION: '❌',
   REAGENDACION: '🔄',
+  ENTREVISTA_REPROGRAMADA: '🔄',
   ENTREVISTA_COMPLETADA: '✅',
 };
 

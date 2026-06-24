@@ -19,6 +19,7 @@ interface Interview {
   discResult?: string;
   cvAvailable?: boolean;
   motivoCancelacion?: string;
+  feedbackComentarios?: string;
 }
 
 const CameraIcon = () => (
@@ -180,6 +181,144 @@ export default function PathMentorInterviews() {
   const [loadingDISC, setLoadingDISC] = useState(false);
   const [showDISCDetails, setShowDISCDetails] = useState(false);
 
+  // Reschedule states
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleInterview, setRescheduleInterview] = useState<Interview | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState('');
+  const [manualTimeInput, setManualTimeInput] = useState('');
+  const [mentorAvailability, setMentorAvailability] = useState<any>(null);
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [availabilityBlocks, setAvailabilityBlocks] = useState<any[]>([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [submittingReschedule, setSubmittingReschedule] = useState(false);
+
+  const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const DAYS_UPPER = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+  const RESCHEDULE_START_HOUR = 8;
+  const RESCHEDULE_HOUR_HEIGHT = 36;
+  const RESCHEDULE_HOURS = Array.from({ length: 10 }, (_, i) => i + 8);
+
+  const getWeekDates = (offset: number): Date[] => {
+    const now = new Date();
+    const day = now.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return DAYS_FULL.map((_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  };
+
+  const formatWeekRange = (dates: Date[]): string => {
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const s = dates[0];
+    const e = dates[6];
+    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear())
+      return `Semana del ${s.getDate()} al ${e.getDate()} de ${months[s.getMonth()]}, ${s.getFullYear()}`;
+    if (s.getFullYear() === e.getFullYear())
+      return `Semana del ${s.getDate()} de ${months[s.getMonth()]} al ${e.getDate()} de ${months[e.getMonth()]}, ${s.getFullYear()}`;
+    return `Semana del ${s.getDate()} de ${months[s.getMonth()]} ${s.getFullYear()} al ${e.getDate()} de ${months[e.getMonth()]} ${e.getFullYear()}`;
+  };
+
+  const rescheduleTimeToY = (time: string): number => {
+    const [h, m] = time.split(':').map(Number);
+    return ((h * 60 + m - RESCHEDULE_START_HOUR * 60) / 60) * RESCHEDULE_HOUR_HEIGHT;
+  };
+
+  const getBlocksForDay = (date: Date): any[] => {
+    const dayIndex = date.getDay();
+    const dayName = DAYS_UPPER[dayIndex === 0 ? 6 : dayIndex - 1];
+    return availabilityBlocks.filter(b => b.diaSemana === dayName);
+  };
+
+  const isDayAvailable = (date: Date): boolean => {
+    const dayIndex = date.getDay();
+    const dayName = DAYS_UPPER[dayIndex === 0 ? 6 : dayIndex - 1];
+    return availableDays.includes(dayName);
+  };
+
+  const generateSlotsForDate = (date: Date): string[] => {
+    const dayIndex = date.getDay();
+    const dayName = DAYS_UPPER[dayIndex === 0 ? 6 : dayIndex - 1];
+    const dayBlocks = availabilityBlocks.filter(b => b.diaSemana === dayName);
+    const slots: string[] = [];
+
+    for (const block of dayBlocks) {
+      const [startH, startM] = block.horaInicio.split(':').map(Number);
+      const [endH, endM] = block.horaFin.split(':').map(Number);
+      let current = startH * 60 + startM;
+      const end = endH * 60 + endM;
+
+      while (current < end) {
+        const h = Math.floor(current / 60);
+        const m = current % 60;
+        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        slots.push(timeStr);
+        current += 60;
+      }
+    }
+
+    return slots;
+  };
+
+  const weekDates = getWeekDates(weekOffset);
+
+  const handleOpenReschedule = async (interview: Interview) => {
+    setRescheduleInterview(interview);
+    setSelectedDate(null);
+    setSelectedTime('');
+    setManualTimeInput('');
+    setWeekOffset(0);
+    setIsRescheduleModalOpen(true);
+
+    if (session?.backendJwt) {
+      setLoadingAvailability(true);
+      try {
+        const data = await apiFetch<any>("/api/disponibilidad/mentor", {}, session.backendJwt);
+        setMentorAvailability(data);
+        setAvailableDays(data.diasDisponibles || []);
+        setAvailabilityBlocks(data.bloques || []);
+      } catch {
+        setAvailableDays([]);
+        setAvailabilityBlocks([]);
+      } finally {
+        setLoadingAvailability(false);
+      }
+    }
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleInterview || !selectedDate || !selectedTime) return;
+
+    const fechaStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+    setSubmittingReschedule(true);
+    try {
+      await apiFetch(`/api/entrevistas/${rescheduleInterview.id}/reprogramar`, {
+        method: "PUT",
+        body: JSON.stringify({
+          nuevaFecha: fechaStr,
+          nuevaHora: selectedTime
+        })
+      }, session?.backendJwt);
+
+      toast.success("Entrevista reprogramada exitosamente. Recargando...");
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al reprogramar la entrevista";
+      toast.error(msg);
+    } finally {
+      setSubmittingReschedule(false);
+    }
+  };
+
   const loadInterviews = async () => {
     try {
       setLoading(true);
@@ -195,7 +334,8 @@ export default function PathMentorInterviews() {
         link: item.virtualLink,
         discResult: item.discNombrePerfil,
         cvAvailable: item.cvAvailable,
-        motivoCancelacion: item.motivoCancelacion
+        motivoCancelacion: item.motivoCancelacion,
+        feedbackComentarios: item.feedbackComentarios
       }));
       setInterviews(mapped);
     } catch (err) {
@@ -224,7 +364,8 @@ export default function PathMentorInterviews() {
           link: item.virtualLink,
           discResult: item.discNombrePerfil,
           cvAvailable: item.cvAvailable,
-          motivoCancelacion: item.motivoCancelacion
+          motivoCancelacion: item.motivoCancelacion,
+          feedbackComentarios: item.feedbackComentarios
         }));
         setInterviews(mapped);
 
@@ -591,8 +732,16 @@ export default function PathMentorInterviews() {
                                setShowCVDetails(false);
                              }}
                            >
-                             👁 Ver Detalle
-                           </button>
+                            👁 Ver Detalle
+                            </button>
+                          {item.status === 'Programada' && (
+                            <button
+                              className={styles.btnActionFeedback}
+                              onClick={() => handleOpenReschedule(item)}
+                            >
+                              🔄 Reprogramar
+                            </button>
+                          )}
                           {item.status === 'Completada' && (
                             <button className={styles.btnActionFeedback}>
                               📄 Feedback
@@ -866,6 +1015,17 @@ export default function PathMentorInterviews() {
                     <span className={styles.infoLabel}>Fecha y Hora</span>
                     <span className={styles.infoValue}>
                       <ClockIcon /> {selectedDetailInterview.date} - {selectedDetailInterview.time}
+                      {selectedDetailInterview.status === 'Programada' && (
+                        <button
+                          className={styles.btnRescheduleInline}
+                          onClick={() => {
+                            handleOpenReschedule(selectedDetailInterview);
+                            setIsDetailModalOpen(false);
+                          }}
+                        >
+                          🔄 Reprogramar
+                        </button>
+                      )}
                     </span>
                   </div>
                   
@@ -1108,6 +1268,219 @@ export default function PathMentorInterviews() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* RESCHEDULE MODAL */}
+      {isRescheduleModalOpen && rescheduleInterview && (
+        <div className={styles.modalOverlay} onClick={() => setIsRescheduleModalOpen(false)}>
+          <div className={`${styles.modalContent} ${styles.rescheduleContent}`} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.modalCloseButton} onClick={() => setIsRescheduleModalOpen(false)}>
+              &times;
+            </button>
+
+            <h2 className={styles.modalTitle}>Reprogramar Entrevista</h2>
+            <p className={styles.modalDescription}>
+              Selecciona una nueva fecha y hora para la entrevista con <strong>{rescheduleInterview.studentName}</strong>
+            </p>
+
+            {/* Current Appointment */}
+            <div className={styles.rescheduleCurrentCard}>
+              <div className={styles.rescheduleCardLabel}>Cita Actual</div>
+              <div className={styles.rescheduleCardRow}>
+                <svg className={styles.rescheduleCardIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>{rescheduleInterview.date}</span>
+                <span className={styles.rescheduleArrow}>|</span>
+                <svg className={styles.rescheduleCardIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>{rescheduleInterview.time}</span>
+              </div>
+            </div>
+
+            {/* Weekly Calendar */}
+            <div className={styles.calendarSection}>
+              <div className={styles.calendarSectionTitle}>Nueva Fecha</div>
+              <div className={styles.weekNav}>
+                <button className={styles.weekNavBtn} onClick={() => setWeekOffset(weekOffset - 1)}>◀</button>
+                <span className={styles.weekNavTitle}>{formatWeekRange(weekDates)}</span>
+                <button className={styles.weekNavBtn} onClick={() => setWeekOffset(weekOffset + 1)}>▶</button>
+              </div>
+              <div className={styles.weekContainer}>
+                <div className={styles.weekTimeCol}>
+                  <div className={styles.weekTimeHeader}>Hora</div>
+                  {RESCHEDULE_HOURS.map(h => (
+                    <div key={h} className={styles.weekHourLabel}>{`${String(h).padStart(2, '0')}:00`}</div>
+                  ))}
+                </div>
+                {weekDates.map((date, idx) => {
+                  const dayIndex = date.getDay();
+                  const dayName = DAYS_SHORT[dayIndex === 0 ? 6 : dayIndex - 1];
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isPast = date < today;
+                  const isToday = date.getTime() === today.getTime();
+                  const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
+                  const hasAvailability = isDayAvailable(date);
+                  const blocks = getBlocksForDay(date);
+
+                  return (
+                    <div key={idx} className={styles.weekDayCol}>
+                      <div className={`${styles.weekDayColHeader} ${isToday ? styles.weekDayToday : ''} ${hasAvailability ? styles.weekDayColHeaderAvail : ''}`}>
+                        <span className={styles.weekDayName}>{dayName}</span>
+                        <span className={styles.weekDayNum}>{date.getDate()}</span>
+                      </div>
+                      <div className={styles.weekDayColBody}>
+                        {RESCHEDULE_HOURS.map(h => {
+                          const timeStr = `${String(h).padStart(2, '0')}:00`;
+                          return (
+                            <div
+                              key={h}
+                              className={`${styles.weekHourLine} ${isPast ? styles.weekHourLineDisabled : ''}`}
+                              onClick={() => {
+                                if (!isPast) {
+                                  setSelectedDate(date);
+                                  setSelectedTime(timeStr);
+                                  setManualTimeInput(timeStr);
+                                }
+                              }}
+                            />
+                          );
+                        })}
+                        {blocks.map(block => {
+                          const top = rescheduleTimeToY(block.horaInicio);
+                          const height = Math.max(rescheduleTimeToY(block.horaFin) - top, 8);
+                          const isBlockSelected = isSelected && selectedTime === block.horaInicio;
+                          return (
+                            <div
+                              key={block.idDisponibilidad}
+                              className={`${styles.weekBlock} ${isBlockSelected ? styles.weekBlockSelected : ''}`}
+                              style={{ top, height }}
+                              onClick={() => {
+                                if (!isPast) {
+                                  setSelectedDate(date);
+                                  setSelectedTime(block.horaInicio);
+                                  setManualTimeInput(block.horaInicio);
+                                }
+                              }}
+                            >
+                              <span className={styles.weekBlockTime}>{block.horaInicio}</span>
+                              <span className={styles.weekBlockType}>{block.tipoEntrevista}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {loadingAvailability && (
+                <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', marginTop: '8px' }}>
+                  Cargando disponibilidad...
+                </p>
+              )}
+            </div>
+
+            {/* Time Selection */}
+            {selectedDate && (
+              <div className={styles.timeSection}>
+                <div className={styles.timeSectionTitle}>Nueva Hora</div>
+                {(() => {
+                  const dayOfWeek = selectedDate.getDay();
+                  const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+                  const hasAvailability = availableDays.includes(dayNames[dayOfWeek]);
+
+                  if (hasAvailability) {
+                    const slots = generateSlotsForDate(selectedDate);
+                    return (
+                      <>
+                        <p className={styles.timeHelperText}>
+                          Tienes bloques de disponibilidad registrados para este día. Selecciona un horario o ingresa uno manualmente.
+                        </p>
+                        {slots.length > 0 && (
+                          <div className={styles.timeSlotGrid}>
+                            {slots.map(slot => (
+                              <button
+                                key={slot}
+                                className={`${styles.timeSlotBtn} ${selectedTime === slot ? styles.timeSlotBtnSelected : ''}`}
+                                onClick={() => {
+                                  setSelectedTime(slot);
+                                  setManualTimeInput(slot);
+                                }}
+                              >
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+
+                  return (
+                    <p className={styles.timeHelperText}>
+                      No tienes bloques de disponibilidad registrados para este día. Ingresa la hora manualmente.
+                    </p>
+                  );
+                })()}
+                <div className={styles.timeManualLabel}>O ingresa la hora manualmente</div>
+                <input
+                  type="text"
+                  className={styles.timeManualInput}
+                  placeholder="HH:MM (ej. 14:00)"
+                  value={manualTimeInput}
+                  onChange={(e) => {
+                    setManualTimeInput(e.target.value);
+                    setSelectedTime(e.target.value);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Summary */}
+            {selectedDate && selectedTime && (
+              <div className={styles.rescheduleSummaryCard}>
+                <div className={styles.rescheduleSummaryLabel}>Nueva Cita</div>
+                <div className={styles.rescheduleCardRow}>
+                  <svg className={styles.rescheduleCardIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span>
+                    {`${String(selectedDate.getDate()).padStart(2, '0')}/${String(selectedDate.getMonth() + 1).padStart(2, '0')}/${selectedDate.getFullYear()}`}
+                  </span>
+                  <span className={styles.rescheduleArrow}>|</span>
+                  <svg className={styles.rescheduleCardIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>{selectedTime}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className={styles.modalActions}>
+              <button className={styles.btnCancel} onClick={() => setIsRescheduleModalOpen(false)}>
+                Cancelar
+              </button>
+              <button
+                className={styles.btnSubmit}
+                disabled={!selectedDate || !selectedTime || submittingReschedule}
+                onClick={handleConfirmReschedule}
+              >
+                {submittingReschedule ? 'Reprogramando...' : 'Confirmar Reprogramación'}
+              </button>
+            </div>
           </div>
         </div>
       )}
