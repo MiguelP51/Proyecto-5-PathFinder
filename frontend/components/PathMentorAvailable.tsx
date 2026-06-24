@@ -48,6 +48,37 @@ const detectarCruceDeBloques = (dia: string, horaInicio: string, horaFin: string
   });
 };
 
+const formatMinutes = (mins: number): string =>
+  `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+
+const generateSlotsFromRange = (startTime: string, endTime: string, dur: number, desc: number): string[] => {
+  const slots: string[] = [];
+  let cursor = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  while (cursor + dur <= end) {
+    slots.push(`${formatMinutes(cursor)} - ${formatMinutes(cursor + dur)}`);
+    cursor += dur + desc;
+  }
+  return slots;
+};
+
+const splitRangeBlocks = (blocks: Block[], dur: number, desc: number): Block[] => {
+  const result: Block[] = [];
+  let nextId = Date.now();
+  blocks.forEach(b => {
+    const [hStart, hEnd] = b.time.split(' - ');
+    const slots = generateSlotsFromRange(hStart, hEnd, dur, desc);
+    if (slots.length > 1) {
+      slots.forEach(s => {
+        result.push({ id: nextId++, day: b.day, time: s, type: b.type });
+      });
+    } else {
+      result.push(b);
+    }
+  });
+  return result;
+};
+
 const getWeekDates = (offset: number) => {
   const now = new Date();
   const day = now.getDay();
@@ -134,8 +165,10 @@ export default function AvailabilityPage() {
       setLoading(true);
       const data = await apiFetch<AvailabilityResponse>('/api/disponibilidad/mentor', {}, session?.backendJwt);
       if (data) {
-        setDuracion(data.duracionEntrevista || 60);
-        setTiempoDescanso(data.tiempoEntreEntrevistas !== undefined ? data.tiempoEntreEntrevistas : 15);
+        const dur = data.duracionEntrevista || 60;
+        const desc = data.tiempoEntreEntrevistas !== undefined ? data.tiempoEntreEntrevistas : 15;
+        setDuracion(dur);
+        setTiempoDescanso(desc);
         setMaxEntrevistas(data.maxEntrevistasDia || 4);
         const mapped = (data.bloques || []).map((item) => ({
           id: item.idDisponibilidad,
@@ -143,7 +176,7 @@ export default function AvailabilityPage() {
           time: `${item.horaInicio} - ${item.horaFin}`,
           type: item.tipoEntrevista
         }));
-        setBlocks(mapped);
+        setBlocks(splitRangeBlocks(mapped, dur, desc));
       }
     } catch (err) {
       console.error('Error cargando disponibilidad:', err);
@@ -568,33 +601,35 @@ export default function AvailabilityPage() {
               {(() => {
                 if (selectedDays.length === 0) return <div className={styles.modalErrorMsg}>✗ Debes seleccionar al menos un día.</div>;
                 if (startTime >= endTime) return null;
-                const slots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
-                if (slots === 0) return <div className={styles.modalErrorMsg}>✗ El bloque es demasiado corto para una entrevista de {duracion} min (con {tiempoDescanso} min de descanso).</div>;
+                const slotTimes = generateSlotsFromRange(startTime, endTime, duracion, tiempoDescanso);
+                if (slotTimes.length === 0) return <div className={styles.modalErrorMsg}>✗ El bloque es demasiado corto para una entrevista de {duracion} min (con {tiempoDescanso} min de descanso).</div>;
                 const errors: string[] = [];
                 const successes: string[] = [];
                 selectedDays.forEach(day => {
-                  if (detectarCruceDeBloques(day, startTime, endTime, blocks)) {
-                    errors.push(`${day}: Este bloque se cruza con uno ya existente.`);
+                  if (slotTimes.some(slot => {
+                    const [s, e] = slot.split(' - ');
+                    return detectarCruceDeBloques(day, s, e, blocks);
+                  })) {
+                    errors.push(`${day}: Uno o más slots se cruzan con bloques existentes.`);
                     return;
                   }
                   let dailySlotsCount = 0;
                   blocks.forEach(b => {
                     if (b.day === day) {
-                      const [hStart, hEnd] = b.time.split(' - ');
-                      dailySlotsCount += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
+                      dailySlotsCount += 1;
                     }
                   });
-                  const totalSlots = dailySlotsCount + slots;
+                  const totalSlots = dailySlotsCount + slotTimes.length;
                   if (totalSlots > maxEntrevistas) {
                     errors.push(`${day}: Supera el límite diario (${totalSlots} entrevistas, máximo permitido: ${maxEntrevistas}).`);
                   } else {
-                    successes.push(`${day} (${slots} entrevista${slots > 1 ? 's' : ''})`);
+                    successes.push(`${day}: ${slotTimes.join(', ')} (${slotTimes.length} entrevista${slotTimes.length > 1 ? 's' : ''})`);
                   }
                 });
                 if (errors.length > 0) {
                   return <div className="space-y-1 mt-2">{errors.map((err, idx) => <div key={idx} className={styles.modalErrorMsg}>✗ {err}</div>)}</div>;
                 }
-                return <div className={styles.modalInfoMsg}>✓ Bloque válido para: {successes.join(', ')}.</div>;
+                return <div className={styles.modalInfoMsg}>✓ Bloques a generar: {successes.join(' | ')}.</div>;
               })()}
               <div className={styles.modalActions}>
                 <button className={styles.btnCancel} onClick={() => setIsModalOpen(false)}>Cancelar</button>
@@ -602,40 +637,45 @@ export default function AvailabilityPage() {
                   className={styles.btnSubmit}
                   disabled={
                     selectedDays.length === 0 || startTime >= endTime ||
-                    obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso) === 0 ||
-                    selectedDays.some(day => {
-                      if (detectarCruceDeBloques(day, startTime, endTime, blocks)) return true;
-                      let dailySlotsCount = 0;
-                      blocks.forEach(b => {
-                        if (b.day === day) {
-                          const [hStart, hEnd] = b.time.split(' - ');
-                          dailySlotsCount += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
-                        }
+                    (() => {
+                      const slotTimes = generateSlotsFromRange(startTime, endTime, duracion, tiempoDescanso);
+                      if (slotTimes.length === 0) return true;
+                      return selectedDays.some(day => {
+                        if (slotTimes.some(slot => {
+                          const [s, e] = slot.split(' - ');
+                          return detectarCruceDeBloques(day, s, e, blocks);
+                        })) return true;
+                        let dailySlotsCount = 0;
+                        blocks.forEach(b => {
+                          if (b.day === day) dailySlotsCount += 1;
+                        });
+                        return (dailySlotsCount + slotTimes.length) > maxEntrevistas;
                       });
-                      const slots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
-                      return (dailySlotsCount + slots) > maxEntrevistas;
-                    })
+                    })()
                   }
                   onClick={() => {
                     if (startTime >= endTime) { toast.error('La hora de inicio debe ser anterior a la hora de fin.'); return; }
+                    const slotTimes = generateSlotsFromRange(startTime, endTime, duracion, tiempoDescanso);
+                    if (slotTimes.length === 0) { toast.error('El bloque es demasiado corto para una entrevista.'); return; }
                     const newBlocks: Block[] = [];
                     let baseId = Date.now();
                     for (const day of selectedDays) {
-                      if (detectarCruceDeBloques(day, startTime, endTime, blocks)) { toast.error(`El bloque se cruza con un bloque existente el día ${day}.`); return; }
+                      if (slotTimes.some(slot => {
+                        const [s, e] = slot.split(' - ');
+                        return detectarCruceDeBloques(day, s, e, blocks);
+                      })) { toast.error(`Uno o más slots se cruzan con bloques existentes el día ${day}.`); return; }
                       let dailySlotsCount = 0;
                       blocks.forEach(b => {
-                        if (b.day === day) {
-                          const [hStart, hEnd] = b.time.split(' - ');
-                          dailySlotsCount += obtenerSlotsPorBloque(hStart, hEnd, duracion, tiempoDescanso);
-                        }
+                        if (b.day === day) dailySlotsCount += 1;
                       });
-                      const newSlots = obtenerSlotsPorBloque(startTime, endTime, duracion, tiempoDescanso);
-                      if (dailySlotsCount + newSlots > maxEntrevistas) { toast.error(`El bloque supera el máximo permitido de entrevistas el día ${day}.`); return; }
-                      newBlocks.push({ id: baseId++, day, time: `${startTime} - ${endTime}`, type: selectedType });
+                      if (dailySlotsCount + slotTimes.length > maxEntrevistas) { toast.error(`Supera el límite diario de ${maxEntrevistas} entrevistas el día ${day}.`); return; }
+                      slotTimes.forEach(slot => {
+                        newBlocks.push({ id: baseId++, day, time: slot, type: selectedType });
+                      });
                     }
                     setBlocks([...blocks, ...newBlocks]);
                     setIsModalOpen(false);
-                    toast.success('Bloque(s) agregado(s) con éxito.');
+                    toast.success(`Bloque(s) agregado(s) con éxito (${slotTimes.length} entrevista${slotTimes.length > 1 ? 's' : ''} por día).`);
                   }}
                 >
                   + Añadir horario
