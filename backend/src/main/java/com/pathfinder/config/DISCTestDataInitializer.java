@@ -23,110 +23,128 @@ public class DISCTestDataInitializer implements CommandLineRunner {
     private final PreguntaDISCRepository preguntaDISCRepository;
     private final OpcionPreguntaDISCRepository opcionPreguntaDISCRepository;
     private final TipoPreguntaDISCRepository tipoPreguntaDISCRepository;
-
     @Override
     public void run(String... args) {
         long count = preguntaDISCRepository.count();
-        boolean needsReseed = count != 20;
-        if (!needsReseed) {
-            java.util.Optional<PreguntaDISC> firstOpt = preguntaDISCRepository.findAll().stream().findFirst();
-            if (firstOpt.isPresent() && !firstOpt.get().getEnunciado().startsWith("Bloque")) {
-                needsReseed = true;
+        if (count == 20) {
+            log.info("El test DISC ya cuenta con 20 preguntas. Actualizando enunciados de ser necesario...");
+            List<PreguntaDISC> preguntasExistentes = preguntaDISCRepository.findAll();
+            boolean modificado = false;
+            for (PreguntaDISC p : preguntasExistentes) {
+                int orden = p.getOrdenPregunta();
+                String enunciadoEsperado;
+                if (orden >= 1 && orden <= 10) {
+                    enunciadoEsperado = orden + ". Me considero más:";
+                } else {
+                    enunciadoEsperado = orden + ". Me considero menos:";
+                }
+                if (!enunciadoEsperado.equals(p.getEnunciado())) {
+                    p.setEnunciado(enunciadoEsperado);
+                    modificado = true;
+                }
             }
+            if (modificado) {
+                preguntaDISCRepository.saveAll(preguntasExistentes);
+                log.info("Enunciados de preguntas DISC actualizados correctamente en base de datos.");
+            } else {
+                log.info("Todos los enunciados de las preguntas DISC tienen el formato correcto.");
+            }
+            return;
         }
 
-        if (needsReseed) {
-            log.info("Sembrando preguntas iniciales del test DISC...");
-            
-            // 1. Obtener o crear TipoPreguntaDISC SELECCION
-            TipoPreguntaDISC tipo = tipoPreguntaDISCRepository.findByCodigoAndActivoTrue("SELECCION")
-                    .orElseGet(() -> {
-                        TipoPreguntaDISC t = new TipoPreguntaDISC();
-                        t.setCodigo("SELECCION");
-                        t.setNombre("Seleccion de opcion");
-                        t.setDescripcion("Seleccion de una opcion unica");
-                        t.setNumeroOpciones(4);
-                        t.setActivo(true);
-                        return tipoPreguntaDISCRepository.save(t);
-                    });
+        // Si no hay 20 preguntas (siembra desde cero, por ejemplo base de datos vacía)
+        log.info("Sembrando preguntas iniciales del test DISC...");
+        
+        // 1. Obtener o crear TipoPreguntaDISC SELECCION
+        TipoPreguntaDISC tipo = tipoPreguntaDISCRepository.findByCodigoAndActivoTrue("SELECCION")
+                .orElseGet(() -> {
+                    TipoPreguntaDISC t = new TipoPreguntaDISC();
+                    t.setCodigo("SELECCION");
+                    t.setNombre("Seleccion de opcion");
+                    t.setDescripcion("Seleccion de una opcion unica");
+                    t.setNumeroOpciones(4);
+                    t.setActivo(true);
+                    return tipoPreguntaDISCRepository.save(t);
+                });
 
-            // 2. Limpiar base de datos si ya tiene preguntas viejas
+        // 2. Limpiar base de datos si ya tiene preguntas viejas
+        try {
             opcionPreguntaDISCRepository.deleteAll();
             preguntaDISCRepository.deleteAll();
-
-            // 3. Crear los 20 bloques
-            // Cada bloque tiene 4 palabras para D, I, S, C
-            String[][] bloquesMas = {
-                {"Ejecutor", "Relacionador", "Servicial", "Organizador"},
-                {"Directo", "Apasionado", "Estable", "Preciso"},
-                {"Controlador", "Popular", "Aceptado", "Cumplido"},
-                {"Impulsor", "Magnetico", "Estable", "Cuidadoso"},
-                {"Iniciador", "Persuasivo", "Pasivo", "Analitico"},
-                {"Competitivo", "Sociable", "Leal", "Exacto"},
-                {"Arriesgado", "Efusivo", "Finiquitador", "Factico (Dado a los hechos)"},
-                {"Exigente", "Alegre", "Tranquilo", "Responsable"},
-                {"Ambicioso", "Politico", "Autocontrolado", "Cauteloso"},
-                {"Pionero", "Entusiasta", "Pausado", "Conservador"}
-            };
-
-            String[][] bloquesMenos = {
-                {"Conservador", "Reflexivo", "Versatil", "Flexible"},
-                {"Indeciso", "Calculador", "Alerta", "Servicial"},
-                {"Inseguro", "Logico", "Demostrativo", "Desinhibido"},
-                {"Suave", "Suspicaz", "Preciso", "Creativo"},
-                {"Modesto", "Incisivo", "Flexible", "Intenso"},
-                {"Calculador", "Racional", "Activo", "Independiente"},
-                {"Moderado", "Esceptico", "Ignorador", "Apasionado"},
-                {"Complaciente", "Inexpresivo", "Impaciente", "Confiado"},
-                {"Pacifico", "Pesimista", "Impulsivo", "Expresivo"},
-                {"Agradable", "Parco", "Ansioso", "Poetico"}
-            };
-
-            List<PreguntaDISC> preguntas = new ArrayList<>();
-
-            // Sembrar bloques MAS (1-10)
-            for (int i = 0; i < 10; i++) {
-                PreguntaDISC p = new PreguntaDISC();
-                p.setEnunciado("Bloque " + (i + 1) + ". Me considero más:");
-                p.setTipoPreguntaDisc(tipo);
-                p.setOrdenPregunta(i + 1);
-                p.setCategoriaDisc(CategoriaDISC.D); // Dummy default
-                p.setObligatoria(true);
-                p.setActivo(true);
-
-                // Agregar opciones
-                p.getOpciones().add(crearOpcion(p, bloquesMas[i][0], CategoriaDISC.D, 1, 1));
-                p.getOpciones().add(crearOpcion(p, bloquesMas[i][1], CategoriaDISC.I, 2, 2));
-                p.getOpciones().add(crearOpcion(p, bloquesMas[i][2], CategoriaDISC.S, 3, 3));
-                p.getOpciones().add(crearOpcion(p, bloquesMas[i][3], CategoriaDISC.C, 4, 4));
-
-                preguntas.add(p);
-            }
-
-            // Sembrar bloques MENOS (11-20)
-            for (int i = 0; i < 10; i++) {
-                PreguntaDISC p = new PreguntaDISC();
-                p.setEnunciado("Bloque " + (i + 11) + ". Me considero menos:");
-                p.setTipoPreguntaDisc(tipo);
-                p.setOrdenPregunta(i + 11);
-                p.setCategoriaDisc(CategoriaDISC.D); // Dummy default
-                p.setObligatoria(true);
-                p.setActivo(true);
-
-                // Agregar opciones
-                p.getOpciones().add(crearOpcion(p, bloquesMenos[i][0], CategoriaDISC.D, 1, 1));
-                p.getOpciones().add(crearOpcion(p, bloquesMenos[i][1], CategoriaDISC.I, 2, 2));
-                p.getOpciones().add(crearOpcion(p, bloquesMenos[i][2], CategoriaDISC.S, 3, 3));
-                p.getOpciones().add(crearOpcion(p, bloquesMenos[i][3], CategoriaDISC.C, 4, 4));
-
-                preguntas.add(p);
-            }
-
-            preguntaDISCRepository.saveAll(preguntas);
-            log.info("¡Se sembraron {} bloques de preguntas DISC exitosamente!", preguntas.size());
-        } else {
-            log.info("El test DISC ya cuenta con {} preguntas sembradas con el formato correcto. Omitiendo siembra.", count);
+        } catch (Exception e) {
+            log.warn("No se pudieron eliminar las preguntas viejas debido a restricciones de clave foranea. Se intentara continuar sin eliminar.", e);
         }
+
+        // 3. Crear los 20 bloques
+        // Cada bloque tiene 4 palabras para D, I, S, C
+        String[][] bloquesMas = {
+            {"Ejecutor", "Relacionador", "Servicial", "Organizador"},
+            {"Directo", "Apasionado", "Estable", "Preciso"},
+            {"Controlador", "Popular", "Aceptado", "Cumplido"},
+            {"Impulsor", "Magnetico", "Estable", "Cuidadoso"},
+            {"Iniciador", "Persuasivo", "Pasivo", "Analitico"},
+            {"Competitivo", "Sociable", "Leal", "Exacto"},
+            {"Arriesgado", "Efusivo", "Finiquitador", "Factico (Dado a los hechos)"},
+            {"Exigente", "Alegre", "Tranquilo", "Responsable"},
+            {"Ambicioso", "Politico", "Autocontrolado", "Cauteloso"},
+            {"Pionero", "Entusiasta", "Pausado", "Conservador"}
+        };
+
+        String[][] bloquesMenos = {
+            {"Conservador", "Reflexivo", "Versatil", "Flexible"},
+            {"Indeciso", "Calculador", "Alerta", "Servicial"},
+            {"Inseguro", "Logico", "Demostrativo", "Desinhibido"},
+            {"Suave", "Suspicaz", "Preciso", "Creativo"},
+            {"Modesto", "Incisivo", "Flexible", "Intenso"},
+            {"Calculador", "Racional", "Activo", "Independiente"},
+            {"Moderado", "Esceptico", "Ignorador", "Apasionado"},
+            {"Complaciente", "Inexpresivo", "Impaciente", "Confiado"},
+            {"Pacifico", "Pesimista", "Impulsivo", "Expresivo"},
+            {"Agradable", "Parco", "Ansioso", "Poetico"}
+        };
+
+        List<PreguntaDISC> preguntas = new ArrayList<>();
+
+        // Sembrar bloques MAS (1-10)
+        for (int i = 0; i < 10; i++) {
+            PreguntaDISC p = new PreguntaDISC();
+            p.setEnunciado((i + 1) + ". Me considero más:");
+            p.setTipoPreguntaDisc(tipo);
+            p.setOrdenPregunta(i + 1);
+            p.setCategoriaDisc(CategoriaDISC.D); // Dummy default
+            p.setObligatoria(true);
+            p.setActivo(true);
+
+            // Agregar opciones
+            p.getOpciones().add(crearOpcion(p, bloquesMas[i][0], CategoriaDISC.D, 1, 1));
+            p.getOpciones().add(crearOpcion(p, bloquesMas[i][1], CategoriaDISC.I, 2, 2));
+            p.getOpciones().add(crearOpcion(p, bloquesMas[i][2], CategoriaDISC.S, 3, 3));
+            p.getOpciones().add(crearOpcion(p, bloquesMas[i][3], CategoriaDISC.C, 4, 4));
+
+            preguntas.add(p);
+        }
+
+        // Sembrar bloques MENOS (11-20)
+        for (int i = 0; i < 10; i++) {
+            PreguntaDISC p = new PreguntaDISC();
+            p.setEnunciado((i + 11) + ". Me considero menos:");
+            p.setTipoPreguntaDisc(tipo);
+            p.setOrdenPregunta(i + 11);
+            p.setCategoriaDisc(CategoriaDISC.D); // Dummy default
+            p.setObligatoria(true);
+            p.setActivo(true);
+
+            // Agregar opciones
+            p.getOpciones().add(crearOpcion(p, bloquesMenos[i][0], CategoriaDISC.D, 1, 1));
+            p.getOpciones().add(crearOpcion(p, bloquesMenos[i][1], CategoriaDISC.I, 2, 2));
+            p.getOpciones().add(crearOpcion(p, bloquesMenos[i][2], CategoriaDISC.S, 3, 3));
+            p.getOpciones().add(crearOpcion(p, bloquesMenos[i][3], CategoriaDISC.C, 4, 4));
+
+            preguntas.add(p);
+        }
+
+        preguntaDISCRepository.saveAll(preguntas);
+        log.info("¡Se sembraron {} bloques de preguntas DISC exitosamente!", preguntas.size());
     }
 
     private OpcionPreguntaDISC crearOpcion(PreguntaDISC p, String texto, CategoriaDISC cat, int valor, int orden) {

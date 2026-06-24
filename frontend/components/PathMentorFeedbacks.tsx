@@ -134,11 +134,19 @@ export default function PathMentorFeedbacks() {
   const [formComentarios, setFormComentarios] = useState('');
 
   // Competencies State
-  const [competencias, setCompetencias] = useState<any[]>([]);
+  const [allCompetencias, setAllCompetencias] = useState<any[]>([]);
+  const [selectedCompetencyNames, setSelectedCompetencyNames] = useState<string[]>([]);
   const [selectedCompetencyLevels, setSelectedCompetencyLevels] = useState<Record<string, { nivel: number; descripcion: string }>>({});
-  const [hoveredLevels, setHoveredLevels] = useState<Record<string, number>>({});
-  const [customCompetencyName, setCustomCompetencyName] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  // Custom Competency Form States
+  const [isAddingCompetency, setIsAddingCompetency] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompDesc, setNewCompDesc] = useState('');
+  const [newCompL0, setNewCompL0] = useState('');
+  const [newCompL1, setNewCompL1] = useState('');
+  const [newCompL2, setNewCompL2] = useState('');
+  const [newCompL3, setNewCompL3] = useState('');
+  const [newCompIsPermanent, setNewCompIsPermanent] = useState(false);
 
   const getLevelDescription = (comp: any, level: number): string => {
     if (level === 0) return comp.nivel0 || "Por debajo del criterio esperado";
@@ -155,26 +163,109 @@ export default function PathMentorFeedbacks() {
     }));
   };
 
-  const handleAddCustomCompetency = () => {
-    if (!customCompetencyName.trim()) return;
-    const name = customCompetencyName.trim();
-    if (competencias.some(c => c.nombre.toLowerCase() === name.toLowerCase())) {
-      toast.warning("La competencia ya existe");
+  const handleToggleCompetency = (name: string) => {
+    setSelectedCompetencyNames(prev => {
+      if (prev.includes(name)) {
+        return prev.filter(n => n !== name);
+      } else {
+        setSelectedCompetencyLevels(levels => {
+          if (!levels[name]) {
+            const comp = allCompetencias.find(c => c.nombre === name);
+            const desc = comp ? comp.nivel1 : 'Alcanza los criterios minimos';
+            return { ...levels, [name]: { nivel: 1, descripcion: desc } };
+          }
+          return levels;
+        });
+        return [...prev, name];
+      }
+    });
+  };
+
+  const handleEliminarCompetenciaDelSistema = async (id: number, name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la competencia "${name}" del catálogo del sistema?`)) {
       return;
     }
-    const newComp = {
+
+    try {
+      await apiFetch(`/api/entrevistas/competencias/${id}`, {
+        method: 'DELETE'
+      }, session?.backendJwt);
+
+      setAllCompetencias(prev => prev.filter(c => c.idCompetencia !== id));
+      setSelectedCompetencyNames(prev => prev.filter(n => n !== name));
+      setSelectedCompetencyLevels(prev => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+
+      toast.success("Competencia eliminada permanentemente del sistema");
+    } catch (err) {
+      console.error("Error eliminando competencia:", err);
+      toast.error("Error al eliminar competencia: " + (err instanceof Error ? err.message : err));
+    }
+  };
+
+  const handleCreateCompetency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompName.trim()) {
+      toast.warning("El nombre de la competencia es requerido");
+      return;
+    }
+
+    const name = newCompName.trim();
+    if (allCompetencias.some(c => c.nombre.toLowerCase() === name.toLowerCase())) {
+      toast.warning("Ya existe una competencia con ese nombre");
+      return;
+    }
+
+    const payload = {
       nombre: name,
-      descripcion: "Competencia personalizada agregada por el mentor",
-      nivel0: "Por debajo de lo esperado para esta competencia",
-      nivel1: "Alcanza el criterio basico",
-      nivel2: "Supera el nivel basico",
-      nivel3: "Excelente desempeño",
-      puesto: "Personalizado"
+      descripcion: newCompDesc.trim() || `Competencia: ${name}`,
+      nivel0: newCompL0.trim() || 'Por debajo del esperado',
+      nivel1: newCompL1.trim() || 'Alcanza los criterios mínimos',
+      nivel2: newCompL2.trim() || 'Supera los criterios mínimos',
+      nivel3: newCompL3.trim() || 'Supera las expectativas',
+      puesto: newCompIsPermanent ? 'General' : 'Temporal',
+      activo: true
     };
-    setCompetencias(prev => [...prev, newComp]);
-    setCustomCompetencyName('');
-    setShowCustomInput(false);
-    toast.success("Competencia adicional agregada");
+
+    try {
+      if (newCompIsPermanent) {
+        const saved = await apiFetch<any>('/api/entrevistas/competencias', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }, session?.backendJwt);
+        
+        setAllCompetencias(prev => [...prev, saved]);
+        setSelectedCompetencyNames(prev => [...prev, name]);
+        setSelectedCompetencyLevels(prev => ({
+          ...prev,
+          [name]: { nivel: 1, descripcion: saved.nivel1 }
+        }));
+        toast.success("Competencia agregada permanentemente al sistema");
+      } else {
+        setAllCompetencias(prev => [...prev, payload]);
+        setSelectedCompetencyNames(prev => [...prev, name]);
+        setSelectedCompetencyLevels(prev => ({
+          ...prev,
+          [name]: { nivel: 1, descripcion: payload.nivel1 }
+        }));
+        toast.success("Competencia agregada a la evaluación actual");
+      }
+
+      setIsAddingCompetency(false);
+      setNewCompName('');
+      setNewCompDesc('');
+      setNewCompL0('');
+      setNewCompL1('');
+      setNewCompL2('');
+      setNewCompL3('');
+      setNewCompIsPermanent(false);
+    } catch (err) {
+      console.error("Error al crear competencia:", err);
+      toast.error("Error al guardar competencia: " + (err instanceof Error ? err.message : err));
+    }
   };
 
   useEffect(() => {
@@ -292,11 +383,13 @@ export default function PathMentorFeedbacks() {
     
     // Initialize competencies and levels
     const mapped: Record<string, { nivel: number; descripcion: string }> = {};
-    if (item.competenciasEvaluadas) {
+    const selectedNames: string[] = [];
+    if (item.competenciasEvaluadas && item.competenciasEvaluadas.length > 0) {
       item.competenciasEvaluadas.forEach((c: any) => {
         mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+        selectedNames.push(c.nombreCompetencia);
       });
-      setCompetencias(item.competenciasEvaluadas.map((c: any) => ({
+      setAllCompetencias(item.competenciasEvaluadas.map((c: any) => ({
         nombre: c.nombreCompetencia,
         descripcion: '',
         nivel0: c.nivelSeleccionado === 0 ? c.descripcionNivel : 'Por debajo del esperado',
@@ -305,8 +398,9 @@ export default function PathMentorFeedbacks() {
         nivel3: c.nivelSeleccionado === 3 ? c.descripcionNivel : 'Supera las expectativas'
       })));
     } else {
-      setCompetencias([]);
+      setAllCompetencias([]);
     }
+    setSelectedCompetencyNames(selectedNames);
     setSelectedCompetencyLevels(mapped);
     setActiveView('form');
   };
@@ -348,15 +442,17 @@ export default function PathMentorFeedbacks() {
   const loadCompetencias = async (puesto: string, interviewId: number, mode: 'registrar' | 'editar') => {
     try {
       const res = await apiFetch<any[]>(`/api/entrevistas/competencias?puesto=${encodeURIComponent(puesto)}`, {}, session?.backendJwt);
-      setCompetencias(res || []);
+      setAllCompetencias(res || []);
       
       const mapped: Record<string, { nivel: number; descripcion: string }> = {};
+      let selectedNames: string[] = [];
       const draft = localStorage.getItem(`draft_feedback_${interviewId}`);
       const existing = feedbacks.find(f => f.id === interviewId);
       
       if (mode === 'editar' && existing && existing.competenciasEvaluadas && existing.competenciasEvaluadas.length > 0) {
         existing.competenciasEvaluadas.forEach((c: any) => {
           mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+          selectedNames.push(c.nombreCompetencia);
         });
       } else if (draft) {
         try {
@@ -364,13 +460,18 @@ export default function PathMentorFeedbacks() {
           if (parsed.competencyLevels) {
             Object.assign(mapped, parsed.competencyLevels);
           }
+          if (parsed.competencyNames) {
+            selectedNames = parsed.competencyNames;
+          }
         } catch (e) {}
       } else {
-        // Default to level 1 for each loaded competency
+        // By default, select all loaded competencies
+        selectedNames = (res || []).map(c => c.nombre);
         (res || []).forEach(c => {
           mapped[c.nombre] = { nivel: 1, descripcion: c.nivel1 || 'Alcanza los criterios minimos' };
         });
       }
+      setSelectedCompetencyNames(selectedNames);
       setSelectedCompetencyLevels(mapped);
     } catch (err) {
       console.error("Error cargando competencias:", err);
@@ -383,6 +484,7 @@ export default function PathMentorFeedbacks() {
     setFormAreasMejora('');
     setFormComentarios('');
     setSelectedCompetencyLevels({});
+    setSelectedCompetencyNames([]);
   };
 
   const handleSaveDraft = () => {
@@ -392,7 +494,8 @@ export default function PathMentorFeedbacks() {
       fortalezas: formFortalezas,
       areasMejora: formAreasMejora,
       comentarios: formComentarios,
-      competencyLevels: selectedCompetencyLevels
+      competencyLevels: selectedCompetencyLevels,
+      competencyNames: selectedCompetencyNames
     };
     localStorage.setItem(`draft_feedback_${selectedFeedback.id}`, JSON.stringify(draftData));
     toast.success("Borrador guardado localmente.");
@@ -414,11 +517,15 @@ export default function PathMentorFeedbacks() {
         comentarios: formComentarios
       });
 
-      // Map dynamic competencies
-      const compPayload = competencias.map(c => {
-        const sel = selectedCompetencyLevels[c.nombre] || { nivel: 1, descripcion: c.nivel1 };
+      // Map dynamic competencies (only the ones selected by the mentor)
+      const compPayload = selectedCompetencyNames.map(name => {
+        const c = allCompetencias.find(comp => comp.nombre === name) || {
+          nombre: name,
+          nivel1: 'Alcanza los criterios minimos'
+        };
+        const sel = selectedCompetencyLevels[name] || { nivel: 1, descripcion: c.nivel1 };
         return {
-          nombreCompetencia: c.nombre,
+          nombreCompetencia: name,
           nivelSeleccionado: sel.nivel,
           descripcionNivel: sel.descripcion
         };
@@ -778,117 +885,180 @@ export default function PathMentorFeedbacks() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    Evaluación por Competencias (Rúbrica Factorial 0-3)
+                    Evaluación por Competencias (Rúbrica 0-3)
                   </div>
                 </div>
 
                 <div className="space-y-6 mt-4">
-                  {competencias.length > 0 ? (
-                    competencias.map((comp) => {
-                      const currentSelection = selectedCompetencyLevels[comp.nombre] || { nivel: 1, descripcion: comp.nivel1 };
-                      const hoverVal = hoveredLevels[comp.nombre];
-                      const activeNivel = hoverVal !== undefined ? hoverVal : currentSelection.nivel;
-                      
-                      // Get text description of active level
-                      const activeDesc = getLevelDescription(comp, activeNivel);
+                  {/* Checkbox Selección de Dimensiones a Evaluar */}
+                  {formMode !== 'ver' && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 shadow-sm">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Dimensiones a evaluar en esta sesión:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {allCompetencias.map((comp) => {
+                          const isChecked = selectedCompetencyNames.includes(comp.nombre);
+                          return (
+                            <label
+                              key={comp.nombre}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
+                                isChecked
+                                  ? "bg-[#7447D7]/10 text-[#7447D7] border-[#7447D7]/30"
+                                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-350"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleCompetency(comp.nombre)}
+                                className="rounded text-[#7447D7] focus:ring-[#7447D7]"
+                              />
+                              <span>{comp.nombre}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-                      return (
-                        <div key={comp.nombre} className="border-b border-slate-100 pb-6 last:border-b-0 last:pb-0">
-                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  {/* Tabla con Radio Buttons de Selección */}
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                      <thead className="bg-slate-50 font-bold text-slate-600 uppercase tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4 min-w-[200px]">Dimensión a evaluar</th>
+                          <th className="px-4 py-4 text-center">0 - Por debajo</th>
+                          <th className="px-4 py-4 text-center">1 - Mínimos</th>
+                          <th className="px-4 py-4 text-center">2 - Supera</th>
+                          <th className="px-4 py-4 text-center">3 - Excelente</th>
+                          {formMode !== 'ver' && <th className="px-6 py-4 text-right">Acciones</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150">
+                        {selectedCompetencyNames.length > 0 ? (
+                          selectedCompetencyNames.map((compName) => {
+                            const comp = allCompetencias.find(c => c.nombre === compName) || {
+                              nombre: compName,
+                              descripcion: '',
+                              nivel0: 'Por debajo del esperado',
+                              nivel1: 'Alcanza los criterios mínimos',
+                              nivel2: 'Supera los criterios mínimos',
+                              nivel3: 'Supera las expectativas'
+                            };
+                            const currentSelection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
+
+                            return (
+                              <tr key={compName} className="hover:bg-slate-50/40 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="font-extrabold text-slate-800 text-sm">{compName}</div>
+                                  {comp.descripcion && <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">{comp.descripcion}</p>}
+                                </td>
+                                {[0, 1, 2, 3].map((lvl) => (
+                                  <td key={lvl} className="px-4 py-4 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`level-${compName}`}
+                                      checked={currentSelection.nivel === lvl}
+                                      onChange={() => handleSelectLevel(compName, lvl, getLevelDescription(comp, lvl))}
+                                      disabled={formMode === 'ver'}
+                                      className="h-4 w-4 text-[#7447D7] focus:ring-[#7447D7] border-slate-300 cursor-pointer"
+                                    />
+                                  </td>
+                                ))}
+                                {formMode !== 'ver' && (
+                                  <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleCompetency(compName)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                        title="Quitar de esta evaluación"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                          <line x1="18" y1="6" x2="6" y2="18" />
+                                          <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                      </button>
+                                      {comp.idCompetencia && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEliminarCompetenciaDelSistema(comp.idCompetencia, compName)}
+                                          className="p-1.5 text-slate-400 hover:text-red-700 rounded-lg hover:bg-red-50 transition cursor-pointer"
+                                          title="Eliminar permanentemente del sistema"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                          </svg>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                              Selecciona al menos una dimensión de la barra superior para iniciar la evaluación.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Rúbricas Descriptivas de los Niveles Seleccionados (Solo Lectura) */}
+                  {selectedCompetencyNames.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Criterios detallados de nivel seleccionados:</h5>
+                      {selectedCompetencyNames.map((compName) => {
+                        const comp = allCompetencias.find(c => c.nombre === compName) || {
+                          nombre: compName,
+                          descripcion: '',
+                          nivel0: 'Por debajo del esperado',
+                          nivel1: 'Alcanza los criterios mínimos',
+                          nivel2: 'Supera los criterios mínimos',
+                          nivel3: 'Supera las expectativas'
+                        };
+                        const currentSelection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
+                        const levelLabels = ["Por debajo de lo esperado", "Alcanza los criterios mínimos", "Supera los criterios mínimos", "Supera las expectativas"];
+
+                        return (
+                          <div key={compName} className="bg-slate-50/70 border border-slate-100/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                             <div className="flex-1">
-                              <h3 className="font-extrabold text-base text-slate-800">{comp.nombre}</h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">{comp.descripcion}</p>
-                            </div>
-                            
-                            {/* 0-3 buttons */}
-                            <div className="flex items-center gap-2">
-                              {[0, 1, 2, 3].map((lvl) => {
-                                const isSelected = currentSelection.nivel === lvl;
-                                const labelMap = ["Por debajo del esperado", "Alcanza criterios minimos", "Supera criterios minimos", "Supera expectativas"];
-                                
-                                return (
-                                  <button
-                                    key={lvl}
-                                    type="button"
-                                    disabled={formMode === 'ver'}
-                                    onClick={() => handleSelectLevel(comp.nombre, lvl, getLevelDescription(comp, lvl))}
-                                    onMouseEnter={() => formMode !== 'ver' && setHoveredLevels(prev => ({ ...prev, [comp.nombre]: lvl }))}
-                                    onMouseLeave={() => formMode !== 'ver' && setHoveredLevels(prev => {
-                                      const cpy = { ...prev };
-                                      delete cpy[comp.nombre];
-                                      return cpy;
-                                    })}
-                                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all duration-200 cursor-pointer ${
-                                      isSelected
-                                        ? "bg-[#7447D7] text-white border-[#7447D7] shadow-sm"
-                                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
-                                    }`}
-                                    title={labelMap[lvl]}
-                                  >
-                                    Nivel {lvl}
-                                  </button>
-                                );
-                              })}
+                              <span className="font-extrabold text-xs text-slate-800">{compName}</span>
+                              <p className="mt-1 text-xs text-slate-600 leading-relaxed font-medium">
+                                <span className={`inline-block mr-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  currentSelection.nivel === 0
+                                    ? "bg-red-50 text-red-700"
+                                    : currentSelection.nivel === 1
+                                    ? "bg-blue-50 text-blue-700"
+                                    : currentSelection.nivel === 2
+                                    ? "bg-green-50 text-green-700"
+                                    : "bg-purple-50 text-purple-700"
+                                }`}>
+                                  Nivel {currentSelection.nivel} - {levelLabels[currentSelection.nivel]}:
+                                </span>
+                                {currentSelection.descripcion}
+                              </p>
                             </div>
                           </div>
-
-                          {/* Rubric text description */}
-                          <div className="mt-3 bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-slate-600 leading-relaxed min-h-[60px] flex items-center">
-                            <p>
-                              <span className="font-bold text-[#7447D7] mr-2">
-                                Nivel {activeNivel} - {
-                                  activeNivel === 0 ? "Por debajo de lo esperado:" :
-                                  activeNivel === 1 ? "Alcanza los criterios minimos:" :
-                                  activeNivel === 2 ? "Supera los criterios minimos:" :
-                                  "Supera las expectativas:"
-                                }
-                              </span>
-                              {activeDesc}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-sm text-slate-500 italic">No hay competencias definidas para este puesto.</p>
+                        );
+                      })}
+                    </div>
                   )}
                   
-                  {/* Competencia personalizada */}
+                  {/* Botón para Añadir Competencia */}
                   {formMode !== 'ver' && (
-                    <div className="mt-6 pt-4 border-t border-dashed border-slate-200">
-                      {showCustomInput ? (
-                        <div className="flex gap-2 max-w-md">
-                          <input
-                            type="text"
-                            placeholder="Nombre de competencia adicional..."
-                            className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
-                            value={customCompetencyName}
-                            onChange={(e) => setCustomCompetencyName(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddCustomCompetency}
-                            className="bg-[#7447D7] text-white text-xs font-bold px-4 py-2 rounded-xl"
-                          >
-                            Agregar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomInput(false)}
-                            className="border border-slate-200 text-slate-500 text-xs font-bold px-3 py-2 rounded-xl"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setShowCustomInput(true)}
-                          className="text-[#7447D7] text-xs font-extrabold flex items-center gap-1.5 hover:underline"
-                        >
-                          + Agregar competencia adicional
-                        </button>
-                      )}
+                    <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCompetency(true)}
+                        className="text-[#7447D7] text-xs font-extrabold flex items-center gap-1.5 hover:underline cursor-pointer"
+                      >
+                        + Agregar competencia adicional
+                      </button>
                     </div>
                   )}
                 </div>
@@ -997,6 +1167,144 @@ export default function PathMentorFeedbacks() {
           </>
         )}
       </main>
+
+      {/* POPUP MODAL: AGREGAR NUEVA DIMENSIÓN */}
+      {isAddingCompetency && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col scale-in">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-150 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">Agregar Nueva Dimensión</h3>
+                <p className="text-xs text-slate-400 font-medium">Define una competencia y sus rúbricas de evaluación</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingCompetency(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCreateCompetency} className="flex-1 overflow-y-auto p-6 space-y-4 max-h-[70vh]">
+              <div className="space-y-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Nombre de la competencia</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Orientación a resultados"
+                  value={newCompName}
+                  onChange={(e) => setNewCompName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Descripción corta</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Capacidad para enfocar los esfuerzos hacia el logro de metas organizacionales..."
+                  value={newCompDesc}
+                  onChange={(e) => setNewCompDesc(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Definición de Niveles de Rúbrica:</span>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-red-600 block">Nivel 0 - Por debajo de lo esperado</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 0..."
+                    value={newCompL0}
+                    onChange={(e) => setNewCompL0(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-blue-600 block">Nivel 1 - Alcanza los criterios mínimos</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 1..."
+                    value={newCompL1}
+                    onChange={(e) => setNewCompL1(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-green-600 block">Nivel 2 - Supera los criterios mínimos</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 2..."
+                    value={newCompL2}
+                    onChange={(e) => setNewCompL2(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-purple-600 block">Nivel 3 - Supera las expectativas</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 3..."
+                    value={newCompL3}
+                    onChange={(e) => setNewCompL3(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-3">
+                <input
+                  id="chk-permanent"
+                  type="checkbox"
+                  checked={newCompIsPermanent}
+                  onChange={(e) => setNewCompIsPermanent(e.target.checked)}
+                  className="h-4.5 w-4.5 rounded text-[#7447D7] focus:ring-[#7447D7] border-slate-350 cursor-pointer"
+                />
+                <div className="flex-1 cursor-pointer select-none">
+                  <label htmlFor="chk-permanent" className="text-xs font-extrabold text-slate-700 block cursor-pointer">Confirmar guardado permanente</label>
+                  <span className="text-[10px] text-slate-400 font-medium block">Habilitará esta dimensión de forma global para futuras entrevistas de evaluación</span>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCompetency(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-extrabold text-slate-600 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-xl bg-[#7447D7] text-white hover:bg-[#633bc1] text-xs font-extrabold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Agregar Dimensión
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface CompetenciaRepository extends JpaRepository<Competencia, Integer> {
-    List<Competencia> findByPuestoIgnoreCase(String puesto);
+    List<Competencia> findByPuestoIgnoreCaseAndActivoTrue(String puesto);
+    List<Competencia> findByActivoTrue();
 }

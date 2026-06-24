@@ -137,25 +137,59 @@ public class EntrevistaController {
         }
     }
 
-    // GET /api/entrevistas/competencias — Obtener catálogo de competencias por puesto
+    // GET /api/entrevistas/competencias — Obtener catalogo de competencias activas por puesto
     @GetMapping("/competencias")
     public ResponseEntity<ApiResponse<List<Competencia>>> getCompetencias(
             @RequestParam(required = false) String puesto) {
         try {
             List<Competencia> lista;
             if (puesto != null && !puesto.trim().isEmpty()) {
-                lista = competenciaRepository.findByPuestoIgnoreCase(puesto.trim());
-                // Si está vacío, cargar las de puesto "General" como fallback
+                lista = competenciaRepository.findByPuestoIgnoreCaseAndActivoTrue(puesto.trim());
+                // Si esta vacio, cargar las de puesto "General" como fallback
                 if (lista.isEmpty()) {
-                    lista = competenciaRepository.findByPuestoIgnoreCase("General");
+                    lista = competenciaRepository.findByPuestoIgnoreCaseAndActivoTrue("General");
                 }
             } else {
-                lista = competenciaRepository.findAll();
+                lista = competenciaRepository.findByActivoTrue();
             }
-            return ResponseEntity.ok(ApiResponse.success("Competencias obtenidas con éxito", lista));
+            return ResponseEntity.ok(ApiResponse.success("Competencias obtenidas con exito", lista));
         } catch (Exception e) {
             log.error("Error obteniendo competencias: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener competencias"));
+        }
+    }
+
+    // POST /api/entrevistas/competencias — Crear una nueva competencia permanente
+    @PostMapping("/competencias")
+    public ResponseEntity<ApiResponse<Competencia>> crearCompetencia(@RequestBody Competencia competencia) {
+        try {
+            if (competencia.getActivo() == null) {
+                competencia.setActivo(true);
+            }
+            Competencia guardada = competenciaRepository.save(competencia);
+            return ResponseEntity.ok(ApiResponse.success("Competencia creada con exito", guardada));
+        } catch (Exception e) {
+            log.error("Error creando competencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al crear competencia"));
+        }
+    }
+
+    // DELETE /api/entrevistas/competencias/{id} — Eliminar/desactivar logicamente una competencia
+    @DeleteMapping("/competencias/{id}")
+    public ResponseEntity<ApiResponse<Void>> eliminarCompetencia(@PathVariable Integer id) {
+        try {
+            java.util.Optional<Competencia> opt = competenciaRepository.findById(id);
+            if (opt.isPresent()) {
+                Competencia comp = opt.get();
+                comp.setActivo(false);
+                competenciaRepository.save(comp);
+                return ResponseEntity.ok(ApiResponse.success("Competencia desactivada con exito", null));
+            } else {
+                return ResponseEntity.status(404).body(ApiResponse.error("Competencia no encontrada"));
+            }
+        } catch (Exception e) {
+            log.error("Error eliminando competencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al desactivar competencia"));
         }
     }
 }
