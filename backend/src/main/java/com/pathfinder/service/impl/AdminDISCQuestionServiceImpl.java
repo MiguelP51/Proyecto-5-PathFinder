@@ -28,6 +28,7 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
     private final PreguntaDISCRepository preguntaDISCRepository;
     private final TipoPreguntaDISCRepository tipoPreguntaDISCRepository;
     private final RespuestaPreguntaDISCRepository respuestaPreguntaDISCRepository;
+    private final com.pathfinder.config.DISCTestDataInitializer discTestDataInitializer;
 
     @Override
     public List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc, boolean incluirInactivas) {
@@ -230,5 +231,11 @@ public class AdminDISCQuestionServiceImpl implements AdminDISCQuestionService {
     @Override
     public List<TipoPreguntaDISC> listarTiposPregunta() {
         return tipoPreguntaDISCRepository.findByActivoTrue();
+    }
+
+    @Override
+    @Transactional
+    public void resetQuestionsAndHistory() {
+        discTestDataInitializer.resetearYSembrar();
     }
 }

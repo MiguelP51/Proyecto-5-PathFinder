@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { handleSecureLogout } from "@/lib/auth-utils";
 import {
   Layers,
   ChevronLeft,
@@ -219,7 +220,7 @@ export default function MentorSidebar({ open, onClose }: Props) {
         {/* Footer items */}
         <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-1">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => handleSecureLogout(session?.backendJwt)}
             className="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-red-500 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950/20"
           >
             <LogOut className="h-5 w-5" />
@@ -230,3 +231,4 @@ export default function MentorSidebar({ open, onClose }: Props) {
     </>
   );
 }
+

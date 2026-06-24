@@ -7,10 +7,13 @@ import com.pathfinder.model.enums.CategoriaDISC;
 import com.pathfinder.repository.OpcionPreguntaDISCRepository;
 import com.pathfinder.repository.PreguntaDISCRepository;
 import com.pathfinder.repository.TipoPreguntaDISCRepository;
+import com.pathfinder.repository.RespuestaPreguntaDISCRepository;
+import com.pathfinder.repository.ResultadoDISCRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +26,11 @@ public class DISCTestDataInitializer implements CommandLineRunner {
     private final PreguntaDISCRepository preguntaDISCRepository;
     private final OpcionPreguntaDISCRepository opcionPreguntaDISCRepository;
     private final TipoPreguntaDISCRepository tipoPreguntaDISCRepository;
+    private final RespuestaPreguntaDISCRepository respuestaPreguntaDISCRepository;
+    private final ResultadoDISCRepository resultadoDISCRepository;
+
     @Override
+    @Transactional
     public void run(String... args) {
         long count = preguntaDISCRepository.count();
         if (count == 20) {
@@ -52,7 +59,12 @@ public class DISCTestDataInitializer implements CommandLineRunner {
             return;
         }
 
-        // Si no hay 20 preguntas (siembra desde cero, por ejemplo base de datos vacía)
+        // Si no hay exactamente 20 preguntas, ejecutar limpieza y siembra
+        resetearYSembrar();
+    }
+
+    @Transactional
+    public void resetearYSembrar() {
         log.info("Sembrando preguntas iniciales del test DISC...");
         
         // 1. Obtener o crear TipoPreguntaDISC SELECCION
@@ -67,14 +79,22 @@ public class DISCTestDataInitializer implements CommandLineRunner {
                     return tipoPreguntaDISCRepository.save(t);
                 });
 
-        // 2. Limpiar base de datos si ya tiene preguntas viejas
+        // 2. Limpiar base de datos incondicionalmente de forma ordenada
         try {
+            log.info("Limpiando historial antiguo de respuestas y resultados DISC de los estudiantes...");
+            respuestaPreguntaDISCRepository.deleteAll();
+            resultadoDISCRepository.deleteAll();
             opcionPreguntaDISCRepository.deleteAll();
             preguntaDISCRepository.deleteAll();
+            log.info("Limpieza de tablas DISC finalizada con éxito.");
         } catch (Exception e) {
-            log.warn("No se pudieron eliminar las preguntas viejas debido a restricciones de clave foranea. Se intentara continuar sin eliminar.", e);
+            log.error("Error al limpiar tablas de datos DISC antes de la siembra.", e);
         }
 
+        sembrarPreguntas(tipo);
+    }
+
+    private void sembrarPreguntas(TipoPreguntaDISC tipo) {
         // 3. Crear los 20 bloques
         // Cada bloque tiene 4 palabras para D, I, S, C
         String[][] bloquesMas = {
