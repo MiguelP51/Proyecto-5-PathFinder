@@ -17,7 +17,7 @@ import {
   type SkillItem,
 } from "@/components/profile-setup/skills-languages-tools-section";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import MentorProfileForm from "@/components/mentor/mentor-profile-form";
 import { toast } from "sonner";
@@ -56,6 +56,29 @@ interface CVExtractadoDTO {
 }
 
 
+interface AiCvSuggestionsResponse {
+  resumenGeneral?: string;
+  perfilProfesionalSugerido?: string;
+  accionesPrioritarias?: Array<{
+    titulo?: string;
+    motivo?: string;
+    accion?: string;
+  }>;
+  camposPorCompletar?: string[];
+  sugerencias?: Array<{
+    seccion?: string;
+    prioridad?: string;
+    observacion?: string;
+    recomendacion?: string;
+  }>;
+  camposDebiles?: string[];
+  versionesMejoradas?: Array<{
+    campo?: string;
+    valorActual?: string;
+    sugerencia?: string;
+  }>;
+  advertencias?: string[];
+}
 type SkillLevel = "Básico" | "Intermedio" | "Avanzado";
 
 function normalizeLevel(raw?: string): SkillLevel {
@@ -241,6 +264,8 @@ export default function ProfileSetupPage() {
   const [hasSavedProfile, setHasSavedProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
   const [isProfileConfirmed, setIsProfileConfirmed] = useState(false);
+  const [isGeneratingAiSuggestions, setIsGeneratingAiSuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AiCvSuggestionsResponse | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
   // Photo
@@ -440,6 +465,36 @@ export default function ProfileSetupPage() {
 
 
   // ── Guardar CV en BD ───────────────────────────────────────────────────────
+  const handleGenerateAiSuggestions = async () => {
+    const backendJwt = (session as { backendJwt?: string } | null)?.backendJwt;
+    if (!backendJwt) return;
+
+    setIsGeneratingAiSuggestions(true);
+    setAiSuggestions(null);
+
+    try {
+      const response = await apiFetch<AiCvSuggestionsResponse>(
+        "/api/ai/estudiante/perfil-cv/sugerencias",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            puestoObjetivo: personalData.objetivosLaborales || personalData.interesesProfesionales || null,
+            tono: "profesional",
+            incluirEjemplos: true,
+          }),
+        },
+        backendJwt,
+      );
+
+      setAiSuggestions(response);
+      toast.success("Sugerencias generadas.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudieron generar sugerencias");
+    } finally {
+      setIsGeneratingAiSuggestions(false);
+    }
+  };
+
   const validateForm = (): boolean => {
     // 1. Datos Personales
     if (!personalData.fullName.trim()) {
@@ -971,6 +1026,100 @@ export default function ProfileSetupPage() {
               disabled={!isEditing}
               onDownloadCV={handleDownloadCV}
             />
+
+            <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-[#643781]">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#0E3E66]">Sugerencias para tu CV</h3>
+                  <p className="text-sm text-slate-500">Ideas revisables para fortalecer tu perfil.</p>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleGenerateAiSuggestions}
+                disabled={isGeneratingAiSuggestions || isProcessingCV}
+                className="w-full bg-[#643781] text-white hover:bg-[#552a70]"
+              >
+                {isGeneratingAiSuggestions ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generar sugerencias
+                  </>
+                )}
+              </Button>
+
+              {aiSuggestions && (
+                <div className="mt-5 space-y-4 text-sm">
+                  {aiSuggestions.resumenGeneral && (
+                    <div className="rounded-xl bg-slate-50 p-3 text-slate-700">
+                      {aiSuggestions.resumenGeneral}
+                    </div>
+                  )}
+
+                  {aiSuggestions.accionesPrioritarias && aiSuggestions.accionesPrioritarias.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Acciones prioritarias</p>
+                      {aiSuggestions.accionesPrioritarias.slice(0, 2).map((item, index) => (
+                        <div key={`${item.titulo}-${index}`} className="rounded-xl border border-slate-100 p-3">
+                          <p className="font-semibold text-slate-800">{item.titulo || "Accion sugerida"}</p>
+                          {item.motivo && <p className="mt-1 text-slate-500">{item.motivo}</p>}
+                          {item.accion && <p className="mt-2 text-slate-700">{item.accion}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!aiSuggestions.accionesPrioritarias || aiSuggestions.accionesPrioritarias.length === 0)
+                    && aiSuggestions.sugerencias && aiSuggestions.sugerencias.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Recomendaciones</p>
+                      {aiSuggestions.sugerencias.slice(0, 4).map((item, index) => (
+                        <div key={`${item.seccion}-${index}`} className="rounded-xl border border-slate-100 p-3">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <span className="font-semibold text-slate-800">{item.seccion || "General"}</span>
+                            {item.prioridad && (
+                              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-[#643781]">
+                                {item.prioridad}
+                              </span>
+                            )}
+                          </div>
+                          {item.observacion && <p className="text-slate-500">{item.observacion}</p>}
+                          {item.recomendacion && <p className="mt-2 text-slate-700">{item.recomendacion}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {aiSuggestions.perfilProfesionalSugerido && (
+                    <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#643781]">Perfil sugerido</p>
+                      <p className="mt-2 text-slate-700">{aiSuggestions.perfilProfesionalSugerido}</p>
+                    </div>
+                  )}
+
+                  {((aiSuggestions.camposPorCompletar && aiSuggestions.camposPorCompletar.length > 0)
+                    || (aiSuggestions.camposDebiles && aiSuggestions.camposDebiles.length > 0)) && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Por completar</p>
+                      <ul className="space-y-1 text-slate-600">
+                        {(aiSuggestions.camposPorCompletar || aiSuggestions.camposDebiles || []).slice(0, 4).map((item, index) => (
+                          <li key={`${item}-${index}`}>- {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-[#0E3E66] to-[#643781] p-6 text-white shadow-sm">
               <h3 className="mb-3 font-semibold">💡 Consejos</h3>

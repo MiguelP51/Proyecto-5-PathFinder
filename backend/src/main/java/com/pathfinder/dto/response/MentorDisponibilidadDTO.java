@@ -18,4 +18,6 @@ public class MentorDisponibilidadDTO {
     private String perfilProfesional;
     private String celular;
     private String correoContacto;
+    private Double calificacionPromedio;
+    private Integer totalEvaluaciones;
 }

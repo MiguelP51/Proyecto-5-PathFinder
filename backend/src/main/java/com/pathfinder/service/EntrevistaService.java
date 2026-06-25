@@ -16,6 +16,6 @@ public interface EntrevistaService {
     void archivarEntrevistasEstudiante(String correoEstudiante);
 
     EntrevistaResponseDTO reprogramar(Integer idEntrevista, String correoMentor, ReprogramarEntrevistaRequest request);
-
     MentorMetricsResponseDTO obtenerMetricas(String correoMentor, String periodo);
+    List<EntrevistaResponseDTO> obtenerHistorialEstudiante(String correoEstudiante);
 }

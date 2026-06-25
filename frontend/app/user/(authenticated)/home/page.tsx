@@ -63,6 +63,10 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [hasLocalProgress, setHasLocalProgress] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<any | null>(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const handleResetProgress = async () => {
     const confirmReset = window.confirm(
@@ -97,6 +101,22 @@ export default function StudentDashboard() {
     }
   }, [status, session]);
 
+  useEffect(() => {
+    if (session?.user?.email) {
+      const savedAnswers = localStorage.getItem(`disc_answers_${session.user.email}`);
+      if (savedAnswers) {
+        try {
+          const parsed = JSON.parse(savedAnswers);
+          if (parsed && Object.keys(parsed).length > 0) {
+            setHasLocalProgress(true);
+          }
+        } catch (e) {
+          console.error("Error parsing saved DISC answers:", e);
+        }
+      }
+    }
+  }, [session]);
+
   const loadStudentStatus = async () => {
     try {
       setLoading(true);
@@ -117,6 +137,7 @@ export default function StudentDashboard() {
       setStudentStatus(data);
 
       // Cargar entrevista activa si está en etapa de agendamiento o posterior
+      let currentActiveId: number | null = null;
       try {
         const interviewData = await apiFetch<any>(
           "/api/entrevistas/estudiante",
@@ -124,8 +145,26 @@ export default function StudentDashboard() {
           session?.backendJwt
         );
         setActiveInterview(interviewData);
+        if (interviewData) {
+          currentActiveId = interviewData.idEntrevista;
+        }
       } catch (err) {
         console.log("No se pudo cargar la entrevista activa del estudiante:", err);
+      }
+
+      // Cargar historial
+      try {
+        const historyData = await apiFetch<any[]>(
+          "/api/entrevistas/estudiante/historial",
+          {},
+          session?.backendJwt
+        );
+        const completedHistory = (historyData || []).filter(
+          (e: any) => e.estado === "Completada" && e.idEntrevista !== currentActiveId
+        );
+        setHistory(completedHistory);
+      } catch (err) {
+        console.error("Error cargando historial de entrevistas:", err);
       }
     } catch (err) {
       console.error("Error cargando estado del estudiante:", err);
@@ -314,7 +353,7 @@ export default function StudentDashboard() {
                 <Award className="h-6 w-6" />
               </div>
               <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block">ANUNCIO: EVALUACIÓN DISPONIBLE</span>
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block">ANUNCIO: RETROALIMENTACIÓN DISPONIBLE</span>
                 <p className="text-sm font-bold text-slate-800 mt-0.5">
                   ¡Tu mentor <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ha publicado la retroalimentación de tu entrevista!
                 </p>
@@ -445,7 +484,7 @@ export default function StudentDashboard() {
                     <Brain className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-800">Evaluación Psicométrica DISC</h3>
+                    <h3 className="text-lg font-bold text-slate-800">Prueba Psicométrica DISC</h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-600">
                       Descubre tu perfil de comportamiento natural bajo 4 dimensiones clave para encontrar tu mejor ajuste laboral.
                     </p>
@@ -466,7 +505,7 @@ export default function StudentDashboard() {
                     href="/user/app/disc-intro"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-5 text-sm font-bold text-white transition hover:opacity-90 shadow-md shadow-purple-200/50"
                   >
-                    Iniciar prueba
+                    {hasLocalProgress ? "Continuar prueba" : "Iniciar prueba"}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : (
@@ -560,7 +599,164 @@ export default function StudentDashboard() {
           </div>
         </section>
 
+        {/* Historial de Simulaciones Anteriores */}
+        {history.length > 0 && (
+          <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+            <h2 className="text-xl font-extrabold text-slate-800 mb-4">Historial de Simulaciones Anteriores</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Consulta las retroalimentaciones y observaciones que recibiste en tus simulaciones de entrevistas pasadas.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
+                  <tr>
+                    <th className="py-3 px-4">Fecha</th>
+                    <th className="py-3 px-4">Mentor</th>
+                    <th className="py-3 px-4">Puesto</th>
+                    <th className="py-3 px-4">Resultado</th>
+                    <th className="py-3 px-4 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {history.map((h) => (
+                    <tr key={h.idEntrevista} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{formatFecha(h.fecha)}</td>
+                      <td className="py-3.5 px-4 font-semibold">{h.mentorNombre}</td>
+                      <td className="py-3.5 px-4 font-semibold">{h.puesto || "General"}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-purple-100 text-purple-800 uppercase">
+                          {h.resultado || "Completada"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedHistoryItem(h);
+                            setShowHistoryModal(true);
+                          }}
+                          className="text-xs font-bold text-[#7447D7] hover:underline cursor-pointer"
+                        >
+                          Ver Informe
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
       </main>
+
+      {/* MODAL: HISTORIAL DE FEEDBACK */}
+      {showHistoryModal && selectedHistoryItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-slate-200 flex flex-col p-6 relative">
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => { setShowHistoryModal(false); setSelectedHistoryItem(null); }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Modal Content */}
+            <div className="space-y-6">
+              <div className="pb-4 border-b border-slate-100 space-y-1">
+                <span className="text-[10px] font-black uppercase text-[#7447D7] tracking-wider block">Informe de Retroalimentación Histórico</span>
+                <h3 className="text-xl font-black text-slate-900">
+                  Simulación del {formatFecha(selectedHistoryItem.fecha)}
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  Mentor: {selectedHistoryItem.mentorNombre} | Puesto: {selectedHistoryItem.puesto || "General"}
+                </p>
+              </div>
+
+              {/* Competencias - 100% Ancho al inicio */}
+              <div className="rounded-2xl border border-purple-100 bg-purple-50/20 p-5 space-y-4">
+                <h4 className="text-xs font-black text-[#7447D7] uppercase tracking-wider">Desempeño por Competencias</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    { label: "Comunicación", score: selectedHistoryItem.competenciaComunicacion },
+                    { label: "Competencia Técnica / Razonamiento", score: selectedHistoryItem.competenciaTecnica },
+                    { label: "Proactividad e Iniciativa", score: selectedHistoryItem.competenciaProactividad },
+                    { label: "Resolución de Problemas", score: selectedHistoryItem.competenciaResolucion },
+                  ].map((comp, idx) => (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-bold text-slate-700">
+                        <span>{comp.label}</span>
+                        <span className="text-[#7447D7]">{comp.score}/5</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6] rounded-full"
+                          style={{ width: `${((comp.score || 0) / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {selectedHistoryItem.resultado && (
+                  <div className="pt-4 border-t border-purple-100/30 flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-500">Probabilidad de éxito en postulación recomendada:</span>
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 bg-purple-100 text-[#7447D7] uppercase">
+                      {selectedHistoryItem.resultado}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Comentarios del Mentor */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Comentarios y Observaciones del Mentor</h4>
+                <p className="text-xs leading-relaxed font-semibold italic bg-slate-50 p-4 rounded-2xl border border-slate-100 text-slate-600">
+                  &ldquo;{selectedHistoryItem.feedbackComentarios || "Sin comentarios adicionales."}&rdquo;
+                </p>
+              </div>
+
+              {/* Competencias Detalladas */}
+              {selectedHistoryItem.competenciasEvaluadas && selectedHistoryItem.competenciasEvaluadas.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Desglose Detallado</h4>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                    {selectedHistoryItem.competenciasEvaluadas.map((comp: any, idx: number) => (
+                      <div key={idx} className="p-3 rounded-xl border border-slate-100 bg-slate-50/40 text-xs font-semibold space-y-1">
+                        <div className="flex justify-between font-bold text-slate-800">
+                          <span>{comp.nombreCompetencia}</span>
+                          <span className="text-[#7447D7]">Nivel {comp.nivelSeleccionado}</span>
+                        </div>
+                        <p className="text-slate-500 leading-relaxed font-medium">{comp.descripcionNivel}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end mt-6 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setShowHistoryModal(false); setSelectedHistoryItem(null); }}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

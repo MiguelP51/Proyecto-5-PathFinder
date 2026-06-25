@@ -28,6 +28,7 @@ public class MentorProfileServiceImpl implements MentorProfileService {
     private final MentorCertificacionRepository mentorCertificacionRepository;
     private final MentorEspecialidadRepository mentorEspecialidadRepository;
     private final EntrevistaRepository entrevistaRepository;
+    private final RespuestaEncuestaRepository respuestaEncuestaRepository;
 
     @Override
     public MentorProfileResponse obtenerPerfil(String correo) {
@@ -162,9 +163,26 @@ public class MentorProfileServiceImpl implements MentorProfileService {
                     return Math.round(prom * 10.0) / 10.0;
                 })
                 .sum();
-        long conFeedback = entrevistas.stream()
+        double conFeedback = entrevistas.stream()
                 .filter(e -> e.getCompetenciaComunicacion() != null).count();
-        double promedio = conFeedback > 0 ? Math.round(sumaCalificaciones / conFeedback * 10.0) / 10.0 : 0.0;
+        
+        double promedio = 0.0;
+        Usuario mentor = usuarioRepository.findByCorreo(correo).orElse(null);
+        if (mentor != null) {
+            List<RespuestaEncuesta> respuestas = respuestaEncuestaRepository.findByEntrevista_Mentor_IdUsuario(mentor.getIdUsuario());
+            List<RespuestaEncuesta> calificacionesMentor = respuestas.stream()
+                    .filter(r -> r.getPregunta().getTextoPregunta().contains("calificarías al PathMentor") || r.getPregunta().getTextoPregunta().contains("calificarías al mentor"))
+                    .filter(r -> r.getValorEntero() != null)
+                    .toList();
+            if (!calificacionesMentor.isEmpty()) {
+                double sum = calificacionesMentor.stream().mapToDouble(RespuestaEncuesta::getValorEntero).sum();
+                promedio = Math.round((sum / calificacionesMentor.size()) * 10.0) / 10.0;
+            } else {
+                promedio = conFeedback > 0 ? Math.round(sumaCalificaciones / conFeedback * 10.0) / 10.0 : 0.0;
+            }
+        } else {
+            promedio = conFeedback > 0 ? Math.round(sumaCalificaciones / conFeedback * 10.0) / 10.0 : 0.0;
+        }
 
         int totalAnios = 0;
         if (profile != null && profile.getAreasExpertise() != null) {

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Brain, ArrowLeft, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Opcion {
   idOpcionPreguntaDisc: number;
@@ -219,14 +220,28 @@ export default function DiscTestPage() {
         
         {/* Header con título y progreso */}
         <section className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-md">
-              <Brain className="h-6 w-6" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-md">
+                <Brain className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-slate-800">Evaluación Psicométrica DISC</h1>
+                <p className="text-sm text-slate-500">Mapea tu estilo conductual natural</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-800">Evaluación Psicométrica DISC</h1>
-              <p className="text-sm text-slate-500">Mapea tu estilo conductual natural</p>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (session?.user?.email) {
+                  toast.success("Tu avance ha sido guardado localmente.");
+                }
+                router.push("/user/home");
+              }}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 text-xs font-bold text-slate-600 transition duration-150 cursor-pointer shadow-sm"
+            >
+              Guardar y Salir
+            </button>
           </div>
 
           {/* Barra de progreso interactiva */}

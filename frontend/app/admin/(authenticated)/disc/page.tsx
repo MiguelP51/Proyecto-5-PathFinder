@@ -218,7 +218,7 @@ export default function DISCQuestionsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/30 p-6 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50/30 p-6 md:p-8 max-w-7xl mx-auto space-y-8">
       {/* Encabezado Principal */}
       <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-6">
         <div>
@@ -538,10 +538,10 @@ export default function DISCQuestionsPage() {
                               <p className="text-[11px] text-slate-400 mt-1 max-w-xs">{comp.descripcion}</p>
                             )}
                           </td>
-                          <td className="px-6 py-4 min-w-[180px] font-medium text-slate-500 leading-relaxed">{comp.nivel0}</td>
-                          <td className="px-6 py-4 min-w-[180px] font-medium text-slate-500 leading-relaxed">{comp.nivel1}</td>
-                          <td className="px-6 py-4 min-w-[180px] font-medium text-slate-500 leading-relaxed">{comp.nivel2}</td>
-                          <td className="px-6 py-4 min-w-[180px] font-medium text-slate-500 leading-relaxed">{comp.nivel3}</td>
+                          <td className="px-6 py-4 min-w-[140px] font-medium text-slate-500 leading-relaxed">{comp.nivel0}</td>
+                          <td className="px-6 py-4 min-w-[140px] font-medium text-slate-500 leading-relaxed">{comp.nivel1}</td>
+                          <td className="px-6 py-4 min-w-[140px] font-medium text-slate-500 leading-relaxed">{comp.nivel2}</td>
+                          <td className="px-6 py-4 min-w-[140px] font-medium text-slate-500 leading-relaxed">{comp.nivel3}</td>
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => handleEliminarCompetencia(comp.idCompetencia, comp.nombre)}

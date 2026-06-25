@@ -24,6 +24,10 @@ public class RespuestaEncuesta extends AuditoriaBase {
     @JoinColumn(name = "id_pregunta", nullable = false)
     private PreguntaEncuesta pregunta;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_entrevista", nullable = true)
+    private Entrevista entrevista;
+
     @Column(name = "valor_entero")
     private Integer valorEntero; // Para puntuaciones (1-5)
 

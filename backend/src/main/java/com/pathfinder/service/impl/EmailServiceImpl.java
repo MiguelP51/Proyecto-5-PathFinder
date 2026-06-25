@@ -15,7 +15,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Override
-    public boolean enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String tipo, String enlace) {
+    public boolean enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String mentorCorreo, String fecha, String hora, String tipo, String enlace) {
         log.info("Enviando correo real de confirmación de entrevista para: {}", destinatario);
         
         try {
@@ -29,13 +29,19 @@ public class EmailServiceImpl implements EmailService {
                 .append("Detalles de la Cita:\n")
                 .append("  Mentor: ").append(mentorNombre).append("\n")
                 .append("  Fecha: ").append(fecha).append("\n")
-                .append("  Hora: ").append(hora).append(" hs\n")
-                .append("  Modalidad: ").append(tipo).append("\n");
+                .append("  Hora: ").append(hora).append(" hs\n");
             
-            if (enlace != null && !enlace.isEmpty()) {
-                text.append("  Enlace Virtual: ").append(enlace).append("\n");
+            if ("presencial".equalsIgnoreCase(tipo)) {
+                text.append("  Modalidad: Presencial. Por favor ponte en contacto con tu PathMentor en ")
+                    .append(mentorCorreo)
+                    .append(" para acordar el lugar físico de encuentro en el campus.\n");
             } else {
-                text.append("  Enlace Virtual: Pendiente de registrar por el mentor.\n");
+                text.append("  Modalidad: ").append(tipo).append("\n");
+                if (enlace != null && !enlace.isEmpty()) {
+                    text.append("  Enlace Virtual: ").append(enlace).append("\n");
+                } else {
+                    text.append("  Enlace Virtual: Pendiente de registrar por el mentor.\n");
+                }
             }
             
             text.append("\n¡Prepárate adecuadamente y ten tu CV listo!\n\n")

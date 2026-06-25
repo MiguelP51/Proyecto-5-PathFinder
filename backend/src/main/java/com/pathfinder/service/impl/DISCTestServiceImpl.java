@@ -183,41 +183,26 @@ public class DISCTestServiceImpl implements DISCTestService {
         if (s >= 12) return "S";
         if (c >= 12) return "C";
 
-        // Combine the top factors
+        // Combine exactly the top 2 factors
         List<Map.Entry<String, Integer>> factors = new ArrayList<>();
         factors.add(Map.entry("D", d));
         factors.add(Map.entry("I", i));
         factors.add(Map.entry("S", s));
         factors.add(Map.entry("C", c));
 
-        factors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+        // Sort by value descending. In case of tie, sort alphabetically (D, I, S, C)
+        factors.sort((a, b) -> {
+            int valCompare = b.getValue().compareTo(a.getValue());
+            if (valCompare != 0) return valCompare;
+            return a.getKey().compareTo(b.getKey());
+        });
 
-        int s0 = factors.get(0).getValue();
-        int s1 = factors.get(1).getValue();
-        int s2 = factors.get(2).getValue();
-        int s3 = factors.get(3).getValue();
+        List<String> chosen = new ArrayList<>();
+        chosen.add(factors.get(0).getKey());
+        chosen.add(factors.get(1).getKey());
+        chosen.sort(Comparator.naturalOrder()); // To maintain "D", "I", "S", "C" ordering
 
-        if (s0 == s3) {
-            return "Ninguno";
-        }
-
-        Set<String> selected = new HashSet<>();
-        selected.add(factors.get(0).getKey());
-
-        if (s0 > s1 && s1 == s2) {
-            selected.add(factors.get(1).getKey());
-            selected.add(factors.get(2).getKey());
-        } else if (s0 == s1 && s1 == s2) {
-            selected.add(factors.get(1).getKey());
-            selected.add(factors.get(2).getKey());
-        } else {
-            selected.add(factors.get(1).getKey());
-        }
-
-        List<String> order = List.of("D", "I", "S", "C");
-        return order.stream()
-                .filter(selected::contains)
-                .collect(Collectors.joining(" + "));
+        return String.join(" + ", chosen);
     }
 
     private ResultadoDISCResponseDTO buildResultadoResponse(ResultadoDISC resultado) {

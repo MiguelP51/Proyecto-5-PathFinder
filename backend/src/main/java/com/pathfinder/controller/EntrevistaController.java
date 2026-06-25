@@ -98,6 +98,19 @@ public class EntrevistaController {
         }
     }
 
+    // GET /api/entrevistas/estudiante/historial — Obtener historial de entrevistas (activas e inactivas) del estudiante
+    @GetMapping("/estudiante/historial")
+    public ResponseEntity<ApiResponse<List<EntrevistaResponseDTO>>> getEstudianteInterviewHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<EntrevistaResponseDTO> historial = entrevistaService.obtenerHistorialEstudiante(userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Historial de entrevistas obtenido con éxito", historial));
+        } catch (Exception e) {
+            log.error("Error obteniendo historial de entrevistas del estudiante: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener el historial de entrevistas"));
+        }
+    }
+
     // GET /api/entrevistas/mentor — Obtener lista de entrevistas del mentor logueado (HU-PM-03)
     @GetMapping("/mentor")
     public ResponseEntity<ApiResponse<List<EntrevistaResponseDTO>>> getMentorInterviews(

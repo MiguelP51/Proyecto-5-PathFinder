@@ -27,12 +27,21 @@ interface Mentor {
   perfilProfesional?: string | null;
   celular?: string | null;
   correoContacto?: string | null;
+  calificacionPromedio?: number | null;
+  totalEvaluaciones?: number | null;
 }
 
 interface HolidayDTO {
   fecha: string;
   descripcion: string;
 }
+
+const PRESET_ROLES = [
+  "Analista de RRHH",
+  "Analista de Marketing",
+  "Analista Financiero",
+  "Consultor de Negocios"
+];
 
 export default function SimulationSchedulePage() {
   const { data: session, status } = useSession();
@@ -41,6 +50,7 @@ export default function SimulationSchedulePage() {
   // Data states
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [selectedRoleType, setSelectedRoleType] = useState<string>("");
 
   // Date range states
   const [startDate, setStartDate] = useState("");
@@ -149,7 +159,13 @@ export default function SimulationSchedulePage() {
       apiFetch<any>("/api/profile", {}, session.backendJwt)
         .then(profile => {
           if (profile && profile.interesesProfesionales) {
-            setPuestoInteres(profile.interesesProfesionales);
+            const interest = profile.interesesProfesionales.trim();
+            setPuestoInteres(interest);
+            if (PRESET_ROLES.includes(interest)) {
+              setSelectedRoleType(interest);
+            } else if (interest !== "") {
+              setSelectedRoleType("Otros");
+            }
           }
         })
         .catch(err => console.log("Error loading profile interests:", err));
@@ -401,7 +417,16 @@ export default function SimulationSchedulePage() {
                       />
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">{mentor.nombreCompleto}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{mentor.correo}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-xs">
+                          {mentor.calificacionPromedio !== undefined && mentor.calificacionPromedio !== null && mentor.calificacionPromedio > 0 ? (
+                            <>
+                              <span className="text-amber-500 font-bold">★ {mentor.calificacionPromedio.toFixed(1)}</span>
+                              <span className="text-slate-400 font-medium">({mentor.totalEvaluaciones || 0} {mentor.totalEvaluaciones === 1 ? 'evaluación' : 'evaluaciones'})</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-medium">★ -- (Sin evaluaciones)</span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}
@@ -620,18 +645,70 @@ export default function SimulationSchedulePage() {
                         Presencial
                       </button>
                     </div>
+                    {modality === "presencial" && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                        💡 <strong>Coordinación Presencial:</strong> Deberás ponerte en contacto con tu mentor por correo electrónico ({selectedMentor?.correo || "correo de contacto"}) para coordinar el lugar de encuentro.
+                      </div>
+                    )}
                   </div>
 
-                  {/* Position Input */}
-                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  {/* Position Selector */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
                     <span className="text-xs text-slate-400 block uppercase font-bold">Puesto al que Postulas</span>
-                    <input
-                      type="text"
-                      placeholder="Ej: Marketing, RRHH"
-                      value={puestoInteres}
-                      onChange={(e) => setPuestoInteres(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-                    />
+                    
+                    {/* Chips Navbar */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {PRESET_ROLES.map((role) => {
+                        const isSelected = selectedRoleType === role;
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => {
+                              setSelectedRoleType(role);
+                              setPuestoInteres(role);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                              isSelected
+                                ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
+                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-350"
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRoleType("Otros");
+                          if (PRESET_ROLES.includes(puestoInteres)) {
+                            setPuestoInteres("");
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                          selectedRoleType === "Otros"
+                            ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-350"
+                        }`}
+                      >
+                        Otros
+                      </button>
+                    </div>
+
+                    {/* Manual Text Input (only shown when 'Otros' is selected) */}
+                    {selectedRoleType === "Otros" && (
+                      <div className="pt-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <input
+                          type="text"
+                          placeholder="Escribe el puesto manualmente..."
+                          value={puestoInteres}
+                          onChange={(e) => setPuestoInteres(e.target.value)}
+                          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

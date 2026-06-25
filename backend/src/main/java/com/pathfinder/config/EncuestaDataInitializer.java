@@ -19,8 +19,14 @@ public class EncuestaDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (preguntaEncuestaRepository.count() == 0) {
-            log.info("Sembrando preguntas iniciales de la encuesta de satisfacción...");
+        long count = preguntaEncuestaRepository.count();
+        if (count < 6) {
+            log.info("Sembrando o actualizando preguntas de la encuesta de satisfacción...");
+            try {
+                preguntaEncuestaRepository.deleteAll();
+            } catch (Exception e) {
+                log.warn("No se pudo limpiar la tabla de preguntas: {}", e.getMessage());
+            }
             List<PreguntaEncuesta> preguntas = new ArrayList<>();
 
             preguntas.add(crearPregunta(
@@ -42,6 +48,12 @@ public class EncuestaDataInitializer implements CommandLineRunner {
             ));
 
             preguntas.add(crearPregunta(
+                    "¿Cómo calificarías al PathMentor asignado en tu entrevista?",
+                    "RATING",
+                    true
+            ));
+
+            preguntas.add(crearPregunta(
                     "¿Recomendarías la plataforma PathFinder a otros estudiantes?",
                     "RATING",
                     true
@@ -56,7 +68,7 @@ public class EncuestaDataInitializer implements CommandLineRunner {
             preguntaEncuestaRepository.saveAll(preguntas);
             log.info("¡Se sembraron {} preguntas de encuesta exitosamente!", preguntas.size());
         } else {
-            log.info("La tabla de preguntas de la encuesta ya contiene datos. Omitiendo siembra.");
+            log.info("La tabla de preguntas de la encuesta ya contiene las 6 preguntas necesarias. Omitiendo siembra.");
         }
     }
 
