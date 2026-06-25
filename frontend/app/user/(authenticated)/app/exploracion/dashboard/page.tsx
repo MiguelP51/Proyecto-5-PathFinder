@@ -259,6 +259,7 @@ export default function ExploracionDashboardPage() {
   const [entrevistasProximas, setEntrevistasProximas] = useState<
     EntrevistaProximaResponse[]
   >([]);
+  const [interviewFeedback, setInterviewFeedback] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -430,16 +431,20 @@ export default function ExploracionDashboardPage() {
         }
       });
 
-    apiFetch<EntrevistaProximaResponse | EntrevistaProximaResponse[] | null>(
+    apiFetch<any>(
       "/api/entrevistas/estudiante",
       {},
       backendJwt,
     )
       .then((data) => {
-        if (!cancelled) {
-          const list = data ? (Array.isArray(data) ? data : [data]) : [];
+        if (!cancelled && data) {
+          const singleObj = Array.isArray(data) ? data[0] : data;
+          if (singleObj && singleObj.estado === "Completada") {
+            setInterviewFeedback(singleObj);
+          }
+          const list = Array.isArray(data) ? data : [data];
           const valid = list.filter(
-            (it): it is EntrevistaProximaResponse => !!(it && it.mentorNombre),
+            (it): it is EntrevistaProximaResponse => !!(it && it.mentorNombre && it.estado === "Programada"),
           );
           setEntrevistasProximas(valid);
         }
@@ -518,6 +523,78 @@ export default function ExploracionDashboardPage() {
               Continúa tu camino hacia el éxito profesional
             </p>
           </div>
+
+          {/* Resultados de la Entrevista (Feedback) */}
+          {interviewFeedback && (
+            <section className="mb-8 rounded-3xl border border-purple-200 bg-white p-6 md:p-8 shadow-md">
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-purple-100 pb-4 mb-6">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-[#7447D7] tracking-wider block">Resultados de tu Proceso</span>
+                  <h2 className="text-xl font-black text-slate-900">Informe de retroalimentación</h2>
+                  <p className="text-xs text-slate-500 mt-1 font-semibold">
+                    Simulación de Entrevista para: <span className="text-[#7447D7]">{interviewFeedback.puesto || "General"}</span> | Realizada por el mentor <span className="font-bold text-slate-800">{interviewFeedback.mentorNombre}</span>
+                  </p>
+                </div>
+                {interviewFeedback.promedioCalificacion && (
+                  <div className="mt-4 md:mt-0 flex flex-col items-center bg-purple-50 border border-purple-100 rounded-2xl p-4 shrink-0">
+                    <span className="text-[10px] text-purple-700 font-extrabold uppercase block tracking-wider">Promedio General</span>
+                    <span className="text-3xl font-black text-[#7447D7]">{interviewFeedback.promedioCalificacion.toFixed(1)}/5.0</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 1. Calificaciones por Competencias - Ocupa todo el ancho */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Calificación por competencias</h3>
+                <div className="grid gap-4 sm:grid-cols-4">
+                  {interviewFeedback.competenciasEvaluadas && interviewFeedback.competenciasEvaluadas.length > 0 ? (
+                    interviewFeedback.competenciasEvaluadas.map((comp: any, idx: number) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-purple-50/20 border border-purple-100/35 space-y-2">
+                        <div className="flex justify-between items-center text-xs font-bold">
+                          <span className="text-slate-800 truncate" title={comp.nombreCompetencia}>{comp.nombreCompetencia}</span>
+                          <span className="text-[#7447D7] bg-purple-100 px-2 py-0.5 rounded-full shrink-0">Nivel {comp.nivelSeleccionado}</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-slate-500 font-medium">
+                          {comp.descripcionNivel}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    // Fallback to legacy
+                    [
+                      { label: "Comunicación", score: interviewFeedback.competenciaComunicacion },
+                      { label: "Habilidades Técnicas", score: interviewFeedback.competenciaTecnica },
+                      { label: "Proactividad e Iniciativa", score: interviewFeedback.competenciaProactividad },
+                      { label: "Resolución de Problemas", score: interviewFeedback.competenciaResolucion }
+                    ].map((comp, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-purple-50/20 border border-purple-100/35 space-y-2">
+                        <div className="flex justify-between items-center text-xs font-bold">
+                          <span className="text-slate-800">{comp.label}</span>
+                          <span className="text-[#7447D7] bg-purple-100 px-2 py-0.5 rounded-full">{comp.score}/5</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6] rounded-full"
+                            style={{ width: `${((comp.score || 0) / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Observaciones del Mentor */}
+              <div className="space-y-3 border-t border-slate-100 pt-5">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Comentarios y observaciones</h3>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100/80">
+                  <p className="text-sm font-semibold italic text-slate-600 leading-relaxed">
+                    &ldquo;{interviewFeedback.feedbackComentarios || "Sin comentarios adicionales por el momento."}&rdquo;
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Métricas */}
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

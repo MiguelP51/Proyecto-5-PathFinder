@@ -45,4 +45,6 @@ public interface UsuarioPathChallengeRepository extends JpaRepository<UsuarioPat
     List<UsuarioPathChallenge> findIniciadosByUsuarioCorreo(
             @Param("correo") String correo
     );
+
+    List<UsuarioPathChallenge> findByUsuario_IdUsuarioAndActivoTrue(Integer idUsuario);
 }

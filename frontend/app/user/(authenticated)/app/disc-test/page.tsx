@@ -303,7 +303,7 @@ export default function DiscTestPage() {
                   </span>
                   <div className="flex-1">
                     <h2 className="text-base font-bold text-slate-700 leading-relaxed mb-4">
-                      {q.enunciado}
+                      {q.enunciado.replace(/^\d+\.\s*/, "")}
                       {q.obligatoria && <span className="text-red-500 ml-1">*</span>}
                     </h2>
 

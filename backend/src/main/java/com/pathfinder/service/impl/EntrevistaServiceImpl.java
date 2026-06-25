@@ -110,8 +110,8 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 guardada.getIdEntrevista()
         );
 
-        // Enviar correo de confirmación (inicialmente sin enlace)
-        boolean emailSent = emailService.enviarCorreoConfirmacion(
+        // Enviar correo de confirmación al estudiante (inicialmente sin enlace)
+        boolean emailSentEstudiante = emailService.enviarCorreoConfirmacion(
                 estudiante.getCorreo(),
                 estudiante.getNombreCompleto(),
                 mentor.getNombreCompleto(),
@@ -122,7 +122,20 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 null
         );
 
-        log.info("Entrevista agendada con éxito para estudiante {} con mentor {}", correoEstudiante, mentor.getCorreo());
+        // Enviar correo de confirmación al mentor
+        boolean emailSentMentor = emailService.enviarCorreoConfirmacionMentor(
+                mentor.getCorreo(),
+                estudiante.getNombreCompleto(),
+                mentor.getNombreCompleto(),
+                request.getFecha(),
+                request.getHora(),
+                request.getTipo()
+        );
+
+        boolean emailSent = emailSentEstudiante && emailSentMentor;
+
+        log.info("Entrevista agendada con éxito para estudiante {} (correo enviado: {}) y mentor {} (correo enviado: {})", 
+                correoEstudiante, emailSentEstudiante, mentor.getCorreo(), emailSentMentor);
         EntrevistaResponseDTO dto = mapToDTO(guardada);
         dto.setEmailEnviado(emailSent);
         return dto;

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api";
 import {
   Users,
   Target,
@@ -9,9 +12,59 @@ import {
   Award,
   Activity,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
 
+interface StudentProgress {
+  idUsuario: number;
+  nombre: string;
+  correo: string;
+  rol: string;
+  progresoGeneralSkillPaths: number;
+  totalSkillPathsIniciados: number;
+  skillPathsCompletados: number;
+  totalChallenges: number;
+  challengesCompletados: number;
+  etapaEnrolamiento: string;
+}
+
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [students, setStudents] = useState<StudentProgress[]>([]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await apiFetch<StudentProgress[]>("/api/admin/estudiantes/progreso", {}, session?.backendJwt);
+        setStudents(data || []);
+      } catch (err) {
+        console.error("Error fetching admin stats:", err);
+        setError("Error al conectar con la base de datos.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (status === "authenticated" && session?.backendJwt) {
+      fetchStats();
+    }
+  }, [status, session]);
+
+  const totalEstudiantes = students.length;
+  const stageCounts = {
+    "Sin Iniciar": students.filter(s => s.etapaEnrolamiento === "Sin Iniciar" || !s.etapaEnrolamiento).length,
+    "Carga de CV": students.filter(s => s.etapaEnrolamiento === "Carga de CV").length,
+    "CV Cargado": students.filter(s => s.etapaEnrolamiento === "CV Cargado").length,
+    "Perfil Confirmado": students.filter(s => s.etapaEnrolamiento === "Perfil Confirmado").length,
+    "Test DISC Completado": students.filter(s => s.etapaEnrolamiento === "Test DISC Completado").length,
+    "Entrevista Agendada": students.filter(s => s.etapaEnrolamiento === "Entrevista Agendada").length,
+    "Enrolamiento Completado": students.filter(s => s.etapaEnrolamiento === "Enrolamiento Completado").length,
+  };
+
   // Datos mockeados para los indicadores de uso
   const kpis = [
     { id: 1, label: "Total Usuarios Activos", value: "3,240", icon: Users, color: "blue", trend: "+12%" },
@@ -64,6 +117,71 @@ export default function DashboardPage() {
             </div>
           </article>
         ))}
+      </section>
+
+      {/* Funnel de Enrolamiento */}
+      <section className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm flex flex-col gap-6">
+        <div>
+          <h2 className="text-lg font-bold text-[#0E3E66]">Funnel de Enrolamiento General</h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Distribución actual de los {totalEstudiantes} estudiantes registrados en sus respectivas etapas del proceso de inducción.
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              title: "Enrolamiento Completado",
+              count: stageCounts["Enrolamiento Completado"],
+              description: "Listos para aprender",
+              badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-100",
+              barColor: "bg-emerald-500",
+            },
+            {
+              title: "Entrevista Agendada",
+              count: stageCounts["Entrevista Agendada"],
+              description: "Simulación pendiente",
+              badgeClass: "bg-sky-50 text-sky-700 border-sky-100",
+              barColor: "bg-sky-500",
+            },
+            {
+              title: "Test DISC Completado",
+              count: stageCounts["Test DISC Completado"],
+              description: "Pendientes de agenda",
+              badgeClass: "bg-violet-50 text-violet-700 border-violet-100",
+              barColor: "bg-violet-500",
+            },
+            {
+              title: "Perfil Confirmado / CV",
+              count: stageCounts["Perfil Confirmado"] + stageCounts["CV Cargado"] + stageCounts["Carga de CV"],
+              description: "Fase inicial de revisión",
+              badgeClass: "bg-amber-50 text-amber-700 border-amber-100",
+              barColor: "bg-amber-500",
+            },
+          ].map((stage, idx) => {
+            const pct = totalEstudiantes > 0 ? Math.round((stage.count / totalEstudiantes) * 100) : 0;
+            return (
+              <article key={idx} className="rounded-2xl border border-slate-100 p-5 bg-slate-50/30 flex flex-col justify-between gap-4 transition hover:border-[#0E3E66]/20">
+                <div>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold border ${stage.badgeClass}`}>
+                    {stage.title}
+                  </span>
+                  <p className="text-3xl font-black text-slate-800 mt-3">{stage.count}</p>
+                  <p className="text-xs text-slate-400 mt-1 font-semibold">{stage.description}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                    <span>Proporción</span>
+                    <span>{pct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${stage.barColor}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <div className="grid lg:grid-cols-3 gap-6">
