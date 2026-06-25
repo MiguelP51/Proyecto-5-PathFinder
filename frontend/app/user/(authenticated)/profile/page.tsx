@@ -58,6 +58,13 @@ interface CVExtractadoDTO {
 
 interface AiCvSuggestionsResponse {
   resumenGeneral?: string;
+  perfilProfesionalSugerido?: string;
+  accionesPrioritarias?: Array<{
+    titulo?: string;
+    motivo?: string;
+    accion?: string;
+  }>;
+  camposPorCompletar?: string[];
   sugerencias?: Array<{
     seccion?: string;
     prioridad?: string;
@@ -1058,7 +1065,21 @@ export default function ProfileSetupPage() {
                     </div>
                   )}
 
-                  {aiSuggestions.sugerencias && aiSuggestions.sugerencias.length > 0 && (
+                  {aiSuggestions.accionesPrioritarias && aiSuggestions.accionesPrioritarias.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Acciones prioritarias</p>
+                      {aiSuggestions.accionesPrioritarias.slice(0, 2).map((item, index) => (
+                        <div key={`${item.titulo}-${index}`} className="rounded-xl border border-slate-100 p-3">
+                          <p className="font-semibold text-slate-800">{item.titulo || "Accion sugerida"}</p>
+                          {item.motivo && <p className="mt-1 text-slate-500">{item.motivo}</p>}
+                          {item.accion && <p className="mt-2 text-slate-700">{item.accion}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!aiSuggestions.accionesPrioritarias || aiSuggestions.accionesPrioritarias.length === 0)
+                    && aiSuggestions.sugerencias && aiSuggestions.sugerencias.length > 0 && (
                     <div className="space-y-3">
                       <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Recomendaciones</p>
                       {aiSuggestions.sugerencias.slice(0, 4).map((item, index) => (
@@ -1078,11 +1099,19 @@ export default function ProfileSetupPage() {
                     </div>
                   )}
 
-                  {aiSuggestions.camposDebiles && aiSuggestions.camposDebiles.length > 0 && (
+                  {aiSuggestions.perfilProfesionalSugerido && (
+                    <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#643781]">Perfil sugerido</p>
+                      <p className="mt-2 text-slate-700">{aiSuggestions.perfilProfesionalSugerido}</p>
+                    </div>
+                  )}
+
+                  {((aiSuggestions.camposPorCompletar && aiSuggestions.camposPorCompletar.length > 0)
+                    || (aiSuggestions.camposDebiles && aiSuggestions.camposDebiles.length > 0)) && (
                     <div className="space-y-2">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Por reforzar</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Por completar</p>
                       <ul className="space-y-1 text-slate-600">
-                        {aiSuggestions.camposDebiles.slice(0, 5).map((item, index) => (
+                        {(aiSuggestions.camposPorCompletar || aiSuggestions.camposDebiles || []).slice(0, 4).map((item, index) => (
                           <li key={`${item}-${index}`}>- {item}</li>
                         ))}
                       </ul>

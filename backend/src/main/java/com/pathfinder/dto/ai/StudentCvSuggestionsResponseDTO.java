@@ -16,6 +16,13 @@ import java.util.List;
 @AllArgsConstructor
 public class StudentCvSuggestionsResponseDTO {
     private String resumenGeneral;
+    private String perfilProfesionalSugerido;
+
+    @Builder.Default
+    private List<ActionItemDTO> accionesPrioritarias = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> camposPorCompletar = new ArrayList<>();
 
     @Builder.Default
     private List<SuggestionItemDTO> sugerencias = new ArrayList<>();
@@ -28,6 +35,17 @@ public class StudentCvSuggestionsResponseDTO {
 
     @Builder.Default
     private List<String> advertencias = new ArrayList<>();
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ActionItemDTO {
+        private String titulo;
+        private String motivo;
+        private String accion;
+    }
 
     @Getter
     @Setter

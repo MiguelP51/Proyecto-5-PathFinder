@@ -207,52 +207,36 @@ public class GeminiAiService {
                         "properties", Map.ofEntries(
                                 entry("resumenGeneral", Map.of(
                                         "type", "string",
-                                        "maxLength", 160
+                                        "maxLength", 180
                                 )),
-                                entry("sugerencias", Map.of(
+                                entry("accionesPrioritarias", Map.of(
                                         "type", "array",
                                         "maxItems", 2,
                                         "items", Map.of(
                                                 "type", "object",
                                                 "properties", Map.of(
-                                                        "seccion", Map.of("type", "string", "maxLength", 40),
-                                                        "prioridad", Map.of("type", "string", "enum", List.of("ALTA", "MEDIA", "BAJA")),
-                                                        "observacion", Map.of("type", "string", "maxLength", 120),
-                                                        "recomendacion", Map.of("type", "string", "maxLength", 120)
+                                                        "titulo", Map.of("type", "string", "maxLength", 80),
+                                                        "motivo", Map.of("type", "string", "maxLength", 140),
+                                                        "accion", Map.of("type", "string", "maxLength", 140)
                                                 ),
-                                                "required", List.of("seccion", "prioridad", "observacion", "recomendacion")
+                                                "required", List.of("titulo", "motivo", "accion")
                                         )
                                 )),
-                                entry("camposDebiles", Map.of(
+                                entry("camposPorCompletar", Map.of(
                                         "type", "array",
                                         "maxItems", 2,
                                         "items", Map.of("type", "string", "maxLength", 80)
                                 )),
-                                entry("versionesMejoradas", Map.of(
-                                        "type", "array",
-                                        "maxItems", 0,
-                                        "items", Map.of(
-                                                "type", "object",
-                                                "properties", Map.of(
-                                                        "campo", Map.of("type", "string", "maxLength", 60),
-                                                        "valorActual", Map.of("type", "string", "maxLength", 160),
-                                                        "sugerencia", Map.of("type", "string", "maxLength", 220)
-                                                ),
-                                                "required", List.of("campo", "valorActual", "sugerencia")
-                                        )
-                                )),
-                                entry("advertencias", Map.of(
-                                        "type", "array",
-                                        "maxItems", 1,
-                                        "items", Map.of("type", "string", "maxLength", 80)
+                                entry("perfilProfesionalSugerido", Map.of(
+                                        "type", "string",
+                                        "maxLength", 280
                                 ))
                         ),
                         "required", List.of(
                                 "resumenGeneral",
-                                "sugerencias",
-                                "camposDebiles",
-                                "versionesMejoradas",
-                                "advertencias"
+                                "accionesPrioritarias",
+                                "camposPorCompletar",
+                                "perfilProfesionalSugerido"
                         )
                 )
         );
@@ -263,20 +247,47 @@ public class GeminiAiService {
         StudentCvSuggestionsResponseDTO response = new StudentCvSuggestionsResponseDTO();
 
         response.setResumenGeneral(text(root.path("resumenGeneral")));
+        response.setPerfilProfesionalSugerido(text(root.path("perfilProfesionalSugerido")));
 
-        JsonNode sugerencias = root.path("sugerencias");
-        if (sugerencias.isArray()) {
-            for (JsonNode item : sugerencias) {
+        JsonNode acciones = root.path("accionesPrioritarias");
+        if (acciones.isArray()) {
+            int index = 0;
+            for (JsonNode item : acciones) {
+                StudentCvSuggestionsResponseDTO.ActionItemDTO action =
+                        StudentCvSuggestionsResponseDTO.ActionItemDTO.builder()
+                                .titulo(text(item.path("titulo")))
+                                .motivo(text(item.path("motivo")))
+                                .accion(text(item.path("accion")))
+                                .build();
+
+                response.getAccionesPrioritarias().add(action);
                 response.getSugerencias().add(StudentCvSuggestionsResponseDTO.SuggestionItemDTO.builder()
-                        .seccion(text(item.path("seccion")))
-                        .prioridad(text(item.path("prioridad")))
-                        .observacion(text(item.path("observacion")))
-                        .recomendacion(text(item.path("recomendacion")))
+                        .seccion(action.getTitulo())
+                        .prioridad(index == 0 ? "ALTA" : "MEDIA")
+                        .observacion(action.getMotivo())
+                        .recomendacion(action.getAccion())
                         .build());
+                index++;
+            }
+        } else {
+            JsonNode sugerencias = root.path("sugerencias");
+            if (sugerencias.isArray()) {
+                for (JsonNode item : sugerencias) {
+                    response.getSugerencias().add(StudentCvSuggestionsResponseDTO.SuggestionItemDTO.builder()
+                            .seccion(text(item.path("seccion")))
+                            .prioridad(text(item.path("prioridad")))
+                            .observacion(text(item.path("observacion")))
+                            .recomendacion(text(item.path("recomendacion")))
+                            .build());
+                }
             }
         }
 
-        addStringItems(response.getCamposDebiles(), root.path("camposDebiles"));
+        addStringItems(response.getCamposPorCompletar(), root.path("camposPorCompletar"));
+        if (response.getCamposPorCompletar().isEmpty()) {
+            addStringItems(response.getCamposPorCompletar(), root.path("camposDebiles"));
+        }
+        response.getCamposDebiles().addAll(response.getCamposPorCompletar());
 
         JsonNode versiones = root.path("versionesMejoradas");
         if (versiones.isArray()) {
