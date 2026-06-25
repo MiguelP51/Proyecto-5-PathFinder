@@ -42,6 +42,7 @@ public class GuardarPerfilRequest {
     private String perfilProfesional;
     private String interesesProfesionales;
     private String objetivosLaborales;
+    private String camposAdicionales; // JSON string for dynamic fields
 
     @Valid
     private List<ExperienciaRequest> experiencias = new ArrayList<>();

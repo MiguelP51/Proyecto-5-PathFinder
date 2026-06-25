@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -19,65 +20,60 @@ public class EncuestaDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        long count = preguntaEncuestaRepository.count();
-        if (count < 6) {
-            log.info("Sembrando o actualizando preguntas de la encuesta de satisfacción...");
-            try {
-                preguntaEncuestaRepository.deleteAll();
-            } catch (Exception e) {
-                log.warn("No se pudo limpiar la tabla de preguntas: {}", e.getMessage());
+        log.info("Iniciando verificación y siembra de preguntas de encuesta...");
+        
+        List<PreguntaEncuestaTemplate> templates = List.of(
+            new PreguntaEncuestaTemplate("¿Cómo calificarías tu experiencia general con la plataforma PathFinder?", "RATING", true),
+            new PreguntaEncuestaTemplate("¿Qué tan útil te resultó la evaluación psicométrica y test DISC?", "RATING", true),
+            new PreguntaEncuestaTemplate("¿Qué tan útil te resultó la simulación de entrevista con tu PathMentor?", "RATING", true),
+            new PreguntaEncuestaTemplate("¿Cómo calificarías al PathMentor asignado en tu entrevista?", "RATING", true),
+            new PreguntaEncuestaTemplate("¿Recomendarías la plataforma PathFinder a otros estudiantes?", "RATING", true),
+            new PreguntaEncuestaTemplate("¿Tienes algún comentario, observación o sugerencia de mejora?", "TEXT", false)
+        );
+
+        for (PreguntaEncuestaTemplate temp : templates) {
+            List<PreguntaEncuesta> existing = preguntaEncuestaRepository.findAll().stream()
+                .filter(p -> p.getTextoPregunta().trim().equalsIgnoreCase(temp.texto.trim()))
+                .collect(Collectors.toList());
+
+            if (existing.isEmpty()) {
+                PreguntaEncuesta p = new PreguntaEncuesta();
+                p.setTextoPregunta(temp.texto);
+                p.setTipoPregunta(temp.tipo);
+                p.setObligatoria(temp.obligatoria);
+                p.setActivo(true);
+                preguntaEncuestaRepository.save(p);
+                log.info("Pregunta sembrada: {}", temp.texto);
+            } else {
+                boolean first = true;
+                for (PreguntaEncuesta p : existing) {
+                    if (first) {
+                        if (!Boolean.TRUE.equals(p.getActivo())) {
+                            p.setActivo(true);
+                            preguntaEncuestaRepository.save(p);
+                        }
+                        first = false;
+                    } else {
+                        if (!Boolean.FALSE.equals(p.getActivo())) {
+                            p.setActivo(false);
+                            preguntaEncuestaRepository.save(p);
+                            log.info("Pregunta duplicada desactivada (soft-deleted): ID {}", p.getIdPregunta());
+                        }
+                    }
+                }
             }
-            List<PreguntaEncuesta> preguntas = new ArrayList<>();
-
-            preguntas.add(crearPregunta(
-                    "¿Cómo calificarías tu experiencia general con la plataforma PathFinder?",
-                    "RATING",
-                    true
-            ));
-
-            preguntas.add(crearPregunta(
-                    "¿Qué tan útil te resultó la evaluación psicométrica y test DISC?",
-                    "RATING",
-                    true
-            ));
-
-            preguntas.add(crearPregunta(
-                    "¿Qué tan útil te resultó la simulación de entrevista con tu PathMentor?",
-                    "RATING",
-                    true
-            ));
-
-            preguntas.add(crearPregunta(
-                    "¿Cómo calificarías al PathMentor asignado en tu entrevista?",
-                    "RATING",
-                    true
-            ));
-
-            preguntas.add(crearPregunta(
-                    "¿Recomendarías la plataforma PathFinder a otros estudiantes?",
-                    "RATING",
-                    true
-            ));
-
-            preguntas.add(crearPregunta(
-                    "¿Tienes algún comentario, observación o sugerencia de mejora?",
-                    "TEXT",
-                    false
-            ));
-
-            preguntaEncuestaRepository.saveAll(preguntas);
-            log.info("¡Se sembraron {} preguntas de encuesta exitosamente!", preguntas.size());
-        } else {
-            log.info("La tabla de preguntas de la encuesta ya contiene las 6 preguntas necesarias. Omitiendo siembra.");
         }
+        log.info("Fin de inicialización de preguntas de encuesta.");
     }
 
-    private PreguntaEncuesta crearPregunta(String texto, String tipo, boolean obligatoria) {
-        PreguntaEncuesta p = new PreguntaEncuesta();
-        p.setTextoPregunta(texto);
-        p.setTipoPregunta(tipo);
-        p.setObligatoria(obligatoria);
-        p.setActivo(true);
-        return p;
+    private static class PreguntaEncuestaTemplate {
+        String texto;
+        String tipo;
+        boolean obligatoria;
+        PreguntaEncuestaTemplate(String t, String tp, boolean o) {
+            this.texto = t;
+            this.tipo = tp;
+            this.obligatoria = o;
+        }
     }
 }

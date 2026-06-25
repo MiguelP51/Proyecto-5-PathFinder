@@ -14,9 +14,11 @@ import {
   ArrowRight,
   Sparkles,
   Award,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import SatisfactionSurveyTrigger from "@/components/surveys/SatisfactionSurveyTrigger";
 
 
 interface EstadoEstudianteResponse {
@@ -67,6 +69,10 @@ export default function StudentDashboard() {
   const [history, setHistory] = useState<any[]>([]);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<any | null>(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelMotive, setCancelMotive] = useState("");
+  const [canceling, setCanceling] = useState(false);
+  const [confirmingReprogram, setConfirmingReprogram] = useState(false);
 
   const handleResetProgress = async () => {
     const confirmReset = window.confirm(
@@ -87,6 +93,59 @@ export default function StudentDashboard() {
       toast.error("No se pudo reiniciar el progreso de simulación.");
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleConfirmReprogram = async () => {
+    if (!activeInterview) return;
+    try {
+      setConfirmingReprogram(true);
+      await apiFetch<any>(
+        `/api/entrevistas/${activeInterview.idEntrevista}/confirmar-reprogramacion`,
+        { method: "PUT" },
+        session?.backendJwt
+      );
+      toast.success("¡Nueva fecha confirmada correctamente!");
+      loadStudentStatus();
+    } catch (err) {
+      console.error("Error al confirmar reprogramacion:", err);
+      toast.error("No se pudo confirmar la nueva fecha.");
+    } finally {
+      setConfirmingReprogram(false);
+    }
+  };
+
+  const handleCancelInterviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelMotive.trim()) {
+      toast.error("Por favor, ingresa un motivo para la cancelación.");
+      return;
+    }
+    try {
+      setCanceling(true);
+      await apiFetch<any>(
+        "/api/entrevistas/cancelar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            motivo: cancelMotive,
+            esReagendado: false,
+          }),
+        },
+        session?.backendJwt
+      );
+      toast.success("Entrevista cancelada exitosamente.");
+      setShowCancelModal(false);
+      setCancelMotive("");
+      loadStudentStatus();
+    } catch (err) {
+      console.error("Error al cancelar entrevista:", err);
+      toast.error("No se pudo cancelar la entrevista.");
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -284,6 +343,51 @@ export default function StudentDashboard() {
         )}
 
         {/* Anuncios de Entrevista */}
+        {activeInterview && activeInterview.estado === "Reagendada" && (
+          <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 animate-pulse">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 block">CITA REAGENDADA POR EL MENTOR</span>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  Tu mentor <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ha propuesto una nueva fecha para la entrevista.
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Nueva fecha propuesta: <span className="font-semibold">{formatFecha(activeInterview.fecha)}</span> a las <span className="font-semibold">{activeInterview.hora} hs</span>.
+                </p>
+                <p className="text-xs font-semibold text-amber-700 mt-2">
+                  Por favor, confirma si estás de acuerdo con este cambio o selecciona otra opción.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleConfirmReprogram}
+                disabled={confirmingReprogram}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:opacity-95 text-white text-xs font-bold px-4 transition shadow-sm cursor-pointer"
+              >
+                {confirmingReprogram ? "Confirmando..." : "Aceptar nueva fecha"}
+              </button>
+              <Link
+                href="/user/app/simulation-schedule"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-white border border-slate-200 hover:border-amber-300 text-xs font-bold text-slate-700 px-4 transition cursor-pointer"
+              >
+                Reprogramar cita
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(true)}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-4 transition cursor-pointer"
+              >
+                Cancelar cita
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeInterview && activeInterview.estado === "Programada" && !activeInterview.virtualLink && (
           <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
             <div className="flex items-center gap-4">
@@ -627,6 +731,25 @@ export default function StudentDashboard() {
           </div>
         </section>
 
+        {/* Sección de Re-enrolamiento */}
+        <section className="mb-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-800">¿Deseas reiniciar tu simulación?</h2>
+              <p className="mt-2 text-sm text-slate-500 max-w-2xl">
+                Si deseas volver a cargar tu CV o realizar una nueva simulación desde cero para mejorar tus resultados, puedes reiniciar tu progreso. Nota: Se archivarán tus entrevistas previas, pero mantendrás tus resultados del test DISC.
+              </p>
+            </div>
+            <button
+              onClick={handleResetProgress}
+              disabled={resetting}
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:opacity-95 text-white disabled:opacity-50 text-xs font-bold px-6 transition shadow-md cursor-pointer whitespace-nowrap"
+            >
+              {resetting ? "Reiniciando..." : "Iniciar Nueva Simulación"}
+            </button>
+          </div>
+        </section>
+
         {/* Historial de Simulaciones Anteriores */}
         {history.length > 0 && (
           <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
@@ -784,6 +907,62 @@ export default function StudentDashboard() {
           </div>
         </div>
       )}
+
+      {/* MODAL: CANCELAR CITA */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 p-6 relative">
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <form onSubmit={handleCancelInterviewSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-slate-900">Cancelar Cita</h3>
+                <p className="text-xs text-slate-500">
+                  Por favor, indica el motivo por el cual necesitas cancelar tu entrevista. Esto notificará a tu mentor.
+                </p>
+              </div>
+
+              <textarea
+                value={cancelMotive}
+                onChange={(e) => setCancelMotive(e.target.value)}
+                placeholder="Escribe el motivo aquí..."
+                rows={4}
+                className="w-full rounded-2xl border border-slate-200 p-3 text-sm focus:border-[#7447D7] focus:outline-none"
+                required
+              />
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition cursor-pointer"
+                >
+                  Regresar
+                </button>
+                <button
+                  type="submit"
+                  disabled={canceling}
+                  className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
+                >
+                  {canceling ? "Cancelando..." : "Confirmar Cancelación"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TRIGGER ENCUESTA SATISFACCION */}
+      <SatisfactionSurveyTrigger isCompleted={studentStatus?.etapas?.EVALUACION_ENTREVISTA === "COMPLETADA"} />
 
     </div>
   );

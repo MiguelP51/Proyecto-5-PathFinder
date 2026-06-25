@@ -291,8 +291,8 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         Entrevista entrevista = entrevistaRepository.findFirstByEstudiante_CorreoAndActivoTrueOrderByFechaDescHoraDesc(correoEstudiante)
                 .orElseThrow(() -> new IllegalArgumentException("No tienes ninguna entrevista activa para cancelar o reagendar"));
 
-        if (!"Programada".equalsIgnoreCase(entrevista.getEstado())) {
-            throw new IllegalStateException("Solo puedes cancelar o reagendar una entrevista que esté en estado 'Programada'");
+        if (!"Programada".equalsIgnoreCase(entrevista.getEstado()) && !"Reagendada".equalsIgnoreCase(entrevista.getEstado())) {
+            throw new IllegalStateException("Solo puedes cancelar o reagendar una entrevista que esté en estado 'Programada' o 'Reagendada'");
         }
 
         java.time.LocalDateTime fechaHoraCita = java.time.LocalDateTime.of(entrevista.getFecha(), java.time.LocalTime.parse(entrevista.getHora()));
@@ -307,12 +307,10 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         entrevista.setFechaModificacion(LocalDateTime.now());
         entrevistaRepository.save(entrevista);
 
-        // Actualizar progreso del estudiante para permitir agendar nuevamente
         Usuario estudiante = entrevista.getEstudiante();
         actualizarProgreso(estudiante, NombreEtapa.AGENDAMIENTO_ENTREVISTA, EstadoEtapa.EN_PROGRESO);
         actualizarProgreso(estudiante, NombreEtapa.EVALUACION_ENTREVISTA, EstadoEtapa.PENDIENTE);
 
-        // Notificación al mentor
         String tipoNotif = esReagendado ? "REAGENDACION" : "CANCELACION";
         String mensajeNotif = esReagendado
                 ? estudiante.getNombreCompleto() + " reagendó la entrevista del " + entrevista.getFecha()
@@ -324,7 +322,6 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 entrevista.getIdEntrevista()
         );
 
-        // Notificación al estudiante
         notificacionService.crearNotificacion(
                 esReagendado ? "ENTREVISTA_REAGENDADA" : "ENTREVISTA_CANCELADA",
                 "Tu entrevista del " + entrevista.getFecha() + " fue " + nuevoEstado.toLowerCase() + " con éxito.",
@@ -332,26 +329,29 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 entrevista.getIdEntrevista()
         );
 
-        // Notificar por correo real tanto al estudiante como al mentor
-        emailService.enviarCorreoCancelacionOReagendacion(
-                estudiante.getCorreo(),
-                estudiante.getNombreCompleto(),
-                entrevista.getMentor().getNombreCompleto(),
-                entrevista.getFecha().toString(),
-                entrevista.getHora(),
-                nuevoEstado,
-                motivo
-        );
+        try {
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    estudiante.getCorreo(),
+                    estudiante.getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    entrevista.getFecha().toString(),
+                    entrevista.getHora(),
+                    nuevoEstado,
+                    motivo
+            );
 
-        emailService.enviarCorreoCancelacionOReagendacion(
-                entrevista.getMentor().getCorreo(),
-                estudiante.getNombreCompleto(),
-                entrevista.getMentor().getNombreCompleto(),
-                entrevista.getFecha().toString(),
-                entrevista.getHora(),
-                nuevoEstado,
-                motivo
-        );
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    entrevista.getMentor().getCorreo(),
+                    estudiante.getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    entrevista.getFecha().toString(),
+                    entrevista.getHora(),
+                    nuevoEstado,
+                    motivo
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar correos de cancelación/reagendamiento del estudiante: {}", e.getMessage(), e);
+        }
 
         log.info("Entrevista ID {} cambiada a {} por el estudiante {}. Motivo: {}", 
                 entrevista.getIdEntrevista(), nuevoEstado, correoEstudiante, motivo);
@@ -503,6 +503,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
         entrevista.setFecha(nuevaFecha);
         entrevista.setHora(nuevaHora);
+        entrevista.setEstado("Reagendada");
         entrevista.setFechaModificacion(LocalDateTime.now());
         entrevistaRepository.save(entrevista);
 
@@ -769,5 +770,78 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         return historial.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public EntrevistaResponseDTO confirmarReprogramacion(Integer idEntrevista, String correoEstudiante) {
+        Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
+                .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada"));
+
+        if (!entrevista.getEstudiante().getCorreo().equalsIgnoreCase(correoEstudiante.trim())) {
+            throw new IllegalStateException("No tienes permisos para confirmar esta entrevista");
+        }
+
+        if (!"Reagendada".equals(entrevista.getEstado())) {
+            throw new IllegalStateException("Solo se puede confirmar una reprogramación para una entrevista en estado 'Reagendada'");
+        }
+
+        entrevista.setEstado("Programada");
+        entrevista.setFechaModificacion(LocalDateTime.now());
+        entrevistaRepository.save(entrevista);
+
+        // Notificar al mentor
+        notificacionService.crearNotificacion(
+                "CONFIRMACION_REPROGRAMACION",
+                "El estudiante " + entrevista.getEstudiante().getNombreCompleto()
+                        + " ha aceptado y confirmado la reprogramación de la entrevista para el " 
+                        + entrevista.getFecha() + " a las " + entrevista.getHora(),
+                entrevista.getMentor().getCorreo(),
+                entrevista.getIdEntrevista()
+        );
+
+        // Notificar al estudiante como confirmación
+        notificacionService.crearNotificacion(
+                "ENTREVISTA_CONFIRMADA",
+                "Has aceptado la fecha de reprogramación para tu entrevista del " 
+                        + entrevista.getFecha() + " a las " + entrevista.getHora(),
+                correoEstudiante,
+                entrevista.getIdEntrevista()
+        );
+
+        // Enviar correos reales a ambos
+        try {
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    entrevista.getEstudiante().getCorreo(),
+                    entrevista.getEstudiante().getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    entrevista.getFecha().toString(),
+                    entrevista.getHora(),
+                    "Confirmada",
+                    "La reprogramación ha sido aceptada por el estudiante."
+            );
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    entrevista.getMentor().getCorreo(),
+                    entrevista.getEstudiante().getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    entrevista.getFecha().toString(),
+                    entrevista.getHora(),
+                    "Confirmada",
+                    "La reprogramación ha sido aceptada por el estudiante."
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar correos de confirmación de reprogramación: {}", e.getMessage());
+        }
+
+        log.info("Entrevista ID {} reprogramación confirmada por estudiante {}", idEntrevista, correoEstudiante);
+
+        return mapToDTO(entrevista);
+    }
+
+    @Override
+    public EntrevistaResponseDTO obtenerEntrevistaPorId(Integer idEntrevista) {
+        Entrevista entrevista = entrevistaRepository.findById(idEntrevista)
+                .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada: " + idEntrevista));
+        return mapToDTO(entrevista);
     }
 }

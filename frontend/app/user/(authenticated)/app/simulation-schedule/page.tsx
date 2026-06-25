@@ -13,7 +13,8 @@ import {
   Loader2,
   CheckCircle2,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -36,33 +37,6 @@ interface HolidayDTO {
   descripcion: string;
 }
 
-const AREA_POSITIONS: Record<string, string[]> = {
-  "Recursos Humanos": [
-    "Practicante de Recursos Humanos",
-    "Analista de Gestión de Talento",
-    "Analista de Clima y Cultura",
-    "Asistente de Selección"
-  ],
-  "Marketing": [
-    "Practicante de Marketing",
-    "Analista de Marketing Digital",
-    "Analista de Producto / Brand Assistant",
-    "Analista de Trade Marketing"
-  ],
-  "Finanzas y Contabilidad": [
-    "Practicante de Finanzas",
-    "Analista Financiero",
-    "Analista de Tesorería",
-    "Analista de Control de Gestión"
-  ],
-  "Gestión y Alta Dirección / Consultoría": [
-    "Consultor Junior de Negocios",
-    "Analista de Procesos",
-    "Practicante de Planeamiento Estratégico",
-    "Analista de Operaciones"
-  ]
-};
-
 export default function SimulationSchedulePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -72,6 +46,8 @@ export default function SimulationSchedulePage() {
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [selectedRoleType, setSelectedRoleType] = useState<string>("");
   const [selectedArea, setSelectedArea] = useState<string>("");
+  const [areaPositions, setAreaPositions] = useState<Record<string, string[]>>({});
+  const [puestoSearch, setPuestoSearch] = useState("");
 
   // Date range states
   const [startDate, setStartDate] = useState("");
@@ -176,33 +152,40 @@ export default function SimulationSchedulePage() {
       loadMentors(mentorIdParam);
       loadHolidays();
 
-      // Fetch profile to pre-fill the practicing role
-      apiFetch<any>("/api/profile", {}, session.backendJwt)
-        .then(profile => {
-          if (profile && profile.interesesProfesionales) {
-            const interest = profile.interesesProfesionales.trim();
-            setPuestoInteres(interest);
-            
-            let foundArea = "";
-            let foundRole = "";
-            for (const [area, positions] of Object.entries(AREA_POSITIONS)) {
-              if (positions.includes(interest)) {
-                foundArea = area;
-                foundRole = interest;
-                break;
+      // Fetch dynamic areas and puestos
+      apiFetch<Record<string, string[]>>("/api/entrevistas/areas", {}, session.backendJwt)
+        .then(data => {
+          setAreaPositions(data || {});
+
+          // Fetch profile to pre-fill the practicing role
+          apiFetch<any>("/api/profile", {}, session.backendJwt)
+            .then(profile => {
+              if (profile && profile.interesesProfesionales) {
+                const interest = profile.interesesProfesionales.trim();
+                setPuestoInteres(interest);
+                
+                let foundArea = "";
+                let foundRole = "";
+                for (const [area, positions] of Object.entries(data || {})) {
+                  if (positions.includes(interest)) {
+                    foundArea = area;
+                    foundRole = interest;
+                    break;
+                  }
+                }
+                
+                if (foundArea) {
+                  setSelectedArea(foundArea);
+                  setSelectedRoleType(foundRole);
+                } else if (interest !== "") {
+                  setSelectedArea("Otros");
+                  setSelectedRoleType("Otros");
+                }
               }
-            }
-            
-            if (foundArea) {
-              setSelectedArea(foundArea);
-              setSelectedRoleType(foundRole);
-            } else if (interest !== "") {
-              setSelectedArea("Otros");
-              setSelectedRoleType("Otros");
-            }
-          }
+            })
+            .catch(err => console.log("Error loading profile interests:", err));
         })
-        .catch(err => console.log("Error loading profile interests:", err));
+        .catch(err => console.error("Error fetching areas:", err));
 
       // Default range: tomorrow until 7 days later
       const tomorrow = new Date();
@@ -698,6 +681,7 @@ export default function SimulationSchedulePage() {
                         onChange={(e) => {
                           const area = e.target.value;
                           setSelectedArea(area);
+                          setPuestoSearch("");
                           if (area === "Otros") {
                             setSelectedRoleType("Otros");
                             setPuestoInteres("");
@@ -709,7 +693,7 @@ export default function SimulationSchedulePage() {
                         className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 transition hover:border-slate-300"
                       >
                         <option value="">-- Selecciona un Área --</option>
-                        {Object.keys(AREA_POSITIONS).map((area) => (
+                        {Object.keys(areaPositions).map((area) => (
                           <option key={area} value={area}>{area}</option>
                         ))}
                         <option value="Otros">Otros (Especificar manualmente)</option>
@@ -720,27 +704,44 @@ export default function SimulationSchedulePage() {
                     {selectedArea && selectedArea !== "Otros" && (
                       <div className="space-y-1.5 pt-1.5 animate-in fade-in duration-200">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Puestos Disponibles</label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {AREA_POSITIONS[selectedArea].map((role) => {
-                            const isSelected = selectedRoleType === role;
-                            return (
-                              <button
-                                key={role}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedRoleType(role);
-                                  setPuestoInteres(role);
-                                }}
-                                className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
-                                  isSelected
-                                    ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
-                                    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-350"
-                                }`}
-                              >
-                                {role}
-                              </button>
-                            );
-                          })}
+                        
+                        {/* Search input if positions > 5 */}
+                        {(areaPositions[selectedArea] || []).length > 5 && (
+                          <div className="relative mb-2">
+                            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                            <input
+                              type="text"
+                              value={puestoSearch}
+                              onChange={(e) => setPuestoSearch(e.target.value)}
+                              placeholder="Filtrar puestos..."
+                              className="w-full h-8 pl-8 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                          {(areaPositions[selectedArea] || [])
+                            .filter(role => role.toLowerCase().includes(puestoSearch.toLowerCase()))
+                            .map((role) => {
+                              const isSelected = selectedRoleType === role;
+                              return (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedRoleType(role);
+                                    setPuestoInteres(role);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                                    isSelected
+                                      ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
+                                      : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800"
+                                  }`}
+                                >
+                                  {role}
+                                </button>
+                              );
+                            })}
                           
                           <button
                             type="button"
@@ -751,7 +752,7 @@ export default function SimulationSchedulePage() {
                             className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
                               selectedRoleType === "Otros"
                                 ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
-                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-350"
+                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800"
                             }`}
                           >
                             Otros

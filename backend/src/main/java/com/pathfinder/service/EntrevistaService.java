@@ -18,4 +18,6 @@ public interface EntrevistaService {
     EntrevistaResponseDTO reprogramar(Integer idEntrevista, String correoMentor, ReprogramarEntrevistaRequest request);
     MentorMetricsResponseDTO obtenerMetricas(String correoMentor, String periodo);
     List<EntrevistaResponseDTO> obtenerHistorialEstudiante(String correoEstudiante);
+    EntrevistaResponseDTO confirmarReprogramacion(Integer idEntrevista, String correoEstudiante);
+    EntrevistaResponseDTO obtenerEntrevistaPorId(Integer idEntrevista);
 }

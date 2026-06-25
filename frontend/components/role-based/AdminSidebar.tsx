@@ -16,6 +16,7 @@ import {
   X,
   MessageSquare,
   Brain,
+  Settings,
 } from "lucide-react";
 
 interface Props {
@@ -144,6 +145,11 @@ export default function AdminSidebar({
             <Link href="/admin/disc" className={linkClass("/admin/disc")}>
               <Brain className="h-5 w-5" />
               DISC y Competencias
+            </Link>
+
+            <Link href="/admin/enrollment" className={linkClass("/admin/enrollment")}>
+              <Settings className="h-5 w-5" />
+              Configuración de Enrolamiento
             </Link>
 
             <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>

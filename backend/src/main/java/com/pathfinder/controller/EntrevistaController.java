@@ -238,4 +238,35 @@ public class EntrevistaController {
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al desactivar competencia"));
         }
     }
+
+    // PUT /api/entrevistas/{id}/confirmar-reprogramacion — Confirmar reprogramación por el estudiante
+    @PutMapping("/{id}/confirmar-reprogramacion")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> confirmarReprogramacion(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer id) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.confirmarReprogramacion(id, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Reprogramación confirmada exitosamente", dto));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error confirmando reprogramación de entrevista: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al confirmar la reprogramación: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/entrevistas/{id} — Obtener detalle de una entrevista específica por su ID
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> getEntrevistaPorId(
+            @PathVariable Integer id) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.obtenerEntrevistaPorId(id);
+            return ResponseEntity.ok(ApiResponse.success("Detalle de entrevista obtenido con éxito", dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error al obtener detalle de entrevista ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener detalle de entrevista"));
+        }
+    }
 }
