@@ -350,7 +350,7 @@ export default function SimulationDetailsPage() {
 
               <div className="py-6 border-y border-slate-100 flex flex-col items-center justify-center gap-4">
                 <div className="h-28 w-28 rounded-full border-4 border-purple-100 flex flex-col items-center justify-center mx-auto">
-                  <span className="text-3xl font-black text-[#7447D7]">{entrevista.promedioCalificacion || "0.0"}</span>
+                  <span className="text-2xl font-black text-[#7447D7]">{(entrevista.promedioCalificacion || 0.0).toFixed(1)}/5</span>
                   <span className="text-[10px] font-black text-slate-400 uppercase">
                     {entrevista.competenciasEvaluadas && entrevista.competenciasEvaluadas.length > 0 ? "Nivel Promedio" : "Calificación"}
                   </span>
