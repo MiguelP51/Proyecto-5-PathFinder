@@ -25,6 +25,9 @@ interface Feedback {
   fortalezas?: string;
   areasMejora?: string;
   comentarios?: string;
+  darFeedbackCv?: boolean;
+  feedbackCv?: string;
+  cvAvailable?: boolean;
   lastUpdated?: string;
   competenciasEvaluadas?: Array<{
     nombreCompetencia: string;
@@ -132,6 +135,8 @@ export default function PathMentorFeedbacks() {
   const [formFortalezas, setFormFortalezas] = useState('');
   const [formAreasMejora, setFormAreasMejora] = useState('');
   const [formComentarios, setFormComentarios] = useState('');
+  const [formDarFeedbackCv, setFormDarFeedbackCv] = useState(false);
+  const [formFeedbackCv, setFormFeedbackCv] = useState('');
 
   // Competencies State
   const [allCompetencias, setAllCompetencias] = useState<any[]>([]);
@@ -288,6 +293,8 @@ export default function PathMentorFeedbacks() {
         let fort = "";
         let amej = "";
         let coms = item.feedbackComentarios;
+        let darCv = false;
+        let fdbCv = "";
         
         // Parse comments if it's JSON
         if (item.feedbackComentarios) {
@@ -296,6 +303,8 @@ export default function PathMentorFeedbacks() {
             fort = parsed.fortalezas || "";
             amej = parsed.areasMejora || "";
             coms = parsed.comentarios || "";
+            darCv = !!parsed.darFeedbackCv;
+            fdbCv = parsed.feedbackCv || "";
           } catch (e) {
             // fallback plain text
           }
@@ -334,6 +343,9 @@ export default function PathMentorFeedbacks() {
           fortalezas: fort,
           areasMejora: amej,
           comentarios: coms,
+          darFeedbackCv: darCv,
+          feedbackCv: fdbCv,
+          cvAvailable: item.cvAvailable,
           lastUpdated: item.fecha,
           position: item.puesto || 'Sin especificar',
           competenciasEvaluadas: item.competenciasEvaluadas || []
@@ -383,6 +395,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    setFormDarFeedbackCv(!!item.darFeedbackCv);
+    setFormFeedbackCv(item.feedbackCv || '');
     
     // Initialize competencies and levels
     const mapped: Record<string, { nivel: number; descripcion: string }> = {};
@@ -415,6 +429,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    setFormDarFeedbackCv(!!item.darFeedbackCv);
+    setFormFeedbackCv(item.feedbackCv || '');
     loadCompetencias(item.position || 'General', item.id, 'editar');
     setActiveView('form');
   };
@@ -422,8 +438,7 @@ export default function PathMentorFeedbacks() {
   const handleRegistrarFeedback = (item: Feedback) => {
     setSelectedFeedback(item);
     setFormMode('registrar');
-    
-    // Check if there is a draft in local storage
+
     const draft = localStorage.getItem(`draft_feedback_${item.id}`);
     if (draft) {
       try {
@@ -432,6 +447,8 @@ export default function PathMentorFeedbacks() {
         setFormFortalezas(parsed.fortalezas || '');
         setFormAreasMejora(parsed.areasMejora || '');
         setFormComentarios(parsed.comentarios || '');
+        setFormDarFeedbackCv(!!parsed.darFeedbackCv);
+        setFormFeedbackCv(parsed.feedbackCv || '');
       } catch (e) {
         resetFormFields();
       }
@@ -483,6 +500,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas('');
     setFormAreasMejora('');
     setFormComentarios('');
+    setFormDarFeedbackCv(false);
+    setFormFeedbackCv('');
     setSelectedCompetencyLevels({});
     setSelectedCompetencyNames([]);
   };
@@ -494,6 +513,8 @@ export default function PathMentorFeedbacks() {
       fortalezas: formFortalezas,
       areasMejora: formAreasMejora,
       comentarios: formComentarios,
+      darFeedbackCv: formDarFeedbackCv,
+      feedbackCv: formFeedbackCv,
       competencyLevels: selectedCompetencyLevels,
       competencyNames: selectedCompetencyNames
     };
@@ -514,7 +535,9 @@ export default function PathMentorFeedbacks() {
       const commentsJson = JSON.stringify({
         fortalezas: formFortalezas,
         areasMejora: formAreasMejora,
-        comentarios: formComentarios
+        comentarios: formComentarios,
+        darFeedbackCv: formDarFeedbackCv,
+        feedbackCv: formFeedbackCv
       });
 
       // Map dynamic competencies (only the ones selected by the mentor)
@@ -558,6 +581,29 @@ export default function PathMentorFeedbacks() {
     } catch (err) {
       console.error("Error publicando feedback:", err);
       toast.error("Error al publicar feedback: " + (err instanceof Error ? err.message : err));
+    }
+  };
+
+  const handleDownloadCV = async () => {
+    const email = selectedFeedback?.studentEmail;
+    if (!email) {
+      toast.warning("No se encuentra el correo del estudiante para descargar el CV");
+      return;
+    }
+    if (!session?.backendJwt) {
+      toast.error("Sesión no autenticada. Inicia sesión nuevamente.");
+      return;
+    }
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const res = await fetch(`${baseUrl}/api/cv/download/${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${session.backendJwt}` }
+      });
+      if (!res.ok) throw new Error("CV no disponible");
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch {
+      toast.error("No se pudo descargar el CV del estudiante");
     }
   };
 
@@ -1063,6 +1109,80 @@ export default function PathMentorFeedbacks() {
                 </div>
               </section>
 
+              {/* SECTION 3.5: RETROALIMENTACIÓN DE CV */}
+              <section className={styles.formSection}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionHeaderTitle}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    Retroalimentación de CV
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                    Revisa el CV del estudiante y bríndale retroalimentación sobre la estructura, redacción, presentación y contenido de su currículum.
+                  </p>
+
+                  {selectedFeedback?.cvAvailable !== false ? (
+                    <button
+                      type="button"
+                      onClick={handleDownloadCV}
+                      className={styles.cvDownloadBtn}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Ver CV del estudiante
+                    </button>
+                  ) : (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 p-2 rounded-xl mt-2 font-bold text-center">
+                      ⚠️ El estudiante no ha subido su CV a la plataforma
+                    </div>
+                  )}
+
+                  {/* CHECKBOX AND TEXTAREA */}
+                  <div className="mt-5 space-y-3">
+                    {formMode !== 'ver' ? (
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formDarFeedbackCv}
+                          onChange={(e) => {
+                            setFormDarFeedbackCv(e.target.checked);
+                            if (!e.target.checked) {
+                              setFormFeedbackCv("");
+                            }
+                          }}
+                          className="rounded text-[#7447D7] focus:ring-[#7447D7] h-4 w-4 cursor-pointer"
+                        />
+                        <span>¿Dar retroalimentación sobre el CV?</span>
+                      </label>
+                    ) : formDarFeedbackCv ? (
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Retroalimentación del CV provista:
+                      </div>
+                    ) : null}
+
+                    {formDarFeedbackCv && (
+                      <textarea
+                        className={styles.textareaInput}
+                        placeholder="Escribe aquí tu retroalimentación sobre el CV del estudiante, destacando aspectos de forma, fondo, redacción y contenido profesional..."
+                        value={formFeedbackCv}
+                        onChange={(e) => setFormFeedbackCv(e.target.value)}
+                        disabled={formMode === 'ver'}
+                      />
+                    )}
+                  </div>
+                </div>
+              </section>
+
               {/* SECTION 4: RETROALIMENTACIÓN DETALLE */}
               <section className={styles.formSection}>
                 <div className={styles.sectionHeader}>
@@ -1492,6 +1612,28 @@ export default function PathMentorFeedbacks() {
                     </div>
                   )}
                 </div>
+
+                {/* Seccion 3: Retroalimentación de CV */}
+                {formDarFeedbackCv && formFeedbackCv && (
+                  <div className="bg-gradient-to-r from-blue-50/40 via-indigo-50/10 to-purple-50/30 rounded-2xl border border-indigo-100 p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </div>
+                      <h4 className="text-xs font-bold text-indigo-900">Retroalimentación Dedicada sobre tu CV</h4>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-indigo-100/60">
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                        {formFeedbackCv}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
               </div>
 

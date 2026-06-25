@@ -307,36 +307,36 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Banner de Carga/Exploracion si la entrevista esta completada */}
+        {/* Caja de Simulación Finalizada */}
         {studentStatus?.etapas?.EVALUACION_ENTREVISTA === "COMPLETADA" && (
-          <div className="mb-8 rounded-3xl border border-purple-200 bg-gradient-to-r from-purple-100 via-indigo-50 to-pink-50 dark:from-purple-950/30 dark:via-indigo-950/20 dark:to-pink-950/20 p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="mb-8 rounded-3xl border border-purple-200 bg-purple-50/40 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-sm">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7447D7] to-[#D43EE6] text-white shadow-lg shadow-purple-200/50">
-                <Sparkles className="h-6 w-6 animate-pulse" />
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-[#7447D7]">
+                <Award className="h-6 w-6" />
               </div>
               <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block font-extrabold">¡PREPARACIÓN COMPLETADA!</span>
-                <p className="text-base font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                  Has completado exitosamente todas las etapas de tu preparación de perfil.
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block font-extrabold">Simulación Finalizada</span>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  Tu simulación de entrevista ha concluido y ha sido evaluada por tu PathMentor.
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                  Tu perfil y simulación de entrevista ya cuentan con la retroalimentación de tu PathMentor. Ya puedes ingresar al Módulo de Exploración Laboral para buscar tus áreas y retos de interés.
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Ya puedes ver el desglose completo de tus calificaciones y recomendaciones de CV en el detalle de la evaluación, o volver a realizar una simulación si lo deseas.
                 </p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto flex-shrink-0">
               <Link
-                href={studentStatus.exploracionIniciada ? "/user/app/exploracion/dashboard" : "/user/app/exploracion-intro"}
+                href="/user/app/simulation-details"
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white text-xs font-bold px-6 transition shadow-md shadow-purple-200/30 cursor-pointer text-center whitespace-nowrap"
               >
-                Ir a Exploración Laboral
+                Ver mi Evaluación
               </Link>
               <button
                 onClick={handleResetProgress}
                 disabled={resetting}
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-[#7447D7] disabled:opacity-50 text-xs font-bold px-6 transition cursor-pointer text-center whitespace-nowrap"
               >
-                {resetting ? "Reiniciando..." : "Iniciar Nueva Simulación"}
+                {resetting ? "Reiniciando..." : "Rehacer Simulación"}
               </button>
             </div>
           </div>
@@ -452,34 +452,6 @@ export default function StudentDashboard() {
                 Ver detalles
               </Link>
             </div>
-          </div>
-        )}
-
-        {activeInterview && activeInterview.estado === "Completada" && (
-          <div className="mb-8 rounded-3xl border border-purple-200 bg-purple-50/40 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-[#7447D7]">
-                <Award className="h-6 w-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block">ANUNCIO: RETROALIMENTACIÓN DISPONIBLE</span>
-                <p className="text-sm font-bold text-slate-800 mt-0.5">
-                  ¡Tu mentor <span className="text-[#7447D7]">{activeInterview.mentorNombre}</span> ha publicado la retroalimentación de tu entrevista!
-                </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  Resultado recomendado: <span className="font-bold text-purple-700 uppercase">{activeInterview.resultado}</span>
-                </p>
-                <p className="text-xs text-slate-500 mt-2">
-                  Revisa el detalle de tus calificaciones y competencias haciendo clic a la derecha.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/user/app/simulation-details"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white text-xs font-bold px-5 transition shadow-md shadow-purple-100 flex-shrink-0 cursor-pointer"
-            >
-              Ver Feedback
-            </Link>
           </div>
         )}
 
