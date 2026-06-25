@@ -14,7 +14,7 @@ interface Feedback {
   interviewTime?: string;
   position?: string;
   status: 'Publicado' | 'Borrador' | 'Pendiente';
-  result?: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones';
+  result?: 'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja';
   score?: number; // out of 5
   scores?: {
     general: number;
@@ -26,6 +26,11 @@ interface Feedback {
   areasMejora?: string;
   comentarios?: string;
   lastUpdated?: string;
+  competenciasEvaluadas?: Array<{
+    nombreCompetencia: string;
+    nivelSeleccionado: number;
+    descripcionNivel: string;
+  }>;
 }
 
 // Inline SVG Icons
@@ -119,7 +124,7 @@ export default function PathMentorFeedbacks() {
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
 
   // Form Fields States
-  const [formResult, setFormResult] = useState<'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | ''>('');
+  const [formResult, setFormResult] = useState<'Aprobado' | 'Requiere Mejora' | 'Con Observaciones' | 'Alta' | 'Media' | 'Baja' | ''>('');
   const [formScoreGeneral, setFormScoreGeneral] = useState(0);
   const [formScoreTechnical, setFormScoreTechnical] = useState(0);
   const [formScoreCommunication, setFormScoreCommunication] = useState(0);
@@ -127,6 +132,144 @@ export default function PathMentorFeedbacks() {
   const [formFortalezas, setFormFortalezas] = useState('');
   const [formAreasMejora, setFormAreasMejora] = useState('');
   const [formComentarios, setFormComentarios] = useState('');
+
+  // Competencies State
+  const [allCompetencias, setAllCompetencias] = useState<any[]>([]);
+  const [selectedCompetencyNames, setSelectedCompetencyNames] = useState<string[]>([]);
+  const [selectedCompetencyLevels, setSelectedCompetencyLevels] = useState<Record<string, { nivel: number; descripcion: string }>>({});
+  const [compSearchTerm, setCompSearchTerm] = useState('');
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  
+  // Custom Competency Form States
+  const [isAddingCompetency, setIsAddingCompetency] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompDesc, setNewCompDesc] = useState('');
+  const [newCompL0, setNewCompL0] = useState('');
+  const [newCompL1, setNewCompL1] = useState('');
+  const [newCompL2, setNewCompL2] = useState('');
+  const [newCompL3, setNewCompL3] = useState('');
+  const [newCompIsPermanent, setNewCompIsPermanent] = useState(false);
+
+  const getLevelDescription = (comp: any, level: number): string => {
+    if (level === 0) return comp.nivel0 || "Por debajo del criterio esperado";
+    if (level === 1) return comp.nivel1 || "Alcanza los criterios minimos";
+    if (level === 2) return comp.nivel2 || "Supera los criterios minimos";
+    if (level === 3) return comp.nivel3 || "Supera las expectativas";
+    return "";
+  };
+
+  const handleSelectLevel = (compName: string, level: number, descText: string) => {
+    setSelectedCompetencyLevels(prev => ({
+      ...prev,
+      [compName]: { nivel: level, descripcion: descText }
+    }));
+  };
+
+  const handleToggleCompetency = (name: string) => {
+    setSelectedCompetencyNames(prev => {
+      if (prev.includes(name)) {
+        return prev.filter(n => n !== name);
+      } else {
+        setSelectedCompetencyLevels(levels => {
+          if (!levels[name]) {
+            const comp = allCompetencias.find(c => c.nombre === name);
+            const desc = comp ? comp.nivel1 : 'Alcanza los criterios minimos';
+            return { ...levels, [name]: { nivel: 1, descripcion: desc } };
+          }
+          return levels;
+        });
+        return [...prev, name];
+      }
+    });
+  };
+
+  const handleEliminarCompetenciaDelSistema = async (id: number, name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la competencia "${name}" del catálogo del sistema?`)) {
+      return;
+    }
+
+    try {
+      await apiFetch(`/api/entrevistas/competencias/${id}`, {
+        method: 'DELETE'
+      }, session?.backendJwt);
+
+      setAllCompetencias(prev => prev.filter(c => c.idCompetencia !== id));
+      setSelectedCompetencyNames(prev => prev.filter(n => n !== name));
+      setSelectedCompetencyLevels(prev => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+
+      toast.success("Competencia eliminada permanentemente del sistema");
+    } catch (err) {
+      console.error("Error eliminando competencia:", err);
+      toast.error("Error al eliminar competencia: " + (err instanceof Error ? err.message : err));
+    }
+  };
+
+  const handleCreateCompetency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompName.trim()) {
+      toast.warning("El nombre de la competencia es requerido");
+      return;
+    }
+
+    const name = newCompName.trim();
+    if (allCompetencias.some(c => c.nombre.toLowerCase() === name.toLowerCase())) {
+      toast.warning("Ya existe una competencia con ese nombre");
+      return;
+    }
+
+    const payload = {
+      nombre: name,
+      descripcion: newCompDesc.trim() || `Competencia: ${name}`,
+      nivel0: newCompL0.trim() || 'Por debajo del esperado',
+      nivel1: newCompL1.trim() || 'Alcanza los criterios mínimos',
+      nivel2: newCompL2.trim() || 'Supera los criterios mínimos',
+      nivel3: newCompL3.trim() || 'Supera las expectativas',
+      puesto: newCompIsPermanent ? 'General' : 'Temporal',
+      activo: true
+    };
+
+    try {
+      if (newCompIsPermanent) {
+        const saved = await apiFetch<any>('/api/entrevistas/competencias', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }, session?.backendJwt);
+        
+        setAllCompetencias(prev => [...prev, saved]);
+        setSelectedCompetencyNames(prev => [...prev, name]);
+        setSelectedCompetencyLevels(prev => ({
+          ...prev,
+          [name]: { nivel: 1, descripcion: saved.nivel1 }
+        }));
+        toast.success("Competencia agregada permanentemente al sistema");
+      } else {
+        setAllCompetencias(prev => [...prev, payload]);
+        setSelectedCompetencyNames(prev => [...prev, name]);
+        setSelectedCompetencyLevels(prev => ({
+          ...prev,
+          [name]: { nivel: 1, descripcion: payload.nivel1 }
+        }));
+        toast.success("Competencia agregada a la evaluación actual");
+      }
+
+      setIsAddingCompetency(false);
+      setNewCompName('');
+      setNewCompDesc('');
+      setNewCompL0('');
+      setNewCompL1('');
+      setNewCompL2('');
+      setNewCompL3('');
+      setNewCompIsPermanent(false);
+    } catch (err) {
+      console.error("Error al crear competencia:", err);
+      toast.error("Error al guardar competencia: " + (err instanceof Error ? err.message : err));
+    }
+  };
 
   useEffect(() => {
     if (status === 'authenticated' && session?.backendJwt) {
@@ -181,7 +324,7 @@ export default function PathMentorFeedbacks() {
           interviewTime: item.hora,
           status: statusVal,
           result: resultVal,
-          score: item.competenciaProactividad,
+          score: item.promedioCalificacion || item.competenciaProactividad,
           scores: {
             general: item.competenciaProactividad || 0,
             technical: item.competenciaTecnica || 0,
@@ -192,7 +335,8 @@ export default function PathMentorFeedbacks() {
           areasMejora: amej,
           comentarios: coms,
           lastUpdated: item.fecha,
-          position: item.puesto || 'Sin especificar'
+          position: item.puesto || 'Sin especificar',
+          competenciasEvaluadas: item.competenciasEvaluadas || []
         };
       });
       setFeedbacks(mapped);
@@ -236,13 +380,31 @@ export default function PathMentorFeedbacks() {
     setSelectedFeedback(item);
     setFormMode('ver');
     setFormResult(item.result || '');
-    setFormScoreGeneral(item.scores?.general || 0);
-    setFormScoreTechnical(item.scores?.technical || 0);
-    setFormScoreCommunication(item.scores?.communication || 0);
-    setFormScoreProblemSolving(item.scores?.problemSolving || 0);
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    
+    // Initialize competencies and levels
+    const mapped: Record<string, { nivel: number; descripcion: string }> = {};
+    const selectedNames: string[] = [];
+    if (item.competenciasEvaluadas && item.competenciasEvaluadas.length > 0) {
+      item.competenciasEvaluadas.forEach((c: any) => {
+        mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+        selectedNames.push(c.nombreCompetencia);
+      });
+      setAllCompetencias(item.competenciasEvaluadas.map((c: any) => ({
+        nombre: c.nombreCompetencia,
+        descripcion: '',
+        nivel0: c.nivelSeleccionado === 0 ? c.descripcionNivel : 'Por debajo del esperado',
+        nivel1: c.nivelSeleccionado === 1 ? c.descripcionNivel : 'Alcanza los criterios minimos',
+        nivel2: c.nivelSeleccionado === 2 ? c.descripcionNivel : 'Supera los criterios minimos',
+        nivel3: c.nivelSeleccionado === 3 ? c.descripcionNivel : 'Supera las expectativas'
+      })));
+    } else {
+      setAllCompetencias([]);
+    }
+    setSelectedCompetencyNames(selectedNames);
+    setSelectedCompetencyLevels(mapped);
     setActiveView('form');
   };
 
@@ -250,13 +412,10 @@ export default function PathMentorFeedbacks() {
     setSelectedFeedback(item);
     setFormMode('editar');
     setFormResult(item.result || '');
-    setFormScoreGeneral(item.scores?.general || 0);
-    setFormScoreTechnical(item.scores?.technical || 0);
-    setFormScoreCommunication(item.scores?.communication || 0);
-    setFormScoreProblemSolving(item.scores?.problemSolving || 0);
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    loadCompetencias(item.position || 'General', item.id, 'editar');
     setActiveView('form');
   };
 
@@ -270,10 +429,6 @@ export default function PathMentorFeedbacks() {
       try {
         const parsed = JSON.parse(draft);
         setFormResult(parsed.result || '');
-        setFormScoreGeneral(parsed.scoreGeneral || 0);
-        setFormScoreTechnical(parsed.scoreTechnical || 0);
-        setFormScoreCommunication(parsed.scoreCommunication || 0);
-        setFormScoreProblemSolving(parsed.scoreProblemSolving || 0);
         setFormFortalezas(parsed.fortalezas || '');
         setFormAreasMejora(parsed.areasMejora || '');
         setFormComentarios(parsed.comentarios || '');
@@ -283,31 +438,64 @@ export default function PathMentorFeedbacks() {
     } else {
       resetFormFields();
     }
+    loadCompetencias(item.position || 'General', item.id, 'registrar');
     setActiveView('form');
+  };
+
+  const loadCompetencias = async (puesto: string, interviewId: number, mode: 'registrar' | 'editar') => {
+    try {
+      const res = await apiFetch<any[]>(`/api/entrevistas/competencias?puesto=${encodeURIComponent(puesto)}`, {}, session?.backendJwt);
+      setAllCompetencias(res || []);
+      
+      const mapped: Record<string, { nivel: number; descripcion: string }> = {};
+      let selectedNames: string[] = [];
+      const draft = localStorage.getItem(`draft_feedback_${interviewId}`);
+      const existing = feedbacks.find(f => f.id === interviewId);
+      
+      if (mode === 'editar' && existing && existing.competenciasEvaluadas && existing.competenciasEvaluadas.length > 0) {
+        existing.competenciasEvaluadas.forEach((c: any) => {
+          mapped[c.nombreCompetencia] = { nivel: c.nivelSeleccionado, descripcion: c.descripcionNivel };
+          selectedNames.push(c.nombreCompetencia);
+        });
+      } else if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed.competencyLevels) {
+            Object.assign(mapped, parsed.competencyLevels);
+          }
+          if (parsed.competencyNames) {
+            selectedNames = parsed.competencyNames;
+          }
+        } catch (e) {}
+      } else {
+        // By default, select NO competencies (as requested by user)
+        selectedNames = [];
+      }
+      setSelectedCompetencyNames(selectedNames);
+      setSelectedCompetencyLevels(mapped);
+    } catch (err) {
+      console.error("Error cargando competencias:", err);
+    }
   };
 
   const resetFormFields = () => {
     setFormResult('');
-    setFormScoreGeneral(0);
-    setFormScoreTechnical(0);
-    setFormScoreCommunication(0);
-    setFormScoreProblemSolving(0);
     setFormFortalezas('');
     setFormAreasMejora('');
     setFormComentarios('');
+    setSelectedCompetencyLevels({});
+    setSelectedCompetencyNames([]);
   };
 
   const handleSaveDraft = () => {
     if (!selectedFeedback) return;
     const draftData = {
       result: formResult,
-      scoreGeneral: formScoreGeneral,
-      scoreTechnical: formScoreTechnical,
-      scoreCommunication: formScoreCommunication,
-      scoreProblemSolving: formScoreProblemSolving,
       fortalezas: formFortalezas,
       areasMejora: formAreasMejora,
-      comentarios: formComentarios
+      comentarios: formComentarios,
+      competencyLevels: selectedCompetencyLevels,
+      competencyNames: selectedCompetencyNames
     };
     localStorage.setItem(`draft_feedback_${selectedFeedback.id}`, JSON.stringify(draftData));
     toast.success("Borrador guardado localmente.");
@@ -329,15 +517,36 @@ export default function PathMentorFeedbacks() {
         comentarios: formComentarios
       });
 
+      // Map dynamic competencies (only the ones selected by the mentor)
+      const compPayload = selectedCompetencyNames.map(name => {
+        const c = allCompetencias.find(comp => comp.nombre === name) || {
+          nombre: name,
+          nivel1: 'Alcanza los criterios minimos'
+        };
+        const sel = selectedCompetencyLevels[name] || { nivel: 1, descripcion: c.nivel1 };
+        return {
+          nombreCompetencia: name,
+          nivelSeleccionado: sel.nivel,
+          descripcionNivel: sel.descripcion
+        };
+      });
+
+      let averageLevel = 0;
+      if (compPayload.length > 0) {
+        const total = compPayload.reduce((acc, curr) => acc + curr.nivelSeleccionado, 0);
+        averageLevel = Math.round((total / compPayload.length) * 1.66) + 1; // Map 0-3 to 1-5 stars for legacy compatibility
+      }
+
       await apiFetch(`/api/entrevistas/${selectedFeedback.id}/feedback`, {
         method: "POST",
         body: JSON.stringify({
           resultado: formResult,
           feedbackComentarios: commentsJson,
-          competenciaComunicacion: formScoreCommunication,
-          competenciaTecnica: formScoreTechnical,
-          competenciaProactividad: formScoreGeneral,
-          competenciaResolucion: formScoreProblemSolving
+          competenciaComunicacion: averageLevel || 3,
+          competenciaTecnica: averageLevel || 3,
+          competenciaProactividad: averageLevel || 3,
+          competenciaResolucion: averageLevel || 3,
+          competenciasEvaluadas: compPayload
         })
       }, session?.backendJwt);
 
@@ -492,14 +701,20 @@ export default function PathMentorFeedbacks() {
                             {item.result ? (
                               <span
                                 className={`${styles.resultBadge} ${
-                                  item.result === 'Aprobado'
+                                  item.result === 'Aprobado' || item.result === 'Alta'
                                     ? styles.resultAprobado
-                                    : item.result === 'Requiere Mejora'
+                                    : item.result === 'Requiere Mejora' || item.result === 'Baja'
                                     ? styles.resultMejora
                                     : styles.resultObservaciones
                                 }`}
                               >
-                                {item.result}
+                                {item.result === 'Alta'
+                                  ? 'Alta probabilidad'
+                                  : item.result === 'Media'
+                                  ? 'Media probabilidad'
+                                  : item.result === 'Baja'
+                                  ? 'Baja probabilidad'
+                                  : item.result}
                               </span>
                             ) : (
                               <span className={styles.resultEmpty}>-</span>
@@ -636,21 +851,27 @@ export default function PathMentorFeedbacks() {
                     disabled={formMode === 'ver'}
                   >
                     <option value="" disabled>Selecciona un resultado...</option>
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Requiere Mejora">Requiere Mejora</option>
-                    <option value="Con Observaciones">Con Observaciones</option>
+                    <option value="Alta">Alta probabilidad de éxito</option>
+                    <option value="Media">Media probabilidad de éxito</option>
+                    <option value="Baja">Baja probabilidad de éxito</option>
                   </select>
 
                   {formResult && (
                     <div className={styles.resultBadgeForm}>
                       <span className={`${styles.resultBadge} ${
-                        formResult === 'Aprobado'
+                        formResult === 'Aprobado' || formResult === 'Alta'
                           ? styles.resultAprobado
-                          : formResult === 'Requiere Mejora'
+                          : formResult === 'Requiere Mejora' || formResult === 'Baja'
                           ? styles.resultMejora
                           : styles.resultObservaciones
                       }`}>
-                        {formResult}
+                        {formResult === 'Alta'
+                          ? 'Alta probabilidad'
+                          : formResult === 'Media'
+                          ? 'Media probabilidad'
+                          : formResult === 'Baja'
+                          ? 'Baja probabilidad'
+                          : formResult}
                       </span>
                     </div>
                   )}
@@ -664,102 +885,181 @@ export default function PathMentorFeedbacks() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    Evaluación por Competencias
+                    Evaluación por Competencias (Rúbrica 0-3)
                   </div>
                 </div>
 
-                <div className={styles.starList}>
-                  {/* Calificación General */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Calificación General</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreGeneral(val)}
-                          >
-                            <StarIcon filled={val <= formScoreGeneral} />
-                          </button>
-                        ))}
+                <div className="space-y-6 mt-4">
+                  {/* Checkbox Selección de Dimensiones a Evaluar */}
+                  {formMode !== 'ver' && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 shadow-sm">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Dimensiones a evaluar en esta sesión:</h4>
+                      
+                      {/* Buscador de Competencias */}
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          placeholder="Buscar dimensiones de competencias..."
+                          value={compSearchTerm}
+                          onChange={(e) => setCompSearchTerm(e.target.value)}
+                          className="w-full px-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] bg-white text-slate-800"
+                        />
                       </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreGeneral}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Habilidades Técnicas */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Habilidades Técnicas</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreTechnical(val)}
-                          >
-                            <StarIcon filled={val <= formScoreTechnical} />
-                          </button>
-                        ))}
+                      <div className="flex flex-wrap gap-2">
+                        {allCompetencias
+                          .filter((comp) => normalizeText(comp.nombre).includes(normalizeText(compSearchTerm)))
+                          .map((comp) => {
+                            const isChecked = selectedCompetencyNames.includes(comp.nombre);
+                            return (
+                              <label
+                                key={comp.nombre}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
+                                  isChecked
+                                    ? "bg-[#7447D7]/10 text-[#7447D7] border-[#7447D7]/30"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-350"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleCompetency(comp.nombre)}
+                                  className="rounded text-[#7447D7] focus:ring-[#7447D7]"
+                                />
+                                <span>{comp.nombre}</span>
+                              </label>
+                            );
+                          })}
                       </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreTechnical}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Comunicación */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Comunicación</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreCommunication(val)}
-                          >
-                            <StarIcon filled={val <= formScoreCommunication} />
-                          </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreCommunication}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
-                  </div>
+                  {/* Tabla con Radio Buttons de Selección */}
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                      <thead className="bg-slate-50 font-bold text-slate-600 uppercase tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4 min-w-[200px]">Dimensión a evaluar</th>
+                          <th className="px-4 py-4 text-center">0 - Por debajo</th>
+                          <th className="px-4 py-4 text-center">1 - Mínimos</th>
+                          <th className="px-4 py-4 text-center">2 - Supera</th>
+                          <th className="px-4 py-4 text-center">3 - Excelente</th>
+                          {formMode !== 'ver' && <th className="px-6 py-4 text-right">Acciones</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150">
+                        {selectedCompetencyNames.length > 0 ? (
+                          selectedCompetencyNames.map((compName) => {
+                            const comp = allCompetencias.find(c => c.nombre === compName) || {
+                              nombre: compName,
+                              descripcion: '',
+                              nivel0: 'Por debajo del esperado',
+                              nivel1: 'Alcanza los criterios mínimos',
+                              nivel2: 'Supera los criterios mínimos',
+                              nivel3: 'Supera las expectativas'
+                            };
+                            const currentSelection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
 
-                  {/* Resolución de Problemas */}
-                  <div className={styles.starRow}>
-                    <span className={styles.starLabel}>Resolución de Problemas</span>
-                    <div className={styles.starsWrapper}>
-                      <div className={styles.starsContainer}>
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={styles.starBtn}
-                            disabled={formMode === 'ver'}
-                            onClick={() => setFormScoreProblemSolving(val)}
-                          >
-                            <StarIcon filled={val <= formScoreProblemSolving} />
-                          </button>
-                        ))}
-                      </div>
-                      <span className={styles.scoreDisplay}>
-                        {formScoreProblemSolving}<span className={styles.scoreDisplayMax}>/5</span>
-                      </span>
-                    </div>
+                            return (
+                              <tr key={compName} className="hover:bg-slate-50/40 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="font-extrabold text-slate-800 text-sm">{compName}</div>
+                                  {comp.descripcion && <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">{comp.descripcion}</p>}
+                                  
+                                  {/* Toggle Detalle */}
+                                  <div className="mt-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedDetails(prev => ({ ...prev, [compName]: !prev[compName] }))}
+                                      className="text-[#7447D7] dark:text-purple-400 text-[10px] font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {expandedDetails[compName] ? "Ocultar detalle" : "Ver detalle"}
+                                    </button>
+                                  </div>
+
+                                  {/* Caja de Detalle Expansible */}
+                                  {expandedDetails[compName] && (
+                                    <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border border-slate-150 dark:border-slate-700 text-[10px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold">
+                                      <span className="font-extrabold block text-[#7447D7] dark:text-purple-400 mb-1">
+                                        Nivel {currentSelection.nivel}: {
+                                          currentSelection.nivel === 0 ? "Por debajo de lo esperado" :
+                                          currentSelection.nivel === 1 ? "Alcanza los criterios mínimos" :
+                                          currentSelection.nivel === 2 ? "Supera los criterios mínimos" :
+                                          "Supera las expectativas"
+                                        }
+                                      </span>
+                                      {currentSelection.descripcion}
+                                    </div>
+                                  )}
+                                </td>
+                                {[0, 1, 2, 3].map((lvl) => (
+                                  <td key={lvl} className="px-4 py-4 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`level-${compName}`}
+                                      checked={currentSelection.nivel === lvl}
+                                      onChange={() => handleSelectLevel(compName, lvl, getLevelDescription(comp, lvl))}
+                                      disabled={formMode === 'ver'}
+                                      className="h-4 w-4 text-[#7447D7] focus:ring-[#7447D7] border-slate-300 cursor-pointer"
+                                    />
+                                  </td>
+                                ))}
+                                {formMode !== 'ver' && (
+                                  <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleCompetency(compName)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                        title="Quitar de esta evaluación"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                          <line x1="18" y1="6" x2="6" y2="18" />
+                                          <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                      </button>
+                                      {comp.idCompetencia && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEliminarCompetenciaDelSistema(comp.idCompetencia, compName)}
+                                          className="p-1.5 text-slate-400 hover:text-red-700 rounded-lg hover:bg-red-50 transition cursor-pointer"
+                                          title="Eliminar permanentemente del sistema"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                          </svg>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                              Selecciona al menos una dimensión de la barra superior para iniciar la evaluación.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
+                  
+                  {/* Botón para Añadir Competencia */}
+                  {formMode !== 'ver' && (
+                    <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCompetency(true)}
+                        className="text-[#7447D7] text-xs font-extrabold flex items-center gap-1.5 hover:underline cursor-pointer"
+                      >
+                        + Agregar competencia adicional
+                      </button>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -850,6 +1150,18 @@ export default function PathMentorFeedbacks() {
 
                     <button
                       type="button"
+                      className="px-4 py-2.5 rounded-xl border border-purple-200 bg-purple-50 text-[#7447D7] hover:bg-purple-100 text-xs font-extrabold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => setShowPreviewModal(true)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      Vista Previa
+                    </button>
+
+                    <button
+                      type="button"
                       className={styles.btnPublish}
                       onClick={handlePublish}
                     >
@@ -866,6 +1178,354 @@ export default function PathMentorFeedbacks() {
           </>
         )}
       </main>
+
+      {/* POPUP MODAL: AGREGAR NUEVA DIMENSIÓN */}
+      {isAddingCompetency && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col scale-in">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-150 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">Agregar Nueva Dimensión</h3>
+                <p className="text-xs text-slate-400 font-medium">Define una competencia y sus rúbricas de evaluación</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingCompetency(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCreateCompetency} className="flex-1 overflow-y-auto p-6 space-y-4 max-h-[70vh]">
+              <div className="space-y-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Nombre de la competencia</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Orientación a resultados"
+                  value={newCompName}
+                  onChange={(e) => setNewCompName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Descripción corta</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Capacidad para enfocar los esfuerzos hacia el logro de metas organizacionales..."
+                  value={newCompDesc}
+                  onChange={(e) => setNewCompDesc(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Definición de Niveles de Rúbrica:</span>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-red-600 block">Nivel 0 - Por debajo de lo esperado</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 0..."
+                    value={newCompL0}
+                    onChange={(e) => setNewCompL0(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-blue-600 block">Nivel 1 - Alcanza los criterios mínimos</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 1..."
+                    value={newCompL1}
+                    onChange={(e) => setNewCompL1(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-green-600 block">Nivel 2 - Supera los criterios mínimos</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 2..."
+                    value={newCompL2}
+                    onChange={(e) => setNewCompL2(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-purple-600 block">Nivel 3 - Supera las expectativas</label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Detalle de comportamientos del nivel 3..."
+                    value={newCompL3}
+                    onChange={(e) => setNewCompL3(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#7447D7]/20 focus:border-[#7447D7] text-xs font-medium text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-3">
+                <input
+                  id="chk-permanent"
+                  type="checkbox"
+                  checked={newCompIsPermanent}
+                  onChange={(e) => setNewCompIsPermanent(e.target.checked)}
+                  className="h-4.5 w-4.5 rounded text-[#7447D7] focus:ring-[#7447D7] border-slate-350 cursor-pointer"
+                />
+                <div className="flex-1 cursor-pointer select-none">
+                  <label htmlFor="chk-permanent" className="text-xs font-extrabold text-slate-700 block cursor-pointer">Confirmar guardado permanente</label>
+                  <span className="text-[10px] text-slate-400 font-medium block">Habilitará esta dimensión de forma global para futuras entrevistas de evaluación</span>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCompetency(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-extrabold text-slate-600 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-xl bg-[#7447D7] text-white hover:bg-[#633bc1] text-xs font-extrabold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Agregar Dimensión
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW MODAL */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-100 flex flex-col p-6 relative">
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowPreviewModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Modal Content - Replicating student page style */}
+            <div className="mt-4 space-y-6">
+              
+              {/* Header */}
+              <div>
+                <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1.5 flex-shrink-0">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  Evaluación Completada (Vista Previa Estudiante)
+                </span>
+                <h2 className="text-2xl font-black text-slate-950 mt-2">Detalles de tu Simulación</h2>
+                <p className="text-xs text-slate-500 mt-1">Reunión de simulación de entrevista laboral para retroalimentación</p>
+              </div>
+
+              {/* Information Row */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 grid gap-4 grid-cols-2 md:grid-cols-4 text-xs">
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Tu PathMentor</span>
+                  <span className="font-bold text-slate-700">{session?.user?.name || "Mentor"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Fecha de la Cita</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.interviewDate}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Horario</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.interviewTime || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase tracking-wider text-[10px]">Puesto Postulado</span>
+                  <span className="font-bold text-slate-700">{selectedFeedback?.position || "Sin especificar"}</span>
+                </div>
+              </div>
+
+              {/* Main Content Layout */}
+              <div className="grid gap-6 md:grid-cols-3">
+                
+                {/* Left side: Comments */}
+                <div className="md:col-span-2 space-y-6">
+                  
+                  {formFortalezas && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                        💪 Fortalezas Clave
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formFortalezas}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formAreasMejora && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+                        📈 Áreas de Mejora
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formAreasMejora}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formComentarios && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
+                        💬 Observaciones y Recomendaciones
+                      </span>
+                      <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          "{formComentarios}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: Final score & Competencies */}
+                <div className="space-y-6">
+                  
+                  {/* Recommended Decision */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">Resultado Final</h4>
+                      <p className="text-[10px] text-slate-400">Decisión de postulación recomendada</p>
+                    </div>
+
+                    <div className={`p-3.5 rounded-xl border text-center font-bold text-xs ${
+                      formResult === "Alta"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : formResult === "Media"
+                        ? "bg-amber-50 border-amber-200 text-amber-800"
+                        : "bg-red-50 border-red-200 text-red-800"
+                    }`}>
+                      <span className="text-md block tracking-wide uppercase">
+                        {formResult === "Alta"
+                          ? "Alta probabilidad"
+                          : formResult === "Media"
+                          ? "Media probabilidad"
+                          : formResult === "Baja"
+                          ? "Baja probabilidad"
+                          : "Sin resultado"}
+                      </span>
+                    </div>
+
+                    {/* Calculated Average */}
+                    {(() => {
+                      const keys = selectedCompetencyNames;
+                      if (keys.length === 0) return null;
+                      const total = keys.reduce((acc, curr) => acc + (selectedCompetencyLevels[curr]?.nivel || 0), 0);
+                      const avg = (total / keys.length).toFixed(1);
+                      return (
+                        <div className="p-3 rounded-xl border border-purple-100 bg-purple-50/20 text-center">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Promedio General</span>
+                          <span className="text-2xl font-extrabold text-[#7447D7]">{avg} / 3.0</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Competencies Breakdown */}
+                  {selectedCompetencyNames.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Calificación por Competencia</span>
+                      
+                      <div className="space-y-4">
+                        {selectedCompetencyNames.map((compName) => {
+                          const comp = allCompetencias.find(c => c.nombre === compName) || {
+                            nivel1: "Alcanza los criterios mínimos"
+                          };
+                          const selection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
+                          return (
+                            <div key={compName} className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-1.5 text-[11px]">
+                              <div className="flex justify-between font-extrabold text-slate-800">
+                                <span>{compName}</span>
+                                <span className="text-[#7447D7]">{selection.nivel} / 3</span>
+                              </div>
+
+                              <div className="flex gap-0.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                {[0, 1, 2, 3].map((lvl) => (
+                                  <div
+                                    key={lvl}
+                                    className={`flex-1 rounded-full ${
+                                      lvl <= selection.nivel
+                                        ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6]"
+                                        : "bg-slate-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+
+                              <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                                <span className="font-bold text-[#7447D7]">
+                                  {selection.nivel === 0 ? "Nivel 0 (Bajo esperado): " :
+                                   selection.nivel === 1 ? "Nivel 1 (Mínimo): " :
+                                   selection.nivel === 2 ? "Nivel 2 (Supera Mínimo): " :
+                                   "Nivel 3 (Excelente): "}
+                                </span>
+                                {selection.descripcion}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-xs font-bold shadow-sm transition cursor-pointer"
+              >
+                Cerrar Vista Previa
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,5 +13,7 @@ public class PathChallengeAvanceRequestDTO {
 
     private List<Integer> completedTaskIds;
 
+    private List<PathChallengeTaskResponseRequestDTO> taskResponses;
+
     private String entregaTexto;
 }

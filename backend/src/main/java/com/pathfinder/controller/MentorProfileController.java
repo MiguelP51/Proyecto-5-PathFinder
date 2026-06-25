@@ -34,6 +34,22 @@ public class MentorProfileController {
         }
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<MentorProfileResponse>> obtenerPerfilPorId(
+            @PathVariable Integer id) {
+        try {
+            MentorProfileResponse perfil =
+                    mentorProfileService.obtenerPerfilPorId(id);
+            return ResponseEntity.ok(ApiResponse.success("Perfil del mentor obtenido correctamente", perfil));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error obteniendo perfil del mentor por ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error obteniendo el perfil del mentor"));
+        }
+    }
+
     @PutMapping
     public ResponseEntity<ApiResponse<MentorProfileResponse>> guardarPerfil(
             @Valid @RequestBody MentorProfileRequest request,

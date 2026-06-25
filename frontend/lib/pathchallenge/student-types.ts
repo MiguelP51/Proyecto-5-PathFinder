@@ -5,9 +5,31 @@ export interface StudentPathChallengeSkill {
 
 export interface StudentPathChallengeTask {
     idPathChallengeTask: number;
+    title: string;
     description: string;
+    taskType: string;
+    content?: string | null;
+    configJson?: string | null;
+    options: string[];
     order: number;
+    required: boolean;
     completed: boolean;
+
+    responseText?: string | null;
+    selectedOption?: string | null;
+    fileName?: string | null;
+    fileUrl?: string | null;
+    responseJson?: string | null;
+}
+
+export interface StudentPathChallengeTaskResponseRequest {
+    idPathChallengeTask: number;
+    completed?: boolean;
+    responseText?: string;
+    selectedOption?: string;
+    fileName?: string;
+    fileUrl?: string;
+    responseJson?: string;
 }
 
 export interface StudentPathChallengeSubmission {
@@ -56,11 +78,13 @@ export interface StudentPathChallenge {
 }
 
 export interface StudentPathChallengeProgressRequest {
-    completedTaskIds: number[];
+    completedTaskIds?: number[];
+    taskResponses?: StudentPathChallengeTaskResponseRequest[];
     entregaTexto?: string;
 }
 
 export interface StudentPathChallengeFinishRequest {
-    completedTaskIds: number[];
+    completedTaskIds?: number[];
+    taskResponses?: StudentPathChallengeTaskResponseRequest[];
     entregaTexto?: string;
 }

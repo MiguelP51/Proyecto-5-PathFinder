@@ -34,7 +34,7 @@ export default function DiscTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const questionsPerPage = 5;
+  const questionsPerPage = 10;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -257,6 +257,19 @@ export default function DiscTestPage() {
 
         {/* Listado de Preguntas */}
         <section className="space-y-6">
+          <div className="rounded-2xl border border-[#7447D7]/30 bg-purple-50/50 p-4 text-center">
+            <h2 className="text-lg font-extrabold text-[#7447D7]">
+              {currentPage === 0
+                ? "SECCIÓN 1: Elige la palabra con la que MÁS te identificas en cada bloque"
+                : "SECCIÓN 2: Elige la palabra con la que MENOS te identificas en cada bloque"}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {currentPage === 0
+                ? "Selecciona exactamente una opción por cada uno de los primeros 10 bloques."
+                : "Selecciona exactamente una opción por cada uno de los siguientes 10 bloques."}
+            </p>
+          </div>
+
           {pageQuestions.map((q, idx) => {
             const questionNumber = startIndex + idx + 1;
             const selectedOption = answers[q.idPreguntaDisc];
@@ -274,13 +287,13 @@ export default function DiscTestPage() {
                     {questionNumber}
                   </span>
                   <div className="flex-1">
-                    <h2 className="text-lg font-bold text-slate-800 leading-relaxed">
+                    <h2 className="text-base font-bold text-slate-700 leading-relaxed mb-4">
                       {q.enunciado}
                       {q.obligatoria && <span className="text-red-500 ml-1">*</span>}
                     </h2>
 
-                    {/* Escala Likert de Opciones */}
-                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-5">
+                    {/* Grilla de 4 Opciones */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                       {q.opciones.map((opt) => {
                         const isSelected = selectedOption === opt.idOpcionPreguntaDisc;
                         return (
@@ -288,18 +301,13 @@ export default function DiscTestPage() {
                             key={opt.idOpcionPreguntaDisc}
                             type="button"
                             onClick={() => handleSelectOption(q.idPreguntaDisc, opt.idOpcionPreguntaDisc)}
-                            className={`flex flex-col items-center justify-center rounded-xl border p-3.5 transition-all duration-200 cursor-pointer ${
+                            className={`flex items-center justify-center rounded-xl border p-4 transition-all duration-200 cursor-pointer ${
                               isSelected
-                                ? "border-[#7447D7] bg-[#7447D7]/5 text-[#7447D7] font-bold shadow-sm"
+                                ? "border-[#7447D7] bg-[#7447D7]/5 text-[#7447D7] font-bold shadow-sm ring-2 ring-[#7447D7]/20"
                                 : "border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300"
                             }`}
                           >
-                            <span className="text-xs text-center leading-normal mb-1">{opt.textoOpcion}</span>
-                            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                              isSelected ? "bg-[#7447D7] text-white" : "bg-slate-200 text-slate-600"
-                            }`}>
-                              {opt.valorRespuesta}
-                            </span>
+                            <span className="text-sm text-center font-semibold leading-normal">{opt.textoOpcion}</span>
                           </button>
                         );
                       })}

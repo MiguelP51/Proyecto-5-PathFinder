@@ -36,6 +36,7 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
     private final ProgresoEstudianteRepository  progresoRepo;
     private final ArchivoCVRepository           archivoCVRepository;
     private final PerfilEntrenamientoRepository perfilEntrenamientoRepository;
+    private final EntrevistaRepository          entrevistaRepository;
 
     // =========================================================
     // HU-EST-03 — Estado del estudiante
@@ -477,6 +478,44 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
     public void actualizarProgresoEstudiante(String correo, NombreEtapa etapa, EstadoEtapa estado, boolean setFecha) {
         Usuario usuario = obtenerUsuario(correo);
         actualizarProgreso(usuario, etapa, estado, setFecha);
+    }
+
+    @Override
+    @jakarta.transaction.Transactional
+    public EstadoEstudianteResponse reiniciarProgreso(String correo) {
+        Usuario usuario = obtenerUsuario(correo);
+
+        List<NombreEtapa> etapasParaReiniciar = List.of(
+            NombreEtapa.CARGA_CV,
+            NombreEtapa.REVISION_PERFIL,
+            NombreEtapa.CONFIRMACION_PERFIL,
+            NombreEtapa.AGENDAMIENTO_ENTREVISTA,
+            NombreEtapa.EVALUACION_ENTREVISTA
+        );
+
+        for (NombreEtapa etapa : etapasParaReiniciar) {
+            ProgresoEstudiante p = progresoRepo
+                    .findByUsuario_IdUsuarioAndNombreEtapa(usuario.getIdUsuario(), etapa)
+                    .orElseGet(() -> {
+                        ProgresoEstudiante nuevo = new ProgresoEstudiante();
+                        nuevo.setUsuario(usuario);
+                        nuevo.setNombreEtapa(etapa);
+                        return nuevo;
+                    });
+            p.setEstadoEtapa(EstadoEtapa.PENDIENTE);
+            p.setFechaCompletada(null);
+            progresoRepo.save(p);
+        }
+
+        // Archivar entrevistas activas
+        List<Entrevista> activeInterviews = entrevistaRepository.findByEstudiante_CorreoAndActivoTrue(correo);
+        for (Entrevista ent : activeInterviews) {
+            ent.setActivo(false);
+            ent.setFechaModificacion(LocalDateTime.now());
+        }
+        entrevistaRepository.saveAll(activeInterviews);
+
+        return obtenerEstado(correo);
     }
 
     private Usuario obtenerUsuario(String correo) {

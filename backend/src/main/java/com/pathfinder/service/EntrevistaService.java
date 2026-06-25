@@ -1,7 +1,9 @@
 package com.pathfinder.service;
 
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
+import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.dto.response.MentorMetricsResponseDTO;
 import java.util.List;
 
 public interface EntrevistaService {
@@ -9,6 +11,11 @@ public interface EntrevistaService {
     EntrevistaResponseDTO obtenerEntrevistaActivaEstudiante(String correoEstudiante);
     List<EntrevistaResponseDTO> obtenerEntrevistasMentor(String correoMentor);
     boolean guardarEnlaceVirtual(Integer idEntrevista, String correoMentor, String virtualLink);
-    void guardarFeedback(Integer idEntrevista, String correoMentor, String resultado, String feedback, Integer comunicacion, Integer tecnica, Integer proactividad, Integer resolucion);
+    void guardarFeedback(Integer idEntrevista, String correoMentor, com.pathfinder.dto.request.GuardarFeedbackRequest request);
     void cancelarOReagendarEntrevistaEstudiante(String correoEstudiante, String motivo, boolean esReagendado);
+    void archivarEntrevistasEstudiante(String correoEstudiante);
+
+    EntrevistaResponseDTO reprogramar(Integer idEntrevista, String correoMentor, ReprogramarEntrevistaRequest request);
+
+    MentorMetricsResponseDTO obtenerMetricas(String correoMentor, String periodo);
 }

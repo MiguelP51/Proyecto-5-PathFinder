@@ -521,6 +521,266 @@
     box-shadow: 0 4px 14px rgba(0, 102, 255, 0.25);
 }
 
+/* RESCHEDULE MODAL */
+.rescheduleContent {
+    width: 720px !important;
+    max-width: 95% !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rescheduleCurrentCard {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+}
+
+.rescheduleCardLabel {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 10px;
+}
+
+.rescheduleCardRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.rescheduleCardRow + .rescheduleCardRow {
+    margin-top: 6px;
+}
+
+.rescheduleCardIcon {
+    color: #7447D7;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Calendar Section */
+.calendarSection {
+    margin-bottom: 28px;
+}
+
+.calendarSectionTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+}
+
+.calendarNav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.calendarNavMonth {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.calendarNavBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 16px;
+}
+
+.calendarNavBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendarDayHeader {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    padding: 8px 0;
+}
+
+.calendarDay {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+    position: relative;
+}
+
+.calendarDay:hover:not(.calendarDayDisabled) {
+    background: #f1f5f9;
+}
+
+.calendarDayDisabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+}
+
+.calendarDayToday {
+    color: #7447D7;
+    font-weight: 800;
+}
+
+.calendarDayAvailable {
+    background: #f5f3ff;
+    color: #6d28d9;
+    font-weight: 700;
+}
+
+.calendarDayAvailable:hover {
+    background: #ede9fe;
+}
+
+.calendarDaySelected {
+    background: #7447D7 !important;
+    color: white !important;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(116, 71, 215, 0.3);
+}
+
+.calendarDayEmpty {
+    aspect-ratio: 1;
+}
+
+/* Time Slots */
+.timeSection {
+    margin-bottom: 28px;
+}
+
+.timeSectionTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+
+.timeSlotGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.timeSlotBtn {
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.timeSlotBtn:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.timeSlotBtnSelected {
+    background: #7447D7 !important;
+    border-color: #7447D7 !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(116, 71, 215, 0.25);
+}
+
+.timeManualInput {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    font-size: 15px;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.2s;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.timeManualInput:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2);
+}
+
+.timeManualLabel {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* Summary Card */
+.rescheduleSummaryCard {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border: 1px solid #ddd6fe;
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+
+.rescheduleSummaryLabel {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6d28d9;
+    margin-bottom: 10px;
+}
+
+.rescheduleArrow {
+    color: #7447D7;
+    font-size: 20px;
+    margin: 0 8px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Time helper text */
+.timeHelperText {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -727,5 +987,304 @@
     margin: 0;
     font-size: 14px;
     color: #7f1d1d;
+}
+
+/* ===== WEEKLY CALENDAR (RESCHEDULE) ===== */
+
+.weekNav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.weekNavBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.weekNavBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.weekNavTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: center;
+    padding: 0 8px;
+}
+
+.weekContainer {
+    display: flex;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: white;
+}
+
+.weekTimeCol {
+    width: 56px;
+    flex-shrink: 0;
+    border-right: 1px solid #e2e8f0;
+    background: #fafafa;
+}
+
+.weekTimeHeader {
+    height: 42px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.weekHourLabel {
+    height: 36px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.weekDayCol {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #e2e8f0;
+}
+
+.weekDayCol:last-child {
+    border-right: none;
+}
+
+.weekDayColHeader {
+    height: 42px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    background: #fafafa;
+    position: relative;
+}
+
+.weekDayName {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1;
+}
+
+.weekDayNum {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.weekDayToday .weekDayName {
+    color: #7447D7;
+}
+
+.weekDayToday .weekDayNum {
+    color: #7447D7;
+}
+
+.weekDayToday {
+    background: #f5f3ff !important;
+    border-bottom: 2px solid #7447D7;
+}
+
+.weekDayColBody {
+    position: relative;
+    height: 576px;
+}
+
+.weekHourLine {
+    height: 36px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.weekHourLine:hover {
+    background: rgba(116, 71, 215, 0.06);
+}
+
+.weekHourLineDisabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.weekHourLineDisabled:hover {
+    background: transparent;
+}
+
+.weekBlock {
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    border-radius: 6px;
+    background: rgba(116, 71, 215, 0.11);
+    border: 1px solid rgba(116, 71, 215, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.15s;
+    z-index: 2;
+    min-height: 18px;
+    padding: 1px 4px;
+}
+
+.weekBlock:hover {
+    background: rgba(116, 71, 215, 0.18);
+    border-color: rgba(116, 71, 215, 0.35);
+}
+
+.weekBlockTime {
+    font-size: 9px;
+    font-weight: 700;
+    color: #6d28d9;
+    line-height: 1.1;
+}
+
+.weekBlockType {
+    font-size: 8px;
+    font-weight: 600;
+    color: #7c3aed;
+    text-transform: capitalize;
+    line-height: 1.1;
+}
+
+.weekBlockSelected {
+    background: rgba(116, 71, 215, 0.22) !important;
+    border-color: #7447D7 !important;
+    box-shadow: 0 0 0 2px rgba(116, 71, 215, 0.12);
+}
+
+/* ===== RESCHEDULE INLINE BUTTON ===== */
+
+.btnRescheduleInline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+    padding: 5px 13px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #7447D7;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btnRescheduleInline:hover {
+    background: #f5f3ff;
+    border-color: #7447D7;
+    box-shadow: 0 2px 8px rgba(116, 71, 215, 0.12);
+}
+
+/* Dark mode overrides */
+:global(.dark) .weekNavBtn {
+    border-color: #334155;
+    background: #1e293b;
+    color: #94a3b8;
+}
+:global(.dark) .weekNavBtn:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+:global(.dark) .weekNavTitle {
+    color: #f1f5f9;
+}
+:global(.dark) .weekContainer {
+    border-color: #334155;
+    background: #1e293b;
+}
+:global(.dark) .weekTimeCol {
+    border-color: #334155;
+    background: #0f172a;
+}
+:global(.dark) .weekTimeHeader {
+    border-color: #334155;
+    color: #64748b;
+}
+:global(.dark) .weekHourLabel {
+    border-color: #1e293b;
+    color: #64748b;
+}
+:global(.dark) .weekDayCol {
+    border-color: #334155;
+}
+:global(.dark) .weekDayColHeader {
+    border-color: #334155;
+    background: #0f172a;
+}
+:global(.dark) .weekDayName {
+    color: #94a3b8;
+}
+:global(.dark) .weekDayNum {
+    color: #f1f5f9;
+}
+:global(.dark) .weekDayToday {
+    background: rgba(116, 71, 215, 0.08) !important;
+}
+:global(.dark) .weekHourLine {
+    border-color: #1e293b;
+}
+:global(.dark) .weekHourLine:hover {
+    background: rgba(116, 71, 215, 0.08);
+}
+:global(.dark) .weekBlock {
+    background: rgba(116, 71, 215, 0.15);
+    border-color: rgba(116, 71, 215, 0.25);
+}
+:global(.dark) .weekBlock:hover {
+    background: rgba(116, 71, 215, 0.25);
+}
+:global(.dark) .weekBlockTime {
+    color: #a78bfa;
+}
+:global(.dark) .weekBlockType {
+    color: #c4b5fd;
+}
+:global(.dark) .btnRescheduleInline {
+    border-color: #334155;
+    background: #1e293b;
+    color: #a78bfa;
+}
+:global(.dark) .btnRescheduleInline:hover {
+    background: rgba(116, 71, 215, 0.12);
+    border-color: #7447D7;
 }
 

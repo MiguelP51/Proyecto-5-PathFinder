@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface AdminDISCQuestionService {
 
-    List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc);
+    List<PreguntaDISCResponseDTO> listarPreguntas(CategoriaDISC categoriaDisc, boolean incluirInactivas);
 
     PreguntaDISCResponseDTO obtenerPregunta(Integer idPreguntaDisc);
 
@@ -21,4 +21,6 @@ public interface AdminDISCQuestionService {
     void eliminarPregunta(Integer idPreguntaDisc);
 
     List<TipoPreguntaDISC> listarTiposPregunta();
+
+    void resetQuestionsAndHistory();
 }

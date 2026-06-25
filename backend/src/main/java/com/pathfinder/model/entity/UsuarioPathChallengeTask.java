@@ -33,6 +33,21 @@ public class UsuarioPathChallengeTask {
     @JoinColumn(name = "id_path_challenge_task", nullable = false)
     private PathChallengeTask pathChallengeTask;
 
+    @Column(name = "respuesta_texto", columnDefinition = "TEXT")
+    private String respuestaTexto;
+
+    @Column(name = "opcion_seleccionada", columnDefinition = "TEXT")
+    private String opcionSeleccionada;
+
+    @Column(name = "archivo_url", length = 500)
+    private String archivoUrl;
+
+    @Column(name = "archivo_nombre", length = 255)
+    private String archivoNombre;
+
+    @Column(name = "respuesta_json", columnDefinition = "TEXT")
+    private String respuestaJson;
+
     @Column(name = "completada", nullable = false)
     private Boolean completada = false;
 

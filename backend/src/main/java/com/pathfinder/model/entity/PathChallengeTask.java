@@ -24,4 +24,22 @@ public class PathChallengeTask extends AuditoriaBase {
 
     @Column(name = "orden", nullable = false)
     private Integer orden;
+
+    @Column(name = "titulo", length = 150)
+    private String titulo;
+
+    @Column(name = "tipo_tarea", nullable = false, length = 30)
+    private String tipoTarea = "INFORMATION";
+
+    @Column(name = "contenido", columnDefinition = "TEXT")
+    private String contenido;
+
+    @Column(name = "opciones_json", columnDefinition = "TEXT")
+    private String opcionesJson;
+
+    @Column(name = "obligatoria", nullable = false)
+    private Boolean obligatoria = true;
+
+    @Column(name = "config_json", columnDefinition = "TEXT")
+    private String configJson;
 }

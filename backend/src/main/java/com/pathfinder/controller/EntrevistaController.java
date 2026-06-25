@@ -2,8 +2,12 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.request.AgendarEntrevistaRequest;
 import com.pathfinder.dto.request.GuardarFeedbackRequest;
+import com.pathfinder.dto.request.ReprogramarEntrevistaRequest;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.EntrevistaResponseDTO;
+import com.pathfinder.dto.response.MentorMetricsResponseDTO;
+import com.pathfinder.model.entity.Competencia;
+import com.pathfinder.repository.CompetenciaRepository;
 import com.pathfinder.service.EntrevistaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +26,7 @@ import java.util.Map;
 public class EntrevistaController {
 
     private final EntrevistaService entrevistaService;
+    private final CompetenciaRepository competenciaRepository;
 
     // POST /api/entrevistas/agendar — Agendar entrevista por estudiante (HU-EST-14)
     @PostMapping("/agendar")
@@ -60,6 +65,23 @@ public class EntrevistaController {
         }
     }
 
+    // PUT /api/entrevistas/{id}/reprogramar — Reprogramar entrevista por el mentor (solo si no ha evaluado)
+    @PutMapping("/{id}/reprogramar")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> reprogramar(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer id,
+            @RequestBody ReprogramarEntrevistaRequest request) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.reprogramar(id, userDetails.getUsername(), request);
+            return ResponseEntity.ok(ApiResponse.success("Entrevista reprogramada exitosamente", dto));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error reprogramando entrevista: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al reprogramar entrevista: " + e.getMessage()));
+        }
+    }
+
     // GET /api/entrevistas/estudiante — Obtener entrevista activa del estudiante (HU-EST-15 / HU-EST-16)
     @GetMapping("/estudiante")
     public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> getEstudianteInterview(
@@ -86,6 +108,20 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error obteniendo entrevistas del mentor: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener la lista de entrevistas"));
+        }
+    }
+
+    // GET /api/entrevistas/mentor/metrics — Obtener metricas del mentor (HU-PM-XX)
+    @GetMapping("/mentor/metrics")
+    public ResponseEntity<ApiResponse<MentorMetricsResponseDTO>> getMentorMetrics(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "anio") String periodo) {
+        try {
+            MentorMetricsResponseDTO metrics = entrevistaService.obtenerMetricas(userDetails.getUsername(), periodo);
+            return ResponseEntity.ok(ApiResponse.success("Métricas obtenidas con éxito", metrics));
+        } catch (Exception e) {
+            log.error("Error obteniendo métricas del mentor: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener métricas"));
         }
     }
 
@@ -123,12 +159,7 @@ public class EntrevistaController {
             entrevistaService.guardarFeedback(
                     id, 
                     userDetails.getUsername(), 
-                    req.getResultado(), 
-                    req.getFeedbackComentarios(),
-                    req.getCompetenciaComunicacion(),
-                    req.getCompetenciaTecnica(),
-                    req.getCompetenciaProactividad(),
-                    req.getCompetenciaResolucion()
+                    req
             );
             return ResponseEntity.ok(ApiResponse.success("Feedback registrado con éxito", null));
         } catch (IllegalStateException e) {
@@ -136,6 +167,62 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error guardando feedback de entrevista: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al registrar el feedback: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/entrevistas/competencias — Obtener catalogo de competencias activas por puesto
+    @GetMapping("/competencias")
+    public ResponseEntity<ApiResponse<List<Competencia>>> getCompetencias(
+            @RequestParam(required = false) String puesto) {
+        try {
+            List<Competencia> lista;
+            if (puesto != null && !puesto.trim().isEmpty()) {
+                lista = competenciaRepository.findByPuestoIgnoreCaseAndActivoTrue(puesto.trim());
+                // Si esta vacio, cargar las de puesto "General" como fallback
+                if (lista.isEmpty()) {
+                    lista = competenciaRepository.findByPuestoIgnoreCaseAndActivoTrue("General");
+                }
+            } else {
+                lista = competenciaRepository.findByActivoTrue();
+            }
+            return ResponseEntity.ok(ApiResponse.success("Competencias obtenidas con exito", lista));
+        } catch (Exception e) {
+            log.error("Error obteniendo competencias: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener competencias"));
+        }
+    }
+
+    // POST /api/entrevistas/competencias — Crear una nueva competencia permanente
+    @PostMapping("/competencias")
+    public ResponseEntity<ApiResponse<Competencia>> crearCompetencia(@RequestBody Competencia competencia) {
+        try {
+            if (competencia.getActivo() == null) {
+                competencia.setActivo(true);
+            }
+            Competencia guardada = competenciaRepository.save(competencia);
+            return ResponseEntity.ok(ApiResponse.success("Competencia creada con exito", guardada));
+        } catch (Exception e) {
+            log.error("Error creando competencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al crear competencia"));
+        }
+    }
+
+    // DELETE /api/entrevistas/competencias/{id} — Eliminar/desactivar logicamente una competencia
+    @DeleteMapping("/competencias/{id}")
+    public ResponseEntity<ApiResponse<Void>> eliminarCompetencia(@PathVariable Integer id) {
+        try {
+            java.util.Optional<Competencia> opt = competenciaRepository.findById(id);
+            if (opt.isPresent()) {
+                Competencia comp = opt.get();
+                comp.setActivo(false);
+                competenciaRepository.save(comp);
+                return ResponseEntity.ok(ApiResponse.success("Competencia desactivada con exito", null));
+            } else {
+                return ResponseEntity.status(404).body(ApiResponse.error("Competencia no encontrada"));
+            }
+        } catch (Exception e) {
+            log.error("Error eliminando competencia: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al desactivar competencia"));
         }
     }
 }

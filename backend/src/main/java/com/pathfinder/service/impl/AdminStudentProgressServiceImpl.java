@@ -75,7 +75,7 @@ public class AdminStudentProgressServiceImpl implements AdminStudentProgressServ
                 .filter(avance -> StringUtils.hasText(avance.getSkillPath().getSubareaId()))
                 .collect(Collectors.groupingBy(avance -> avance.getSkillPath().getSubareaId()));
 
-        Map<String, Long> totalSkillPathsPorSubarea = skillPathRepository.findByUsuarioIsNullAndActivoTrue().stream()
+        Map<String, Long> totalSkillPathsPorSubarea = skillPathRepository.findByUsuarioIsNullAndActivoTrueAndEstadoPublicacion("ACTIVA").stream()
                 .filter(skillPath -> StringUtils.hasText(skillPath.getSubareaId()))
                 .collect(Collectors.groupingBy(SkillPath::getSubareaId, Collectors.counting()));
 

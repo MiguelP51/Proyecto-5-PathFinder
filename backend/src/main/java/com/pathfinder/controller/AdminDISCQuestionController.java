@@ -19,9 +19,10 @@ public class AdminDISCQuestionController {
 
     @GetMapping
     public List<PreguntaDISCResponseDTO> listarPreguntas(
-            @RequestParam(required = false) CategoriaDISC categoriaDisc
+            @RequestParam(required = false) CategoriaDISC categoriaDisc,
+            @RequestParam(defaultValue = "true") boolean incluirInactivas
     ) {
-        return adminDISCQuestionService.listarPreguntas(categoriaDisc);
+        return adminDISCQuestionService.listarPreguntas(categoriaDisc, incluirInactivas);
     }
 
     @GetMapping("/{idPreguntaDisc}")
@@ -47,6 +48,12 @@ public class AdminDISCQuestionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarPregunta(@PathVariable Integer idPreguntaDisc) {
         adminDISCQuestionService.eliminarPregunta(idPreguntaDisc);
+    }
+
+    @DeleteMapping("/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetQuestionsAndHistory() {
+        adminDISCQuestionService.resetQuestionsAndHistory();
     }
 
     @GetMapping("/types")

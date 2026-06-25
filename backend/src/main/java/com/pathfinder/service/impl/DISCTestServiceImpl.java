@@ -103,12 +103,15 @@ public class DISCTestServiceImpl implements DISCTestService {
             respuesta.setFechaRegistro(LocalDateTime.now());
             respuestaPreguntaDISCRepository.save(respuesta);
 
-            // Acumular puntajes
-            switch (pregunta.getCategoriaDisc()) {
-                case D -> puntajeD += valor;
-                case I -> puntajeI += valor;
-                case S -> puntajeS += valor;
-                case C -> puntajeC += valor;
+            // Acumular puntajes por categoria de la opcion elegida
+            CategoriaDISC cat = (opcion != null && opcion.getCategoriaDisc() != null) ? opcion.getCategoriaDisc() : pregunta.getCategoriaDisc();
+            if (cat != null) {
+                switch (cat) {
+                    case D -> puntajeD += 1;
+                    case I -> puntajeI += 1;
+                    case S -> puntajeS += 1;
+                    case C -> puntajeC += 1;
+                }
             }
         }
 
@@ -175,16 +178,46 @@ public class DISCTestServiceImpl implements DISCTestService {
     }
 
     private String calcularPerfilDominante(int d, int i, int s, int c) {
-        Map<String, Integer> puntajes = new HashMap<>();
-        puntajes.put("D", d);
-        puntajes.put("I", i);
-        puntajes.put("S", s);
-        puntajes.put("C", c);
+        if (d >= 12) return "D";
+        if (i >= 12) return "I";
+        if (s >= 12) return "S";
+        if (c >= 12) return "C";
 
-        return puntajes.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("D");
+        // Combine the top factors
+        List<Map.Entry<String, Integer>> factors = new ArrayList<>();
+        factors.add(Map.entry("D", d));
+        factors.add(Map.entry("I", i));
+        factors.add(Map.entry("S", s));
+        factors.add(Map.entry("C", c));
+
+        factors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        int s0 = factors.get(0).getValue();
+        int s1 = factors.get(1).getValue();
+        int s2 = factors.get(2).getValue();
+        int s3 = factors.get(3).getValue();
+
+        if (s0 == s3) {
+            return "Ninguno";
+        }
+
+        Set<String> selected = new HashSet<>();
+        selected.add(factors.get(0).getKey());
+
+        if (s0 > s1 && s1 == s2) {
+            selected.add(factors.get(1).getKey());
+            selected.add(factors.get(2).getKey());
+        } else if (s0 == s1 && s1 == s2) {
+            selected.add(factors.get(1).getKey());
+            selected.add(factors.get(2).getKey());
+        } else {
+            selected.add(factors.get(1).getKey());
+        }
+
+        List<String> order = List.of("D", "I", "S", "C");
+        return order.stream()
+                .filter(selected::contains)
+                .collect(Collectors.joining(" + "));
     }
 
     private ResultadoDISCResponseDTO buildResultadoResponse(ResultadoDISC resultado) {
@@ -202,28 +235,95 @@ public class DISCTestServiceImpl implements DISCTestService {
 
         switch (perfil) {
             case "D":
-                nombrePerfil = "Dominancia";
-                descripcion = "Eres una persona orientada a resultados, decidida y directa. Te motivan los retos difíciles y tienes una alta capacidad de liderazgo y resolución de problemas bajo presión.";
-                fortalezas = List.of("Toma de decisiones rápidas", "Orientación al logro y metas", "Asertividad y honestidad", "Resolución práctica de problemas");
-                habilidades = List.of("Liderazgo de Equipos", "Gestión de Proyectos", "Toma de Decisiones Estratégicas", "Negociación Avanzada");
+                nombrePerfil = "Emprendedor";
+                descripcion = "Persona decidida, orientada a resultados concretos y motivada por los retos dificiles. Valora la eficiencia y la independencia.";
+                fortalezas = List.of("Eficiencia", "Independencia", "Automotivacion", "Orientacion al logro");
+                habilidades = List.of("Liderazgo Directivo", "Toma de Decisiones", "Resolucion de Conflictos");
+                break;
+            case "D + I":
+                nombrePerfil = "Competidor";
+                descripcion = "Perfil competitivo y entusiasta. Combina la determinacion por ganar con una alta capacidad de influencia y comunicacion asertiva.";
+                fortalezas = List.of("Automotivacion", "Independencia", "Entusiasmo", "Iniciativa");
+                habilidades = List.of("Negociacion Comercial", "Presentaciones Persuasivas", "Desarrollo de Negocios");
+                break;
+            case "D + S":
+                nombrePerfil = "Realizador / Poco comun";
+                descripcion = "Persona orientada a la ejecucion constante. Combina la firmeza del perfil dominante con la paciencia y perseverancia de la estabilidad.";
+                fortalezas = List.of("Eficiencia", "Independencia", "Reflexividad", "Perseverancia");
+                habilidades = List.of("Gestion de Proyectos", "Planificacion Operativa", "Resolucion de Problemas");
+                break;
+            case "D + C":
+                nombrePerfil = "Creativo";
+                descripcion = "Persona orientada a la innovacion y al detalle. Combina el impulso emprendedor con un enfoque riguroso y analitico.";
+                fortalezas = List.of("Eficiencia", "Automotivacion", "Precision", "Sensibilidad");
+                habilidades = List.of("Diseno de Procesos", "Analisis Estrategico", "Pensamiento Innovador");
+                break;
+            case "D + I + S":
+                nombrePerfil = "Perfil valioso";
+                descripcion = "Perfil versatil que combina iniciativa, sociabilidad y empatia. Se adapta bien a entornos cambiantes brindando soporte.";
+                fortalezas = List.of("Independencia", "Autoconfianza", "Perseverancia", "Empatia");
+                habilidades = List.of("Liderazgo de Equipos", "Gestion del Talento", "Orientacion al Cliente");
+                break;
+            case "D + I + C":
+                nombrePerfil = "Dinamico";
+                descripcion = "Persona energica y persuasiva. Combina un enfoque en resultados con gran carisma y atencion a los estandares de calidad.";
+                fortalezas = List.of("Automotivacion", "Entusiasmo", "Sensibilidad", "Adaptabilidad");
+                habilidades = List.of("Direccion Estrategica", "Oratoria y Comunicacion", "Gestion de la Calidad");
+                break;
+            case "D + S + C":
+                nombrePerfil = "Analista competitivo";
+                descripcion = "Perfil altamente analitico y metodico. Combina el rigor tecnico con una solida orientacion a la eficiencia y el control.";
+                fortalezas = List.of("Eficiencia", "Reflexividad", "Precision", "Rigor Tecnico");
+                habilidades = List.of("Analisis de Datos", "Optimizacion de Procesos", "Gestion de Riesgos");
                 break;
             case "I":
-                nombrePerfil = "Influencia";
-                descripcion = "Eres una persona entusiasta, comunicativa y optimista. Te enfocas en las relaciones interpersonales, disfrutas colaborar y posees una gran capacidad para persuadir y motivar a otros.";
-                fortalezas = List.of("Comunicación persuasiva", "Facilidad para hacer networking", "Entusiasmo contagioso", "Creatividad y pensamiento innovador");
-                habilidades = List.of("Comunicación Efectiva", "Oratoria y Presentación", "Trabajo en Equipo", "Ventas y Relaciones Públicas");
+                nombrePerfil = "Promotor";
+                descripcion = "Persona optimista, comunicativa y sociable. Excelente para conectar personas, inspirar entusiasmo y fomentar la colaboracion.";
+                fortalezas = List.of("Amigable", "Entusiasmo", "Autoconfianza", "Red de Contactos");
+                habilidades = List.of("Relaciones Publicas", "Comunicacion Efectiva", "Motivacion de Equipos");
+                break;
+            case "I + S":
+                nombrePerfil = "Consejero";
+                descripcion = "Persona empatica, orientada a las personas y al servicio. Crea ambientes armonicos y es un excelente apoyo para sus companeros.";
+                fortalezas = List.of("Amigable", "Autoconfianza", "Paciencia", "Perseverancia");
+                habilidades = List.of("Mediacion de Conflictos", "Escucha Activa", "Gestion del Clima Laboral");
+                break;
+            case "I + C":
+                nombrePerfil = "Evaluador";
+                descripcion = "Persona analitica pero sociable. Evaluat situaciones con objetividad cientifica e influye en otros de manera empatica.";
+                fortalezas = List.of("Amigable", "Entusiasmo", "Cooperatividad", "Sensibilidad");
+                habilidades = List.of("Evaluacion de Desempeno", "Auditoria de Procesos", "Comunicacion Corporativa");
+                break;
+            case "I + S + C":
+                nombrePerfil = "Experto / Profesional";
+                descripcion = "Persona orientada al servicio, de trato amable y rigurosa en sus tareas. Combina empatia con un alto nivel de cumplimiento.";
+                fortalezas = List.of("Amigable", "Paciencia", "Cooperatividad", "Orientacion al Detalle");
+                habilidades = List.of("Atencion al Cliente", "Soporte Tecnico", "Administracion de Personal");
                 break;
             case "S":
-                nombrePerfil = "Estabilidad";
-                descripcion = "Eres una persona colaborativa, paciente, confiable y leal. Valoras la armonía dentro del equipo, trabajas de manera constante y eres un excelente oyente que brinda soporte a los demás.";
-                fortalezas = List.of("Escucha activa y empatía", "Trabajo constante y fiable", "Mediación y resolución de conflictos", "Lealtad y soporte al grupo");
-                habilidades = List.of("Resolución de Conflictos", "Empatía y Escucha Activa", "Gestión del Cambio", "Colaboración Multidisciplinaria");
+                nombrePerfil = "Planificador";
+                descripcion = "Persona calmada, paciente y de gran constancia. Valora la estabilidad, el trabajo en equipo y los procesos predecibles.";
+                fortalezas = List.of("Paciencia", "Reflexividad", "Perseverancia", "Lealtad");
+                habilidades = List.of("Planificacion a Mediano Plazo", "Trabajo Colaborativo", "Gestion Documental");
+                break;
+            case "S + C":
+                nombrePerfil = "Perfeccionista";
+                descripcion = "Persona metodica, detallista y confiable. Busca hacer las cosas correctamente siguiendo estandares y guias claras.";
+                fortalezas = List.of("Paciencia", "Reflexividad", "Cooperatividad", "Precision");
+                habilidades = List.of("Control de Calidad", "Cumplimiento Regulatorio", "Soporte Operativo");
                 break;
             case "C":
-                nombrePerfil = "Cumplimiento";
-                descripcion = "Eres una persona analítica, precisa y orientada al detalle. Te aseguras de que el trabajo cumpla con altos estándares de calidad siguiendo reglas, procesos y basándote en datos objetivos.";
-                fortalezas = List.of("Análisis exhaustivo de datos", "Precisión y control de calidad", "Apego riguroso a procesos y normas", "Pensamiento lógico y sistemático");
-                habilidades = List.of("Análisis de Datos", "Pensamiento Crítico y Resolución de Problemas", "Gestión de la Calidad", "Organización y Planificación");
+                nombrePerfil = "Pensador / Analista";
+                descripcion = "Persona analitica, rigurosa y orientada a la precision tecnica. Valora el pensamiento critico, las reglas claras y la objetividad.";
+                fortalezas = List.of("Cooperatividad", "Precision", "Sensibilidad", "Logica");
+                habilidades = List.of("Pensamiento Critico", "Analisis Tecnico", "Gestion de Datos");
+                break;
+            case "Ninguno":
+            default:
+                nombrePerfil = "Perfil abrumado";
+                descripcion = "Perfil no interpretable debido al bajo nivel de respuesta o dispersion de resultados. Se sugiere repetir el test con mayor concentracion.";
+                fortalezas = List.of("No disponible");
+                habilidades = List.of("Reevaluacion sugerida");
                 break;
         }
 
@@ -282,6 +382,7 @@ public class DISCTestServiceImpl implements DISCTestService {
                 .imagenUrl(opcion.getImagenUrl())
                 .ordenOpcion(opcion.getOrdenOpcion())
                 .activo(opcion.getActivo())
+                .categoriaDisc(opcion.getCategoriaDisc() != null ? opcion.getCategoriaDisc().name() : null)
                 .build();
     }
 }

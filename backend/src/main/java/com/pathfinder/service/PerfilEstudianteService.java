@@ -23,4 +23,6 @@ public interface PerfilEstudianteService {
             com.pathfinder.model.enums.EstadoEtapa estado,
             boolean setFecha
     );
+
+    EstadoEstudianteResponse reiniciarProgreso(String correo);
 }

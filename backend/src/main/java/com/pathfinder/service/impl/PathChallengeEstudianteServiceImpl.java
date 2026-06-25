@@ -3,6 +3,7 @@ package com.pathfinder.service.impl;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeAvanceRequestDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeEstudianteResponseDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeFinalizarRequestDTO;
+import com.pathfinder.dto.student.pathchallenge.PathChallengeTaskResponseRequestDTO;
 import com.pathfinder.model.entity.Habilidad;
 import com.pathfinder.model.entity.PathChallenge;
 import com.pathfinder.model.entity.PathChallengeTask;
@@ -20,7 +21,21 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.InputStream;
+import java.util.Locale;
+import java.util.Set;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,11 +43,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 import static java.util.stream.Collectors.toMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudianteService {
 
     private static final String ESTADO_DISPONIBLE = "DISPONIBLE";
@@ -44,6 +61,11 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private final PathChallengeTaskRepository pathChallengeTaskRepository;
     private final UsuarioPathChallengeRepository usuarioPathChallengeRepository;
     private final UsuarioPathChallengeTaskRepository usuarioPathChallengeTaskRepository;
+    private final ObjectMapper objectMapper;
+    private final S3Client s3Client;
+
+    @Value("${aws.bucket-name}")
+    private String bucketName;
 
     @Override
     @Transactional(readOnly = true)
@@ -161,11 +183,42 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         UsuarioPathChallenge avance = obtenerOCrearAvance(usuario, challenge);
 
         List<PathChallengeTask> tareas = obtenerTareasChallenge(idPathChallenge);
-        Set<Integer> completedTaskIds = normalizarIds(request.getCompletedTaskIds());
 
-        validarTareasPertenecenAlChallenge(completedTaskIds, tareas);
+        Set<Integer> legacyCompletedTaskIds = request != null
+                ? normalizarIds(request.getCompletedTaskIds())
+                : new HashSet<>();
 
-        sincronizarTareas(avance, tareas, completedTaskIds);
+        Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea =
+                request != null
+                        ? mapTaskResponses(request.getTaskResponses())
+                        : Map.of();
+
+        boolean traeEstadoDeTareas =
+                !legacyCompletedTaskIds.isEmpty() || !respuestasPorTarea.isEmpty();
+
+        Set<Integer> completedTaskIds;
+
+        if (traeEstadoDeTareas) {
+            validarTareasPertenecenAlChallenge(legacyCompletedTaskIds, tareas);
+            validarTareasPertenecenAlChallenge(respuestasPorTarea.keySet(), tareas);
+
+            completedTaskIds = resolverIdsTareasCompletadas(
+                    tareas,
+                    respuestasPorTarea,
+                    legacyCompletedTaskIds
+            );
+
+            sincronizarTareas(
+                    avance,
+                    tareas,
+                    respuestasPorTarea,
+                    completedTaskIds
+            );
+        } else {
+            completedTaskIds = obtenerIdsTareasCompletadas(
+                    avance.getIdUsuarioPathChallenge()
+            );
+        }
 
         int progreso = calcularProgreso(tareas, completedTaskIds);
 
@@ -176,7 +229,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         avance.setProgresoPorcentaje(progreso);
         avance.setFechaUltimoAvance(LocalDateTime.now());
 
-        if (request.getEntregaTexto() != null) {
+        if (request != null && request.getEntregaTexto() != null) {
             avance.setEntregaTexto(request.getEntregaTexto().trim());
         }
 
@@ -203,22 +256,51 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
             throw new IllegalArgumentException("La misión no tiene tareas configuradas");
         }
 
-        Set<Integer> completedTaskIds = normalizarIds(request.getCompletedTaskIds());
+        Set<Integer> legacyCompletedTaskIds = request != null
+                ? normalizarIds(request.getCompletedTaskIds())
+                : new HashSet<>();
 
-        if (completedTaskIds.isEmpty()) {
-            completedTaskIds = obtenerIdsTareasCompletadas(avance.getIdUsuarioPathChallenge());
+        Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea =
+                request != null
+                        ? mapTaskResponses(request.getTaskResponses())
+                        : Map.of();
+
+        boolean traeEstadoDeTareas =
+                !legacyCompletedTaskIds.isEmpty() || !respuestasPorTarea.isEmpty();
+
+        Set<Integer> completedTaskIds;
+
+        if (traeEstadoDeTareas) {
+            validarTareasPertenecenAlChallenge(legacyCompletedTaskIds, tareas);
+            validarTareasPertenecenAlChallenge(respuestasPorTarea.keySet(), tareas);
+
+            completedTaskIds = resolverIdsTareasCompletadas(
+                    tareas,
+                    respuestasPorTarea,
+                    legacyCompletedTaskIds
+            );
+
+            sincronizarTareas(
+                    avance,
+                    tareas,
+                    respuestasPorTarea,
+                    completedTaskIds
+            );
+        } else {
+            completedTaskIds = obtenerIdsTareasCompletadas(
+                    avance.getIdUsuarioPathChallenge()
+            );
         }
 
-        validarTareasPertenecenAlChallenge(completedTaskIds, tareas);
-        sincronizarTareas(avance, tareas, completedTaskIds);
+        boolean todasObligatoriasCompletadas = tareas.stream()
+                .filter(tarea -> tarea.getObligatoria() == null || Boolean.TRUE.equals(tarea.getObligatoria()))
+                .allMatch(tarea -> completedTaskIds.contains(tarea.getIdPathChallengeTask()));
 
-        boolean todasCompletadas = completedTaskIds.size() == tareas.size();
-
-        if (!todasCompletadas) {
-            throw new IllegalArgumentException("Debes completar todas las tareas antes de enviar la misión");
+        if (!todasObligatoriasCompletadas) {
+            throw new IllegalArgumentException("Debes completar todas las tareas obligatorias antes de enviar la misión");
         }
 
-        String entregaTexto = request.getEntregaTexto();
+        String entregaTexto = request != null ? request.getEntregaTexto() : null;
 
         if (entregaTexto != null) {
             entregaTexto = entregaTexto.trim();
@@ -256,6 +338,264 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         }
 
         return mapToResponse(challenge, avance, true);
+    }
+
+    @Override
+    @Transactional
+    public PathChallengeEstudianteResponseDTO subirArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            MultipartFile file
+    ) {
+        validarArchivoChallenge(file);
+
+        Usuario usuario = obtenerUsuario(correo);
+        PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findById(idPathChallengeTask)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe"));
+
+        if (!tarea.getPathChallenge().getIdPathChallenge().equals(idPathChallenge)) {
+            throw new IllegalArgumentException("La actividad no pertenece a este PathChallenge");
+        }
+
+        if (!"FILE_UPLOAD".equalsIgnoreCase(tarea.getTipoTarea())) {
+            throw new IllegalArgumentException("Esta actividad no permite subir archivos");
+        }
+
+        UsuarioPathChallenge avance = obtenerOCrearAvance(usuario, challenge);
+
+        UsuarioPathChallengeTask avanceTarea =
+                usuarioPathChallengeTaskRepository
+                        .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndPathChallengeTask_IdPathChallengeTaskAndActivoTrue(
+                                avance.getIdUsuarioPathChallenge(),
+                                idPathChallengeTask
+                        )
+                        .orElseGet(() -> {
+                            UsuarioPathChallengeTask nuevo = new UsuarioPathChallengeTask();
+                            nuevo.setUsuarioPathChallenge(avance);
+                            nuevo.setPathChallengeTask(tarea);
+                            nuevo.setActivo(true);
+                            nuevo.setFechaRegistro(LocalDateTime.now());
+                            return nuevo;
+                        });
+
+        if (StringUtils.hasText(avanceTarea.getArchivoUrl())) {
+            eliminarArchivoChallengeDeS3(avanceTarea.getArchivoUrl());
+        }
+
+        String nombreOriginal = file.getOriginalFilename();
+        String extension = obtenerExtension(nombreOriginal);
+
+        String s3Key = "pathchallenge-entregas/usuario_"
+                + usuario.getIdUsuario()
+                + "/pathchallenge_"
+                + idPathChallenge
+                + "/task_"
+                + idPathChallengeTask
+                + "_"
+                + System.currentTimeMillis()
+                + "."
+                + extension;
+
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .contentType(file.getContentType())
+                            .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error al almacenar el archivo en S3: " + e.getMessage(),
+                    e
+            );
+        }
+
+        avanceTarea.setArchivoNombre(nombreOriginal);
+        avanceTarea.setArchivoUrl(s3Key);
+        avanceTarea.setCompletada(true);
+        avanceTarea.setFechaCompletada(LocalDateTime.now());
+        avanceTarea.setRespuestaJson("""
+            {"uploaded":true,"fileName":"%s","s3Key":"%s"}
+            """.formatted(
+                escaparJson(nombreOriginal),
+                escaparJson(s3Key)
+        ).trim());
+
+        usuarioPathChallengeTaskRepository.save(avanceTarea);
+
+        List<PathChallengeTask> tareas = obtenerTareasChallenge(idPathChallenge);
+        Set<Integer> completedTaskIds = obtenerIdsTareasCompletadas(
+                avance.getIdUsuarioPathChallenge()
+        );
+
+        avance.setEstado(ESTADO_EN_PROGRESO);
+        avance.setProgresoPorcentaje(calcularProgreso(tareas, completedTaskIds));
+        avance.setFechaUltimoAvance(LocalDateTime.now());
+
+        usuarioPathChallengeRepository.save(avance);
+
+        return mapToResponse(challenge, avance, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] descargarArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        UsuarioPathChallengeTask avanceTarea = obtenerAvanceTareaConArchivo(
+                correo,
+                idPathChallenge,
+                idPathChallengeTask
+        );
+
+        try (InputStream inputStream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(avanceTarea.getArchivoUrl())
+                        .build()
+        )) {
+            return inputStream.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error al descargar el archivo desde S3: " + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String obtenerNombreArchivoTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        UsuarioPathChallengeTask avanceTarea = obtenerAvanceTareaConArchivo(
+                correo,
+                idPathChallenge,
+                idPathChallengeTask
+        );
+
+        if (StringUtils.hasText(avanceTarea.getArchivoNombre())) {
+            return avanceTarea.getArchivoNombre();
+        }
+
+        return "archivo-pathchallenge";
+    }
+
+    private UsuarioPathChallengeTask obtenerAvanceTareaConArchivo(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask
+    ) {
+        Usuario usuario = obtenerUsuario(correo);
+        PathChallenge challenge = obtenerChallengePublicado(idPathChallenge);
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findById(idPathChallengeTask)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe"));
+
+        if (!tarea.getPathChallenge().getIdPathChallenge().equals(challenge.getIdPathChallenge())) {
+            throw new IllegalArgumentException("La actividad no pertenece a este PathChallenge");
+        }
+
+        UsuarioPathChallenge avance = usuarioPathChallengeRepository
+                .findByUsuario_IdUsuarioAndPathChallenge_IdPathChallengeAndActivoTrue(
+                        usuario.getIdUsuario(),
+                        idPathChallenge
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe avance para este PathChallenge"
+                ));
+
+        UsuarioPathChallengeTask avanceTarea = usuarioPathChallengeTaskRepository
+                .findByUsuarioPathChallenge_IdUsuarioPathChallengeAndPathChallengeTask_IdPathChallengeTaskAndActivoTrue(
+                        avance.getIdUsuarioPathChallenge(),
+                        idPathChallengeTask
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe archivo para esta actividad"
+                ));
+
+        if (!StringUtils.hasText(avanceTarea.getArchivoUrl())) {
+            throw new IllegalArgumentException("La ruta del archivo no está disponible");
+        }
+
+        return avanceTarea;
+    }
+
+    private void validarArchivoChallenge(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Debes seleccionar un archivo.");
+        }
+
+        long maxSizeBytes = 10L * 1024L * 1024L;
+
+        if (file.getSize() > maxSizeBytes) {
+            throw new IllegalArgumentException("El archivo no debe superar los 10 MB.");
+        }
+
+        String extension = obtenerExtension(file.getOriginalFilename());
+
+        Set<String> extensionesPermitidas = Set.of(
+                "pdf",
+                "docx",
+                "xlsx",
+                "jpg",
+                "jpeg",
+                "png"
+        );
+
+        if (!extensionesPermitidas.contains(extension)) {
+            throw new IllegalArgumentException(
+                    "Formato no permitido. Solo se aceptan PDF, DOCX, XLSX, JPG o PNG."
+            );
+        }
+    }
+
+    private String obtenerExtension(String nombreArchivo) {
+        if (!StringUtils.hasText(nombreArchivo) || !nombreArchivo.contains(".")) {
+            throw new IllegalArgumentException("El archivo debe tener una extensión válida.");
+        }
+
+        return nombreArchivo
+                .substring(nombreArchivo.lastIndexOf(".") + 1)
+                .toLowerCase(Locale.ROOT);
+    }
+
+    private void eliminarArchivoChallengeDeS3(String s3Key) {
+        if (!StringUtils.hasText(s3Key)) {
+            return;
+        }
+
+        try {
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo eliminar archivo anterior de PathChallenge en S3: {}", e.getMessage());
+        }
+    }
+
+    private String escaparJson(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 
     private Usuario obtenerUsuario(String correo) {
@@ -320,6 +660,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private void sincronizarTareas(
             UsuarioPathChallenge avance,
             List<PathChallengeTask> tareas,
+            Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea,
             Set<Integer> completedTaskIds
     ) {
         List<UsuarioPathChallengeTask> registros =
@@ -345,6 +686,31 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 registro.setPathChallengeTask(tarea);
             }
 
+            PathChallengeTaskResponseRequestDTO respuesta =
+                    respuestasPorTarea.get(tarea.getIdPathChallengeTask());
+
+            if (respuesta != null) {
+                if (respuesta.getResponseText() != null) {
+                    registro.setRespuestaTexto(respuesta.getResponseText().trim());
+                }
+
+                if (respuesta.getSelectedOption() != null) {
+                    registro.setOpcionSeleccionada(respuesta.getSelectedOption().trim());
+                }
+
+                if (respuesta.getFileName() != null) {
+                    registro.setArchivoNombre(respuesta.getFileName().trim());
+                }
+
+                if (respuesta.getFileUrl() != null) {
+                    registro.setArchivoUrl(respuesta.getFileUrl().trim());
+                }
+
+                if (respuesta.getResponseJson() != null) {
+                    registro.setRespuestaJson(respuesta.getResponseJson().trim());
+                }
+            }
+
             boolean completada = completedTaskIds.contains(tarea.getIdPathChallengeTask());
 
             registro.setCompletada(completada);
@@ -359,6 +725,90 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
             usuarioPathChallengeTaskRepository.save(registro);
         }
+    }
+
+    private Map<Integer, PathChallengeTaskResponseRequestDTO> mapTaskResponses(
+            List<PathChallengeTaskResponseRequestDTO> responses
+    ) {
+        if (responses == null || responses.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Integer, PathChallengeTaskResponseRequestDTO> map = new HashMap<>();
+
+        for (PathChallengeTaskResponseRequestDTO response : responses) {
+            if (response != null && response.getIdPathChallengeTask() != null) {
+                map.put(response.getIdPathChallengeTask(), response);
+            }
+        }
+
+        return map;
+    }
+
+    private Set<Integer> resolverIdsTareasCompletadas(
+            List<PathChallengeTask> tareas,
+            Map<Integer, PathChallengeTaskResponseRequestDTO> respuestasPorTarea,
+            Set<Integer> legacyCompletedTaskIds
+    ) {
+        Set<Integer> completedTaskIds = new HashSet<>();
+
+        for (PathChallengeTask tarea : tareas) {
+            PathChallengeTaskResponseRequestDTO respuesta =
+                    respuestasPorTarea.get(tarea.getIdPathChallengeTask());
+
+            boolean completada = resolverCompletada(
+                    tarea,
+                    respuesta,
+                    legacyCompletedTaskIds
+            );
+
+            if (completada) {
+                completedTaskIds.add(tarea.getIdPathChallengeTask());
+            }
+        }
+
+        return completedTaskIds;
+    }
+
+    private boolean resolverCompletada(
+            PathChallengeTask tarea,
+            PathChallengeTaskResponseRequestDTO respuesta,
+            Set<Integer> legacyCompletedTaskIds
+    ) {
+        Integer idTarea = tarea.getIdPathChallengeTask();
+
+        if (respuesta == null) {
+            return legacyCompletedTaskIds.contains(idTarea);
+        }
+
+        String tipo = tarea.getTipoTarea() != null
+                ? tarea.getTipoTarea().trim().toUpperCase()
+                : "INFORMATION";
+
+        return switch (tipo) {
+            case "INFORMATION", "SCENARIO", "RESOURCE_REVIEW", "MULTI_SELECT", "PLAN_BUILDER", "FINAL_REVIEW" ->
+                    Boolean.TRUE.equals(respuesta.getCompleted())
+                            || legacyCompletedTaskIds.contains(idTarea);
+
+            case "CHOICE", "SINGLE_CHOICE" ->
+                    isNotBlank(respuesta.getSelectedOption());
+
+            case "TEXT_RESPONSE" ->
+                    isNotBlank(respuesta.getResponseText())
+                            || isNotBlank(respuesta.getResponseJson());
+
+            case "FILE_UPLOAD" ->
+                    isNotBlank(respuesta.getFileUrl())
+                            || isNotBlank(respuesta.getFileName());
+
+            default ->
+                    Boolean.TRUE.equals(respuesta.getCompleted())
+                            || legacyCompletedTaskIds.contains(idTarea);
+        };
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.trim().isBlank();
     }
 
     private int calcularProgreso(
@@ -419,12 +869,43 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                             return PathChallengeEstudianteResponseDTO.PathChallengeTaskEstudianteDTO
                                     .builder()
                                     .idPathChallengeTask(tarea.getIdPathChallengeTask())
+                                    .title(
+                                            tarea.getTitulo() != null && !tarea.getTitulo().isBlank()
+                                                    ? tarea.getTitulo()
+                                                    : "Tarea " + tarea.getOrden()
+                                    )
                                     .description(tarea.getDescripcion())
+                                    .taskType(
+                                            tarea.getTipoTarea() != null && !tarea.getTipoTarea().isBlank()
+                                                    ? tarea.getTipoTarea()
+                                                    : "INFORMATION"
+                                    )
+                                    .content(tarea.getContenido())
+                                    .configJson(tarea.getConfigJson())
+                                    .options(parseOptions(tarea.getOpcionesJson()))
                                     .order(tarea.getOrden())
+                                    .required(
+                                            tarea.getObligatoria() == null
+                                                    ? true
+                                                    : tarea.getObligatoria()
+                                    )
                                     .completed(
                                             avanceTarea != null
                                                     && Boolean.TRUE.equals(avanceTarea.getCompletada())
                                     )
+                                    .responseText(avanceTarea != null ? avanceTarea.getRespuestaTexto() : null)
+                                    .selectedOption(avanceTarea != null ? avanceTarea.getOpcionSeleccionada() : null)
+                                    .fileName(avanceTarea != null ? avanceTarea.getArchivoNombre() : null)
+                                    .fileUrl(
+                                            avanceTarea != null && StringUtils.hasText(avanceTarea.getArchivoUrl())
+                                                    ? "/api/pathchallenges/estudiante/"
+                                                    + challenge.getIdPathChallenge()
+                                                    + "/tareas/"
+                                                    + tarea.getIdPathChallengeTask()
+                                                    + "/archivo/download"
+                                                    : null
+                                    )
+                                    .responseJson(avanceTarea != null ? avanceTarea.getRespuestaJson() : null)
                                     .build();
                         })
                         .toList()
@@ -451,6 +932,21 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
                 .submission(buildSubmission(avance))
                 .reward(buildReward(challenge, avance))
                 .build();
+    }
+
+    private List<String> parseOptions(String opcionesJson) {
+        if (opcionesJson == null || opcionesJson.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(
+                    opcionesJson,
+                    new TypeReference<List<String>>() {}
+            );
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     private Map<Integer, UsuarioPathChallengeTask> obtenerTareasCompletadasMap(

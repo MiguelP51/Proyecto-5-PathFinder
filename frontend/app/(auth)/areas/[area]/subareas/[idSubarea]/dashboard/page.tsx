@@ -1,5 +1,6 @@
 // HU-EST-22: Dashboard de subárea
-// HU-EST-23: Tarjeta "Último diagnóstico" ahora permite consultar el informe completo generado
+// Guard de ruta (feedback del profesor JP): si no hay diagnóstico completado,
+// redirige a la descripción de la subárea con un banner explicando el motivo.
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,7 +9,10 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, BookOpen, Target, Award, TrendingUp, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
-import { getStudentPathChallengesBySubarea } from "@/lib/pathchallenge/student-service";
+import {
+  getStudentPathChallengesBySubarea,
+  startStudentPathChallenge,
+} from "@/lib/pathchallenge/student-service";
 import { StudentPathChallenge } from "@/lib/pathchallenge/student-types";
 
 interface SubAreaDTO {
@@ -78,7 +82,6 @@ export default function DashboardSubareaPage({
   const router = useRouter();
   const { data: session } = useSession();
 
-  // función para ir al dashboard individual de cada SkillPath
   const goToSkillPathDashboard = (skillPathId: string) => {
     const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
 
@@ -126,14 +129,50 @@ export default function DashboardSubareaPage({
     }
   };
 
-  const handlePathChallengeAction = (challenge: StudentPathChallenge) => {
+  const handlePathChallengeAction = async (challenge: StudentPathChallenge) => {
     const returnTo = `/areas/${area}/subareas/${idSubarea}/dashboard`;
 
-    router.push(
-        `/user/app/challenges/${challenge.idPathChallenge}?returnTo=${encodeURIComponent(
-            returnTo,
-        )}&returnLabel=${encodeURIComponent("Volver a subárea")}`,
-    );
+    const goToChallenge = (idPathChallenge: number) => {
+      router.push(
+          `/user/app/challenges/${idPathChallenge}?returnTo=${encodeURIComponent(
+              returnTo,
+          )}&returnLabel=${encodeURIComponent("Volver a subárea")}`,
+      );
+    };
+
+    if (challenge.status !== "DISPONIBLE") {
+      goToChallenge(challenge.idPathChallenge);
+      return;
+    }
+
+    if (!session?.backendJwt) {
+      alert("No se encontró la sesión del usuario. Vuelve a iniciar sesión.");
+      return;
+    }
+
+    try {
+      setStartingPathChallengeId(challenge.idPathChallenge);
+
+      const updatedChallenge = await startStudentPathChallenge(
+          challenge.idPathChallenge,
+          session.backendJwt,
+      );
+
+      setPathChallenges((prev) =>
+          prev.map((item) =>
+              item.idPathChallenge === challenge.idPathChallenge
+                  ? updatedChallenge
+                  : item,
+          ),
+      );
+
+      goToChallenge(updatedChallenge.idPathChallenge);
+    } catch (error) {
+      console.error("Error iniciando PathChallenge:", error);
+      alert("No se pudo iniciar la misión. Intenta nuevamente.");
+    } finally {
+      setStartingPathChallengeId(null);
+    }
   };
 
   const [area, setArea] = useState("");
@@ -143,7 +182,9 @@ export default function DashboardSubareaPage({
   const [loading, setLoading] = useState(true);
   const [pathChallenges, setPathChallenges] = useState<StudentPathChallenge[]>([]);
   const [startingSkillPathId, setStartingSkillPathId] = useState<string | null>(null);
+  const [startingPathChallengeId, setStartingPathChallengeId] = useState<number | null>(null);
   const [ultimoDiagnostico, setUltimoDiagnostico] = useState<DiagnosticoEstadoDTO | null>(null);
+  const [redirigiendoPorDiagnostico, setRedirigiendoPorDiagnostico] = useState(false);
 
   useEffect(() => {
     params.then(({ area, idSubarea }) => {
@@ -201,7 +242,18 @@ export default function DashboardSubareaPage({
         .finally(() => setLoading(false));
   }, [idSubarea, session]);
 
-  if (loading) return (
+  useEffect(() => {
+    if (loading || !area || !idSubarea || !subarea) return;
+
+    const diagnosticoCompletado = Boolean(ultimoDiagnostico?.completado);
+
+    if (!diagnosticoCompletado) {
+      setRedirigiendoPorDiagnostico(true);
+      router.replace(`/areas/${area}/subareas/${idSubarea}?bloqueado=true`);
+    }
+  }, [loading, area, idSubarea, subarea, ultimoDiagnostico, router]);
+
+  if (loading || redirigiendoPorDiagnostico) return (
     <div className="min-h-screen flex items-center justify-center bg-[#f9f9fb]">
       <Loader2 className="h-8 w-8 animate-spin text-[#6f63ff]" />
     </div>
@@ -216,7 +268,6 @@ export default function DashboardSubareaPage({
     </div>
   );
 
-  // Calcular stats
   const skillPathsCompletados = skillPaths.filter(sp => sp.status === "COMPLETADO").length;
   const challengesCompletados = pathChallenges.filter((c) => c.status === "COMPLETADO",).length;
   const progresoGeneral = skillPaths.length > 0
@@ -232,7 +283,6 @@ export default function DashboardSubareaPage({
     <div className="min-h-screen bg-[#f9f9fb]">
       <div className="mx-auto max-w-6xl px-6 py-6">
 
-        {/* Volver */}
         <Link
           href={`/areas/${area}/subareas`}
           className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#6f63ff] transition mb-6"
@@ -241,7 +291,6 @@ export default function DashboardSubareaPage({
           Volver a explorar
         </Link>
 
-        {/* Header */}
         <div className="flex items-start gap-4 mb-8">
           <span className="text-4xl">{subarea.emoji}</span>
           <div>
@@ -253,7 +302,6 @@ export default function DashboardSubareaPage({
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { icon: <TrendingUp className="h-5 w-5 text-blue-500" />, value: `${progresoGeneral}%`, label: "Progreso general" },
@@ -269,13 +317,10 @@ export default function DashboardSubareaPage({
           ))}
         </div>
 
-        {/* Contenido principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Columna izquierda */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* SkillPaths */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-bold text-slate-900 flex items-center gap-2">
@@ -325,7 +370,6 @@ export default function DashboardSubareaPage({
                         </div>
                       </div>
 
-                      {/* botón individual para abrir el dashboard de este SkillPath */}
                       <div className="ml-11 mt-4">
                         <button
                             type="button"
@@ -352,7 +396,6 @@ export default function DashboardSubareaPage({
               )}
             </div>
 
-            {/* PathChallenges */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-bold text-slate-900 flex items-center gap-2">
@@ -426,14 +469,24 @@ export default function DashboardSubareaPage({
                           <button
                               type="button"
                               onClick={() => handlePathChallengeAction(ch)}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df]"
+                              disabled={startingPathChallengeId === ch.idPathChallenge}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6f63ff] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#5b50df] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {ch.status === "DISPONIBLE"
-                                ? "Ver misión"
-                                : ch.status === "COMPLETADO"
-                                    ? "Revisar misión"
-                                    : "Continuar misión"}
-                            <ArrowRight className="h-4 w-4" />
+                            {startingPathChallengeId === ch.idPathChallenge ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Abriendo...
+                                </>
+                            ) : (
+                                <>
+                                  {ch.status === "DISPONIBLE"
+                                      ? "Ver misión"
+                                      : ch.status === "COMPLETADO"
+                                          ? "Revisar misión"
+                                          : "Continuar misión"}
+                                  <ArrowRight className="h-4 w-4" />
+                                </>
+                            )}
                           </button>
                         </div>
                     ))}
@@ -442,17 +495,14 @@ export default function DashboardSubareaPage({
             </div>
           </div>
 
-          {/* Columna derecha */}
           <div className="space-y-4">
 
-            {/* Habilidades */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
               <h3 className="font-bold text-slate-900 mb-1">Habilidades</h3>
               <p className="text-xs text-slate-400 mb-4">Habilidades desarrolladas en esta subárea</p>
               <p className="text-sm text-slate-400 text-center py-4">Sin habilidades registradas aún</p>
             </div>
 
-            {/* Último diagnóstico */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-center">
               <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
                 <Target className="h-5 w-5 text-blue-500" />
@@ -488,7 +538,6 @@ export default function DashboardSubareaPage({
                       </div>
                     </div>
 
-                    {/* HU-EST-23: consultar el informe completo ya generado */}
                     <div className="space-y-2">
                       <button
                           onClick={() =>
@@ -526,7 +575,6 @@ export default function DashboardSubareaPage({
               )}
             </div>
 
-            {/* Progreso General */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
               <h3 className="font-bold text-slate-900 mb-4">Progreso General</h3>
               <div className="space-y-3">

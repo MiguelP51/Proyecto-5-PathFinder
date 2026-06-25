@@ -12,4 +12,5 @@ public class OpcionPreguntaDISCResponseDTO {
     private String imagenUrl;
     private Integer ordenOpcion;
     private Boolean activo;
+    private String categoriaDisc;
 }

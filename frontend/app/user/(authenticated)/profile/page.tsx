@@ -259,6 +259,7 @@ export default function ProfileSetupPage() {
   const [isProfileConfirmed, setIsProfileConfirmed] = useState(false);
   const [isGeneratingAiSuggestions, setIsGeneratingAiSuggestions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AiCvSuggestionsResponse | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   // Photo
   const [photoUrl, setPhotoUrl] = useState("");
@@ -285,11 +286,13 @@ export default function ProfileSetupPage() {
   ]);
   const [tools, setTools] = useState<SkillItem[]>([]);
 
-  const loadProfile = async () => {
+  const loadProfile = async (force = false) => {
+    if (profileLoaded && !force) return;
     if (status === "authenticated" && session?.user?.email) {
       // MENTOR usa su propio formulario, no necesita cargar CV de estudiante
       if (session?.user?.rol === "MENTOR") {
         setIsLoadingData(false);
+        setProfileLoaded(true);
         return;
       }
 
@@ -334,6 +337,7 @@ export default function ProfileSetupPage() {
         setSkills(mapped.skills.length > 0 ? mapped.skills : []);
         setLanguages(mapped.languages.length > 0 ? mapped.languages : [{ name: "Español", level: "Avanzado" }]);
         setTools(mapped.tools.length > 0 ? mapped.tools : []);
+        setProfileLoaded(true);
       } catch (err) {
         // Sin perfil guardado aún, no pasa nada
       } finally {
@@ -347,13 +351,13 @@ export default function ProfileSetupPage() {
   // Al cargar la página, intentamos traer el CV guardado del usuario
   useEffect(() => {
     loadProfile();
-  }, [status, session]);
+  }, [status, session, profileLoaded]);
 
   const handleToggleEdit = () => {
     if (isEditing) {
       // Al cancelar, descartamos los cambios, limpiamos el archivo pendiente y recargamos
       setPendingCVFile(null);
-      loadProfile();
+      loadProfile(true);
     } else {
       setIsEditing(true);
     }

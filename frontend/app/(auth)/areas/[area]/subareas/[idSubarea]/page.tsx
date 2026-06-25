@@ -1,10 +1,12 @@
 // HU-EST-21: Descripción de subárea — primera visita
+// Banner de bloqueo (feedback de JP): se muestra cuando el guard de ruta del
+// dashboard redirige aquí por falta de diagnóstico completado.
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/lib/api";
 import Footer from "@/components/Footer";
@@ -33,6 +35,7 @@ export default function SubAreaDetallePage({
   params: Promise<{ area: string; idSubarea: string }>;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
 
   const [area, setArea] = useState("");
@@ -40,6 +43,8 @@ export default function SubAreaDetallePage({
   const [subarea, setSubarea] = useState<SubAreaDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const bloqueado = searchParams.get("bloqueado") === "true";
 
   useEffect(() => {
     params.then(({ area, idSubarea }) => {
@@ -101,6 +106,22 @@ export default function SubAreaDetallePage({
           Volver a subáreas
         </Link>
       </div>
+
+      {bloqueado && (
+        <div className="mx-auto max-w-3xl px-6 mt-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+            <AlertCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-orange-800 text-sm">
+                Aún no has completado tu cuestionario preliminar
+              </p>
+              <p className="text-orange-700 text-sm mt-0.5">
+                Para acceder al dashboard de esta subárea, primero debes realizar el diagnóstico inicial.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="mx-auto max-w-3xl px-6 py-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-3 text-3xl">

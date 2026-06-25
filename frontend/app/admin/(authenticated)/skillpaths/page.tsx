@@ -10,9 +10,11 @@ import {
   Power,
   Upload,
   Download,
+  FolderOpen,
 } from "lucide-react";
 import SkillPathFormModal from "@/components/admin/SkillPathFormModal";
 import SkillPathBulkUploadModal from "@/components/admin/SkillPathBulkUploadModal";
+import QuickAssignSubareaModal from "@/components/admin/QuickAssignSubareaModal";
 
 export interface SkillPath {
   idSkillPath: number;
@@ -32,6 +34,7 @@ export interface SkillPath {
   usuarioCorreo: string | null;
   usuarioNombre: string | null;
   subareaId?: number | string;
+  areaId?: number | string;
   estadoPublicacion?: string;
 }
 
@@ -42,17 +45,23 @@ export default function SkillPathsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState<"GLOBAL" | "ASIGNADO" | "TODOS">("GLOBAL");
+  const [estadoPublicacionFilter, setEstadoPublicacionFilter] = useState<string>("TODOS");
+
+  const [areas, setAreas] = useState<any[]>([]);
+  const [subareas, setSubareas] = useState<any[]>([]);
+  const [areaFilter, setAreaFilter] = useState<string>("TODAS");
+  const [subareaFilter, setSubareaFilter] = useState<string>("TODAS");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SkillPath | null>(null);
+  const [assigningItem, setAssigningItem] = useState<SkillPath | null>(null);
 
   const cargarSkillPaths = async () => {
     try {
       setLoading(true);
       setError("");
-      const data = await apiFetch<SkillPath[]>(`/api/admin/manage-skillpaths?tipo=${tipoFiltro}`, {}, session?.backendJwt);
+      const data = await apiFetch<SkillPath[]>(`/api/admin/manage-skillpaths?tipo=GLOBAL`, {}, session?.backendJwt);
       setSkillpaths(data || []);
     } catch (err) {
       console.error("Error al cargar skillpaths:", err);
@@ -66,7 +75,23 @@ export default function SkillPathsPage() {
     if (status === "authenticated" && session?.backendJwt) {
       cargarSkillPaths();
     }
-  }, [status, session, tipoFiltro]);
+  }, [status, session]);
+
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      try {
+        const areasData = await apiFetch<any[]>('/api/admin/areas?soloActivos=true', {}, session?.backendJwt);
+        setAreas(areasData || []);
+        const subareasData = await apiFetch<any[]>('/api/admin/subareas?soloActivos=true', {}, session?.backendJwt);
+        setSubareas(subareasData || []);
+      } catch (err) {
+        console.error("Error al cargar catálogos de filtros:", err);
+      }
+    };
+    if (status === "authenticated" && session?.backendJwt) {
+      cargarCatalogos();
+    }
+  }, [status, session]);
 
   const handleCambiarEstado = async (item: SkillPath) => {
     const nuevoEstado = !item.activo;
@@ -91,7 +116,7 @@ export default function SkillPathsPage() {
 
   const handleDownloadTemplate = () => {
     const csv = [
-      "titulo,plataforma,areaNombre,dificultad,duracionLabel,urlExterno,descripcion",
+      "titulo,plataforma,subareaNombre,dificultad,duracionLabel,urlExterno,descripcion",
       "Curso de Excel,Coursera,Analisis de Datos,PRINCIPIANTE,6 horas,https://www.coursera.org/,Curso introductorio",
     ].join("\n");
 
@@ -104,10 +129,25 @@ export default function SkillPathsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredSkillpaths = skillpaths.filter(sp =>
-    sp.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sp.plataforma?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSkillpaths = skillpaths.filter(sp => {
+    const matchesSearch = sp.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          sp.plataforma?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesEstado = estadoPublicacionFilter === "TODOS" || sp.estadoPublicacion === estadoPublicacionFilter;
+    
+    let matchesArea = true;
+    if (areaFilter === "SIN_ASIGNAR") {
+      matchesArea = !sp.areaId;
+    } else if (areaFilter !== "TODAS") {
+      matchesArea = String(sp.areaId) === String(areaFilter);
+    }
+
+    let matchesSubarea = true;
+    if (areaFilter !== "SIN_ASIGNAR" && subareaFilter !== "TODAS") {
+      matchesSubarea = String(sp.subareaId) === String(subareaFilter);
+    }
+
+    return matchesSearch && matchesEstado && matchesArea && matchesSubarea;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50/30 p-6 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -146,31 +186,87 @@ export default function SkillPathsPage() {
         </div>
       </section>
 
-      {/* Tipo Selector */}
-      <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-        {["GLOBAL", "ASIGNADO", "TODOS"].map((tipo) => (
-          <button
-            key={tipo}
-            onClick={() => setTipoFiltro(tipo as any)}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tipoFiltro === tipo ? "bg-white text-[#0E3E66] shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-          >
-            {tipo === "GLOBAL" ? "Plantillas Globales" : tipo === "ASIGNADO" ? "Asignados a Usuarios" : "Todos"}
-          </button>
-        ))}
-      </div>
-
       {/* Controles de Búsqueda y Filtrado */}
-      <section className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col md:flex-row gap-4">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por título o proveedor..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50"
-          />
+      <section className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Buscador */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por título o proveedor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-11 rounded-xl border border-slate-200 pl-10 pr-4 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50"
+            />
+          </div>
+
+          {/* Filtro de Área */}
+          <div className="w-full md:w-56">
+            <select
+              value={areaFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAreaFilter(val);
+                setSubareaFilter("TODAS");
+              }}
+              className="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50"
+            >
+              <option value="TODAS">Todas las Áreas</option>
+              <option value="SIN_ASIGNAR">Sin Área Asignada</option>
+              {areas.map((a) => (
+                <option key={a.idArea} value={a.idArea}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de Subárea */}
+          <div className="w-full md:w-56">
+            <select
+              value={subareaFilter}
+              onChange={(e) => setSubareaFilter(e.target.value)}
+              disabled={areaFilter === "SIN_ASIGNAR"}
+              className="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 text-slate-700 bg-slate-50/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="TODAS">Todas las Subáreas</option>
+              {subareas
+                .filter((sa) => areaFilter === "TODAS" || String(sa.areaId) === String(areaFilter))
+                .map((sa) => (
+                  <option key={sa.idSubarea} value={sa.idSubarea}>
+                    {sa.nombre}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Tabs de Estado de Publicación y Conteo */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="flex flex-wrap gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-150 w-fit">
+            {[
+              { value: "TODOS", label: "Todos" },
+              { value: "BORRADOR", label: "Borradores" },
+              { value: "ACTIVA", label: "Activos" },
+              { value: "INACTIVA", label: "Inactivos" }
+            ].map((statusTab) => (
+              <button
+                key={statusTab.value}
+                onClick={() => setEstadoPublicacionFilter(statusTab.value)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  estadoPublicacionFilter === statusTab.value
+                    ? "bg-white text-purple-600 shadow-sm border border-slate-200"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {statusTab.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-slate-400 font-medium">
+            Mostrando {filteredSkillpaths.length} {filteredSkillpaths.length === 1 ? "SkillPath" : "SkillPaths"}
+          </span>
         </div>
       </section>
 
@@ -183,12 +279,10 @@ export default function SkillPathsPage() {
             <table className="w-full border-collapse text-left text-sm text-slate-700">
               <thead className="bg-slate-50/50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Título</th>
+                  <th className="px-6 py-4">Título / Descripción</th>
                   <th className="px-6 py-4">Proveedor</th>
                   <th className="px-6 py-4">Nivel</th>
-                  {(tipoFiltro === "ASIGNADO" || tipoFiltro === "TODOS") && (
-                    <th className="px-6 py-4">Estudiante / Progreso</th>
-                  )}
+                  <th className="px-6 py-4">Subárea Asociada</th>
                   <th className="px-6 py-4">Estado</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
@@ -200,6 +294,11 @@ export default function SkillPathsPage() {
                       <p className="font-bold text-slate-800 flex items-center gap-2">
                         {item.titulo}
                       </p>
+                      {item.descripcion && (
+                        <p className="text-xs text-slate-400 font-normal italic mt-0.5 max-w-sm truncate" title={item.descripcion}>
+                          {item.descripcion}
+                        </p>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-500">{item.plataforma}</td>
                     <td className="px-6 py-4">
@@ -210,18 +309,18 @@ export default function SkillPathsPage() {
                         {item.dificultad || 'N/A'}
                       </span>
                     </td>
-                    {(tipoFiltro === "ASIGNADO" || tipoFiltro === "TODOS") && (
-                      <td className="px-6 py-4 text-slate-600">
-                        {item.usuarioNombre ? (
-                          <div>
-                            <p className="text-xs font-bold">{item.usuarioNombre}</p>
-                            <p className="text-[10px] text-slate-400">{item.progreso}%</p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">No asignado</span>
-                        )}
-                      </td>
-                    )}
+                    <td className="px-6 py-4">
+                      {item.subareaNombre ? (
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">{item.subareaNombre}</span>
+                          <span className="text-[10px] text-slate-400">{item.areaNombre}</span>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
+                          Sin Asignar
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5 items-start">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${item.activo
@@ -247,6 +346,11 @@ export default function SkillPathsPage() {
                           onClick={() => { setEditingItem(item); setIsFormOpen(true); }}
                           className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar">
                           <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setAssigningItem(item)}
+                          className="p-1.5 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Asignar Subárea">
+                          <FolderOpen className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleCambiarEstado(item)}
@@ -284,6 +388,14 @@ export default function SkillPathsPage() {
         <SkillPathBulkUploadModal
           onClose={() => setIsBulkOpen(false)}
           onSuccess={() => { setIsBulkOpen(false); cargarSkillPaths(); }}
+        />
+      )}
+
+      {assigningItem && (
+        <QuickAssignSubareaModal
+          item={assigningItem}
+          onClose={() => setAssigningItem(null)}
+          onSuccess={() => { setAssigningItem(null); cargarSkillPaths(); }}
         />
       )}
     </div>
