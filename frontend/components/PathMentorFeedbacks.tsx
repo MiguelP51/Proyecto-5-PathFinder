@@ -1147,17 +1147,38 @@ export default function PathMentorFeedbacks() {
                     </div>
                   )}
 
-                  <div className="mt-5">
-                    <textarea
-                      className={styles.textareaInput}
-                      placeholder="Escribe aquí tu retroalimentación sobre el CV del estudiante, destacando aspectos de forma, fondo, redacción y contenido profesional..."
-                      value={formFeedbackCv}
-                      onChange={(e) => {
-                        setFormFeedbackCv(e.target.value);
-                        setFormDarFeedbackCv(e.target.value.trim().length > 0);
-                      }}
-                      disabled={formMode === 'ver'}
-                    />
+                  {/* CHECKBOX AND TEXTAREA */}
+                  <div className="mt-5 space-y-3">
+                    {formMode !== 'ver' ? (
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formDarFeedbackCv}
+                          onChange={(e) => {
+                            setFormDarFeedbackCv(e.target.checked);
+                            if (!e.target.checked) {
+                              setFormFeedbackCv("");
+                            }
+                          }}
+                          className="rounded text-[#7447D7] focus:ring-[#7447D7] h-4 w-4 cursor-pointer"
+                        />
+                        <span>¿Dar retroalimentación sobre el CV?</span>
+                      </label>
+                    ) : formDarFeedbackCv ? (
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Retroalimentación del CV provista:
+                      </div>
+                    ) : null}
+
+                    {formDarFeedbackCv && (
+                      <textarea
+                        className={styles.textareaInput}
+                        placeholder="Escribe aquí tu retroalimentación sobre el CV del estudiante, destacando aspectos de forma, fondo, redacción y contenido profesional..."
+                        value={formFeedbackCv}
+                        onChange={(e) => setFormFeedbackCv(e.target.value)}
+                        disabled={formMode === 'ver'}
+                      />
+                    )}
                   </div>
                 </div>
               </section>
