@@ -278,6 +278,55 @@ public class PathChallengeEstudianteController {
         }
     }
 
+    @GetMapping("/estudiante/{idPathChallenge}/tareas/{idPathChallengeTask}/recurso/{tipoRecurso}/download")
+    @PreAuthorize("hasAnyAuthority('USER', 'ROLE_USER')")
+    public ResponseEntity<byte[]> descargarRecursoBaseTarea(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer idPathChallenge,
+            @PathVariable Integer idPathChallengeTask,
+            @PathVariable String tipoRecurso
+    ) {
+        try {
+            byte[] data = pathChallengeEstudianteService.descargarRecursoBaseTarea(
+                    userDetails.getUsername(),
+                    idPathChallenge,
+                    idPathChallengeTask,
+                    tipoRecurso
+            );
+
+            String nombreArchivo = pathChallengeEstudianteService.obtenerNombreRecursoBaseTarea(
+                    userDetails.getUsername(),
+                    idPathChallenge,
+                    idPathChallengeTask,
+                    tipoRecurso
+            );
+
+            MediaType mediaType = obtenerMediaTypePorNombre(nombreArchivo);
+            String disposition = debeAbrirseEnNavegador(nombreArchivo)
+                    ? "inline"
+                    : "attachment";
+
+            String nombreCodificado = URLEncoder
+                    .encode(nombreArchivo, StandardCharsets.UTF_8)
+                    .replace("+", "%20");
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            disposition + "; filename*=UTF-8''" + nombreCodificado
+                    )
+                    .body(data);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("No se pudo descargar recurso base de PathChallenge: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error descargando recurso base de PathChallenge: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     private MediaType obtenerMediaTypePorNombre(String nombreArchivo) {
         if (nombreArchivo == null) {
             return MediaType.APPLICATION_OCTET_STREAM;

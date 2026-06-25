@@ -8,6 +8,12 @@ import Footer from "@/components/Footer";
 import { apiFetch } from "@/lib/api";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { SkillPath } from "@/lib/skillpath/types";
+import type { StudentPathChallenge } from "@/lib/pathchallenge/student-types";
+import { getStartedStudentPathChallenges } from "@/lib/pathchallenge/student-service";
+import {
+  getSkillPathStatusClasses,
+  getSkillPathStatusLabel,
+} from "@/lib/skillpath/display";
 
 declare global {
   namespace JSX {
@@ -119,6 +125,84 @@ const formatTipoHabilidad = (tipo?: string) => {
   }
 };
 
+const isSkillPathActivoDashboard = (status?: string) =>
+    ["EN_PROGRESO", "CERTIFICADO_PENDIENTE", "VALIDACION_PENDIENTE", "RECHAZADO"].includes(
+        status ?? "",
+    );
+
+const isSkillPathConXpDashboard = (status?: string) =>
+    ["COMPLETADO", "VALIDADO"].includes(status ?? "");
+
+const isPathChallengeActivoDashboard = (status?: string) =>
+    status === "EN_PROGRESO";
+
+const isPathChallengeConXpDashboard = (status?: string) =>
+    status === "COMPLETADO";
+
+const getSkillPathDashboardStatusLabel = (status?: string) =>
+    status ? getSkillPathStatusLabel(status as any) ?? status : "Sin estado";
+
+const getSkillPathDashboardStatusClasses = (status?: string) =>
+    status
+        ? getSkillPathStatusClasses(status as any) ??
+        "bg-slate-100 text-slate-600 border-slate-200"
+        : "bg-slate-100 text-slate-600 border-slate-200";
+
+const getSkillPathDashboardActionLabel = (status?: string) =>
+    status === "EN_PROGRESO" ? "Continuar SkillPath" : "Ver SkillPath";
+
+const getChallengeDashboardStatusLabel = (status?: string) => {
+  switch (status) {
+    case "EN_PROGRESO":
+      return "En progreso";
+    case "COMPLETADO":
+      return "Completado";
+    case "DISPONIBLE":
+      return "Disponible";
+    default:
+      return status ?? "Sin estado";
+  }
+};
+
+const getChallengeDashboardStatusClasses = (status?: string) => {
+  switch (status) {
+    case "EN_PROGRESO":
+      return "bg-purple-100 text-purple-700";
+    case "COMPLETADO":
+      return "bg-emerald-100 text-emerald-700";
+    case "DISPONIBLE":
+      return "bg-slate-100 text-slate-600";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+};
+
+const getChallengeDashboardDifficultyClasses = (difficulty?: string) => {
+  const value = difficulty?.toLowerCase() ?? "";
+
+  if (
+      value.includes("fácil") ||
+      value.includes("facil") ||
+      value.includes("básico") ||
+      value.includes("basico")
+  ) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (
+      value.includes("difícil") ||
+      value.includes("dificil") ||
+      value.includes("avanzado")
+  ) {
+    return "bg-red-100 text-red-700";
+  }
+
+  return "bg-yellow-100 text-yellow-700";
+};
+
+const getChallengeDashboardActionLabel = (status?: string) =>
+    status === "EN_PROGRESO" ? "Continuar misión" : "Revisar misión";
+
 // ─── Datos mock ───────────────────────────────────────────────────────────────
 
 const usuarioMock = {
@@ -128,21 +212,6 @@ const usuarioMock = {
   xpActual: 2450,
   xpSiguienteNivel: 3000,
 };
-
-
-const challenges = [
-  {
-    id: 1,
-    titulo: "Sprint Planning Challenge",
-    descripcion:
-      "Planifica un sprint completo para un proyecto de desarrollo de software",
-    dificultad: "Medio",
-    dificultadColor: "bg-yellow-100 text-yellow-700",
-    duracion: "2 horas",
-    xp: 350,
-    progreso: 45,
-  },
-];
 
 const habilidadesMock = [
   { nombre: "Gestión de Proyectos", nivel: 3, progreso: 3, total: 5 },
@@ -183,6 +252,8 @@ export default function ExploracionDashboardPage() {
   );
   const [skillPathsActivos, setSkillPathsActivos] = useState<SkillPath[]>([]);
   const [skillPathsActivosLoaded, setSkillPathsActivosLoaded] = useState(false);
+  const [pathChallengesActivos, setPathChallengesActivos] = useState<StudentPathChallenge[]>([]);
+  const [pathChallengesLoaded, setPathChallengesLoaded] = useState(false);
   const [insignias, setInsignias] = useState<InsigniaResponse[]>([]);
   const [insigniasLoaded, setInsigniasLoaded] = useState(false);
   const [entrevistasProximas, setEntrevistasProximas] = useState<
@@ -191,11 +262,37 @@ export default function ExploracionDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const xpSkillPaths = skillPathsActivos
+      .filter((sp) => isSkillPathConXpDashboard(sp.status))
+      .reduce((total, sp) => total + (sp.reward?.xpAwarded ?? sp.xp ?? 0), 0);
+
+  const xpPathChallenges = pathChallengesActivos
+      .filter((ch) => isPathChallengeConXpDashboard(ch.status))
+      .reduce((total, ch) => total + (ch.reward?.xpAwarded ?? ch.xp ?? 0), 0);
+
+  const xpTotalCalculado = xpSkillPaths + xpPathChallenges;
+
+  const usuario = {
+    nombre: dashboard?.nombre ?? usuarioMock.nombre,
+    email: dashboard?.correo ?? usuarioMock.email,
+    nivel: dashboard?.nivel ?? usuarioMock.nivel,
+    xpActual: dashboard?.xpTotal ?? usuarioMock.xpActual,
+    xpSiguienteNivel:
+        dashboard?.xpSiguienteNivel ?? usuarioMock.xpSiguienteNivel,
+  };
+
+  const xpActualDashboard = xpTotalCalculado;
+  const xpSiguienteNivelDashboard = usuario.xpSiguienteNivel || 1000;
+  const porcentajeNivelDashboard = Math.min(
+      100,
+      Math.max(0, (xpActualDashboard / xpSiguienteNivelDashboard) * 100),
+  );
+
   const metricas = [
     {
-      valor: "2450 XP",
+      valor: `${xpActualDashboard} XP`,
       label: "Experiencia total",
-      badge: "Nivel 5",
+      badge: `Nivel ${usuario.nivel}`,
       icon: TrendingUp,
       iconColor: "text-[#7447D7]",
       badgeColor: "bg-[#7447D7] text-white",
@@ -217,8 +314,8 @@ export default function ExploracionDashboardPage() {
       badgeColor: "",
     },
     {
-      valor: 0,
-      label: "Challenges en progreso",
+      valor: pathChallengesActivos.length,
+      label: "PathChallenges activos",
       badge: null,
       icon: Target,
       iconColor: "text-emerald-500",
@@ -294,6 +391,23 @@ export default function ExploracionDashboardPage() {
         }
       });
 
+    getStartedStudentPathChallenges(backendJwt)
+        .then((data) => {
+          if (!cancelled) {
+            setPathChallengesActivos(Array.isArray(data) ? data : []);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPathChallengesActivos([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setPathChallengesLoaded(true);
+          }
+        });
+
     apiFetch<InsigniaResponse[] | InsigniaResponse | null>(
       "/api/insignias",
       {},
@@ -341,17 +455,10 @@ export default function ExploracionDashboardPage() {
     };
   }, [session, status]);
 
-  const usuario = {
-    nombre: dashboard?.nombre ?? usuarioMock.nombre,
-    email: dashboard?.correo ?? usuarioMock.email,
-    nivel: dashboard?.nivel ?? usuarioMock.nivel,
-    xpActual: dashboard?.xpTotal ?? usuarioMock.xpActual,
-    xpSiguienteNivel:
-      dashboard?.xpSiguienteNivel ?? usuarioMock.xpSiguienteNivel,
-  };
 
   const habilidades = dashboard?.habilidades ?? [];
   const hasSkillPathsActivos = skillPathsActivos.length > 0;
+  const hasPathChallengesActivos = pathChallengesActivos.length > 0;
   const skillPathRecomendado =
       skillPathsActivos.find((sp) => sp.status === "EN_PROGRESO") ??
       skillPathsActivos[0] ??
@@ -423,20 +530,14 @@ export default function ExploracionDashboardPage() {
                   <div className="flex items-start justify-between">
                     <Icon className={`h-6 w-6 ${iconColor}`} />
                     {badge && (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${badgeColor}`}
-                      >
-                        {label === "Experiencia total"
-                          ? `Nivel ${usuario.nivel}`
-                          : badge}
-                      </span>
+                        <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-bold ${badgeColor}`}
+                        >
+                          {badge}
+                        </span>
                     )}
                   </div>
-                  <p className="mt-3 text-2xl font-extrabold">
-                    {label === "Experiencia total"
-                      ? `${usuario.xpActual} XP`
-                      : valor}
-                  </p>
+                  <p className="mt-3 text-2xl font-extrabold">{valor}</p>
                   <p className="text-sm text-slate-500">{label}</p>
                 </div>
               ),
@@ -498,63 +599,6 @@ export default function ExploracionDashboardPage() {
                 </div>
               </div>
 
-              {/* SkillPaths activos */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h2 className="font-extrabold">
-                      <BookOpen className="mr-2 inline h-4 w-4 text-[#7447D7]" />
-                      SkillPaths Activos
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Tus rutas de aprendizaje en progreso
-                    </p>
-                  </div>
-                  <button className="text-sm font-semibold text-[#7447D7] hover:underline">
-                    Ver todos
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {!skillPathsActivosLoaded ? (
-                    <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                      Cargando SkillPaths activos...
-                    </p>
-                  ) : hasSkillPathsActivos ? (
-                    skillPathsActivos.map((sp) => (
-                      <div
-                        key={sp.id}
-                        className="rounded-xl border border-slate-100 p-4"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold">{sp.title}</p>
-                            <p className="text-xs text-slate-500">
-                              {sp.platform}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <div className="mb-1 flex justify-between text-xs text-slate-500">
-                            <span>Progreso</span>
-                            <span>{sp.progressPercentage}%</span>
-                          </div>
-                          <div className="h-2 w-full rounded-full bg-slate-100">
-                            <div
-                              className="h-2 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
-                              style={{ width: `${sp.progressPercentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                      Sin SkillPaths activos
-                    </p>
-                  )}
-                </div>
-              </div>
-
               {/* PathChallenges activos */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
@@ -567,6 +611,110 @@ export default function ExploracionDashboardPage() {
                       Retos prácticos en progreso
                     </p>
                   </div>
+
+                  <Link
+                      href="/user/app/challenges"
+                      className="text-sm font-semibold text-[#7447D7] hover:underline"
+                  >
+                    Ver todos
+                  </Link>
+                </div>
+
+                <div className="space-y-4">
+                  {!pathChallengesLoaded ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                        Cargando PathChallenges activos...
+                      </p>
+                  ) : hasPathChallengesActivos ? (
+                      pathChallengesActivos.map((ch) => (
+                          <div
+                              key={ch.idPathChallenge}
+                              className="rounded-xl border border-slate-100 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold">{ch.title}</p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {ch.description}
+                                </p>
+                              </div>
+
+                              <span
+                                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${getChallengeDashboardStatusClasses(
+                                      ch.status,
+                                  )}`}
+                              >
+              {getChallengeDashboardStatusLabel(ch.status)}
+            </span>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <span
+                className={`rounded-full px-2 py-0.5 font-bold ${getChallengeDashboardDifficultyClasses(
+                    ch.difficulty,
+                )}`}
+            >
+              {ch.difficulty}
+            </span>
+
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
+              ⏱ {ch.durationLabel}
+            </span>
+
+                              <span className="rounded-full bg-orange-100 px-2 py-0.5 font-semibold text-orange-700">
+              ⭐ {ch.xp} XP
+            </span>
+                            </div>
+
+                            <div className="mt-3">
+                              <div className="mb-1 flex justify-between text-xs text-slate-500">
+                                <span>Progreso</span>
+                                <span>{ch.progressPercentage}%</span>
+                              </div>
+
+                              <div className="h-2 w-full rounded-full bg-slate-100">
+                                <div
+                                    className="h-2 rounded-full bg-emerald-500"
+                                    style={{ width: `${ch.progressPercentage}%` }}
+                                />
+                              </div>
+
+                              <p className="mt-2 text-xs text-slate-400">
+                                {ch.completedTasksCount}/{ch.totalTasksCount} tareas completadas
+                              </p>
+                            </div>
+
+                            <div className="mt-4 flex justify-end">
+                              <Link
+                                  href={`/user/app/challenges/${ch.idPathChallenge}?returnTo=/user/app/exploracion/dashboard&returnLabel=Volver%20al%20dashboard`}
+                                  className="inline-flex items-center justify-center rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6338c5]"
+                              >
+                                {getChallengeDashboardActionLabel(ch.status)}
+                              </Link>
+                            </div>
+                          </div>
+                      ))
+                  ) : (
+                      <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                        Sin PathChallenges activos
+                      </p>
+                  )}
+                </div>
+              </div>
+
+              {/* SkillPaths activos */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-extrabold">
+                      <BookOpen className="mr-2 inline h-4 w-4 text-[#7447D7]" />
+                      SkillPaths Activos
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Tus rutas de aprendizaje en progreso
+                    </p>
+                  </div>
+
                   <Link
                       href="/user/app/skillpaths"
                       className="text-sm font-semibold text-[#7447D7] hover:underline"
@@ -574,41 +722,58 @@ export default function ExploracionDashboardPage() {
                     Ver todos
                   </Link>
                 </div>
+
                 <div className="space-y-4">
-                  {challenges.map((ch) => (
-                    <div
-                      key={ch.id}
-                      className="rounded-xl border border-slate-100 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold">{ch.titulo}</p>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ch.dificultadColor}`}
-                        >
-                          {ch.dificultad}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {ch.descripcion}
+                  {!skillPathsActivosLoaded ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                        Cargando SkillPaths activos...
                       </p>
-                      <div className="mt-2 flex gap-4 text-xs text-slate-500">
-                        <span>⏱ {ch.duracion}</span>
-                        <span>⭐ {ch.xp} XP</span>
-                      </div>
-                      <div className="mt-3">
-                        <div className="mb-1 flex justify-between text-xs text-slate-500">
-                          <span>Progreso</span>
-                          <span>{ch.progreso}%</span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-100">
+                  ) : hasSkillPathsActivos ? (
+                      skillPathsActivos.map((sp) => (
                           <div
-                            className="h-2 rounded-full bg-emerald-500"
-                            style={{ width: `${ch.progreso}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                              key={sp.id}
+                              className="rounded-xl border border-slate-100 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold">{sp.title}</p>
+                                <p className="text-xs text-slate-500">{sp.platform}</p>
+                              </div>
+
+                              <span
+                                  className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-bold ${getSkillPathDashboardStatusClasses(
+                                      sp.status,
+                                  )}`}
+                              >
+              {getSkillPathDashboardStatusLabel(sp.status)}
+            </span>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
+              {sp.durationLabel}
+            </span>
+
+                              <span className="rounded-full bg-orange-100 px-2 py-0.5 font-semibold text-orange-700">
+              ⭐ {sp.xp} XP
+            </span>
+                            </div>
+
+                            <div className="mt-4 flex justify-end">
+                              <Link
+                                  href={`/user/app/skillpaths/${sp.id}?returnTo=/user/app/exploracion/dashboard`}
+                                  className="inline-flex items-center justify-center rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6338c5]"
+                              >
+                                {getSkillPathDashboardActionLabel(sp.status)}
+                              </Link>
+                            </div>
+                          </div>
+                      ))
+                  ) : (
+                      <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                        Sin SkillPaths activos
+                      </p>
+                  )}
                 </div>
               </div>
 
@@ -643,14 +808,14 @@ export default function ExploracionDashboardPage() {
                   <Award className="h-5 w-5 text-yellow-500" />
                   <span className="font-semibold">Nivel {usuario.nivel}</span>
                   <span className="ml-auto text-sm text-slate-500">
-                    {usuario.xpActual} / {usuario.xpSiguienteNivel} XP
+                    {xpActualDashboard} / {xpSiguienteNivelDashboard} XP
                   </span>
                 </div>
                 <div className="mt-2 h-2.5 w-full rounded-full bg-slate-100">
                   <div
                     className="h-2.5 rounded-full bg-linear-to-r from-[#7447D7] to-[#D43EE6]"
                     style={{
-                      width: `${(usuario.xpActual / usuario.xpSiguienteNivel) * 100}%`,
+                      width: `${porcentajeNivelDashboard}%`,
                     }}
                   />
                 </div>

@@ -17,11 +17,11 @@ import {
     Download,
     FileText,
     Lock,
-    PlayCircle,
 } from "lucide-react";
 
 import {
     downloadStudentPathChallengeTaskFile,
+    downloadStudentPathChallengeTaskResource,
     finishStudentPathChallenge,
     saveStudentPathChallengeProgress,
     uploadStudentPathChallengeTaskFile,
@@ -86,7 +86,10 @@ type TaskConfig = {
     documentTitle?: string;
     documentName?: string;
     documentType?: string;
+    documentKey?: string | null;
     previewImageUrl?: string | null;
+    previewImageKey?: string | null;
+    previewImageName?: string | null;
     downloadUrl?: string | null;
     downloadLabel?: string;
 
@@ -544,6 +547,44 @@ export function PathChallengeMissionClient({
         }
     };
 
+    const handleOpenTaskResource = async (
+        task: StudentPathChallengeTask,
+        resourceType: "document" | "preview" = "document",
+    ) => {
+        setError(null);
+        setSuccessMessage(null);
+
+        if (!token) {
+            setError("No se encontró una sesión válida. Vuelve a iniciar sesión.");
+            return;
+        }
+
+        setDownloadingTaskId(task.idPathChallengeTask);
+
+        try {
+            const blob = await downloadStudentPathChallengeTaskResource(
+                challenge.idPathChallenge,
+                task.idPathChallengeTask,
+                resourceType,
+                token,
+            );
+
+            const config = getConfig(task);
+
+            const fallbackName =
+                resourceType === "preview"
+                    ? config.previewImageName ?? "recurso-pathchallenge"
+                    : config.documentName ?? "recurso-pathchallenge";
+
+            openOrDownloadBlob(blob, fallbackName);
+        } catch (err) {
+            console.error(err);
+            setError("No se pudo abrir o descargar el recurso base.");
+        } finally {
+            setDownloadingTaskId(null);
+        }
+    };
+
     const handleSave = async () => {
         setError(null);
         setSuccessMessage(null);
@@ -894,6 +935,7 @@ export function PathChallengeMissionClient({
                                 allResponses={responses}
                                 onUploadFile={handleUploadTaskFile}
                                 onOpenFile={handleOpenTaskFile}
+                                onOpenResource={handleOpenTaskResource}
                                 uploadingTaskId={uploadingTaskId}
                                 downloadingTaskId={downloadingTaskId}
                             />
@@ -966,6 +1008,10 @@ interface TaskRendererProps {
     allResponses: Record<number, TaskResponseState>;
     onUploadFile?: (task: StudentPathChallengeTask, file: File) => Promise<void>;
     onOpenFile?: (task: StudentPathChallengeTask) => Promise<void>;
+    onOpenResource?: (
+        task: StudentPathChallengeTask,
+        resourceType?: "document" | "preview",
+    ) => Promise<void>;
     uploadingTaskId?: number | null;
     downloadingTaskId?: number | null;
 }
@@ -978,6 +1024,7 @@ function TaskRenderer({
                           allResponses,
                           onUploadFile,
                           onOpenFile,
+                          onOpenResource,
                           uploadingTaskId,
                           downloadingTaskId,
                       }: TaskRendererProps) {
@@ -1004,6 +1051,12 @@ function TaskRenderer({
                     downloadUrl={config.downloadUrl}
                     downloadLabel={config.downloadLabel ?? "Descargar archivo adjunto"}
                     previewImageUrl={config.previewImageUrl}
+                    onOpen={
+                        config.documentKey
+                            ? () => onOpenResource?.(task, "document")
+                            : undefined
+                    }
+                    isOpening={downloadingTaskId === task.idPathChallengeTask}
                 />
 
                 {config.companyInfo && (
@@ -1655,6 +1708,8 @@ function DocumentResourceCard({
                                   downloadUrl,
                                   downloadLabel,
                                   previewImageUrl,
+                                  onOpen,
+                                  isOpening,
                               }: {
     title: string;
     fileName: string;
@@ -1662,8 +1717,10 @@ function DocumentResourceCard({
     downloadUrl?: string | null;
     downloadLabel: string;
     previewImageUrl?: string | null;
+    onOpen?: () => void;
+    isOpening?: boolean;
 }) {
-    const hasDownload = isPublicUrl(downloadUrl);
+    const hasPublicDownload = isPublicUrl(downloadUrl);
 
     return (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
@@ -1682,7 +1739,21 @@ function DocumentResourceCard({
                     </div>
                 </div>
 
-                {hasDownload ? (
+                {onOpen ? (
+                    <button
+                        type="button"
+                        onClick={onOpen}
+                        disabled={isOpening}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6338c5] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isOpening ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Download className="h-4 w-4" />
+                        )}
+                        {downloadLabel}
+                    </button>
+                ) : hasPublicDownload ? (
                     <a
                         href={downloadUrl ?? "#"}
                         target="_blank"
