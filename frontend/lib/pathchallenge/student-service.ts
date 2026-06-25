@@ -139,3 +139,36 @@ export async function downloadStudentPathChallengeTaskFile(
 
     return response.blob();
 }
+
+export async function downloadStudentPathChallengeTaskResource(
+    pathChallengeId: string | number,
+    pathChallengeTaskId: string | number,
+    resourceType: "document" | "preview" = "document",
+    token?: string | null,
+): Promise<Blob> {
+    const response = await fetch(
+        buildPathChallengeFileUrl(
+            `/api/pathchallenges/estudiante/${pathChallengeId}/tareas/${pathChallengeTaskId}/recurso/${resourceType}/download`,
+        ),
+        {
+            method: "GET",
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            cache: "no-store",
+        },
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+
+        console.error("Error obteniendo recurso base PathChallenge:", {
+            status: response.status,
+            body: errorText,
+        });
+
+        throw new Error("No se pudo abrir o descargar el recurso.");
+    }
+
+    return response.blob();
+}

@@ -58,4 +58,18 @@ public interface PathChallengeEstudianteService {
             Integer idPathChallenge,
             Integer idPathChallengeTask
     );
+
+    byte[] descargarRecursoBaseTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            String tipoRecurso
+    );
+
+    String obtenerNombreRecursoBaseTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            String tipoRecurso
+    );
 }

@@ -32,6 +32,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.InputStream;
 import java.util.Locale;
@@ -489,6 +490,116 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
         }
 
         return "archivo-pathchallenge";
+    }
+
+    @Override
+    public byte[] descargarRecursoBaseTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            String tipoRecurso
+    ) {
+        usuarioRepository.findByCorreoAndActivoTrue(correo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findActiveTaskInChallenge(idPathChallengeTask, idPathChallenge)
+                .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
+
+        String s3Key = obtenerKeyRecursoBase(tarea, tipoRecurso);
+
+        if (!StringUtils.hasText(s3Key)) {
+            throw new RuntimeException("La tarea no tiene un recurso configurado para descargar");
+        }
+
+        validarKeyRecursoPathChallenge(s3Key);
+
+        try (InputStream inputStream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(s3Key)
+                        .build()
+        )) {
+            return inputStream.readAllBytes();
+        } catch (Exception e) {
+            log.error("Error descargando recurso base de PathChallenge desde S3: {}", s3Key, e);
+            throw new RuntimeException("No se pudo descargar el recurso de la tarea");
+        }
+    }
+
+    @Override
+    public String obtenerNombreRecursoBaseTarea(
+            String correo,
+            Integer idPathChallenge,
+            Integer idPathChallengeTask,
+            String tipoRecurso
+    ) {
+        usuarioRepository.findByCorreoAndActivoTrue(correo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        PathChallengeTask tarea = pathChallengeTaskRepository
+                .findActiveTaskInChallenge(idPathChallengeTask, idPathChallenge)
+                .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
+
+        return obtenerNombreRecursoBase(tarea, tipoRecurso);
+    }
+
+    private String obtenerKeyRecursoBase(PathChallengeTask tarea, String tipoRecurso) {
+        JsonNode config = leerConfigJson(tarea);
+
+        String tipo = tipoRecurso == null ? "" : tipoRecurso.toLowerCase();
+
+        return switch (tipo) {
+            case "document", "archivo", "file" -> obtenerTexto(config, "documentKey");
+            case "preview", "imagen", "image" -> obtenerTexto(config, "previewImageKey");
+            default -> throw new RuntimeException("Tipo de recurso no soportado: " + tipoRecurso);
+        };
+    }
+
+    private String obtenerNombreRecursoBase(PathChallengeTask tarea, String tipoRecurso) {
+        JsonNode config = leerConfigJson(tarea);
+
+        String tipo = tipoRecurso == null ? "" : tipoRecurso.toLowerCase();
+
+        String nombre = switch (tipo) {
+            case "document", "archivo", "file" -> obtenerTexto(config, "documentName");
+            case "preview", "imagen", "image" -> obtenerTexto(config, "previewImageName");
+            default -> null;
+        };
+
+        if (StringUtils.hasText(nombre)) {
+            return nombre;
+        }
+
+        return "recurso-pathchallenge";
+    }
+
+    private JsonNode leerConfigJson(PathChallengeTask tarea) {
+        try {
+            if (!StringUtils.hasText(tarea.getConfigJson())) {
+                return objectMapper.createObjectNode();
+            }
+
+            return objectMapper.readTree(tarea.getConfigJson());
+        } catch (Exception e) {
+            throw new RuntimeException("El config_json de la tarea no tiene un formato válido");
+        }
+    }
+
+    private String obtenerTexto(JsonNode node, String fieldName) {
+        if (node == null || !node.hasNonNull(fieldName)) {
+            return null;
+        }
+
+        String value = node.get(fieldName).asText();
+
+        return StringUtils.hasText(value) ? value : null;
+    }
+
+    private void validarKeyRecursoPathChallenge(String s3Key) {
+        if (!s3Key.startsWith("pathchallenge-recursos/")) {
+            throw new RuntimeException("El recurso configurado no pertenece a PathChallenges");
+        }
     }
 
     private UsuarioPathChallengeTask obtenerAvanceTareaConArchivo(
