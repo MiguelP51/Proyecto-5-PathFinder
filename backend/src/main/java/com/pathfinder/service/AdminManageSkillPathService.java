@@ -95,7 +95,9 @@ public class AdminManageSkillPathService {
         skillPath.setEstado("DISPONIBLE");
         skillPath.setEstadoPublicacion(request.getEstadoPublicacion() != null ? request.getEstadoPublicacion() : "ACTIVA");
 
-        return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
+        SkillPath saved = skillPathRepository.save(skillPath);
+        actualizarCantidadSkillPaths(saved.getSubareaId());
+        return AdminManageSkillPathResponseDTO.from(saved);
     }
 
     @Transactional
@@ -144,7 +146,13 @@ public class AdminManageSkillPathService {
         if (request.getEsRecomendado() != null) skillPath.setEsRecomendado(request.getEsRecomendado());
         if (request.getEstadoPublicacion() != null) skillPath.setEstadoPublicacion(request.getEstadoPublicacion());
 
-        return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
+        String oldSubareaId = skillPath.getSubareaId();
+        SkillPath saved = skillPathRepository.save(skillPath);
+        actualizarCantidadSkillPaths(saved.getSubareaId());
+        if (oldSubareaId != null && !oldSubareaId.equals(saved.getSubareaId())) {
+            actualizarCantidadSkillPaths(oldSubareaId);
+        }
+        return AdminManageSkillPathResponseDTO.from(saved);
     }
 
     @Transactional
@@ -153,7 +161,8 @@ public class AdminManageSkillPathService {
                 .orElseThrow(() -> new EntityNotFoundException("SkillPath no encontrado con ID: " + id));
         skillPath.setActivo(false);
         skillPath.setFechaModificacion(LocalDateTime.now());
-        skillPathRepository.save(skillPath);
+        SkillPath saved = skillPathRepository.save(skillPath);
+        actualizarCantidadSkillPaths(saved.getSubareaId());
     }
 
     @Transactional
@@ -163,8 +172,9 @@ public class AdminManageSkillPathService {
 
         skillPath.setActivo(activo);
         skillPath.setFechaModificacion(LocalDateTime.now());
-
-        return AdminManageSkillPathResponseDTO.from(skillPathRepository.save(skillPath));
+        SkillPath saved = skillPathRepository.save(skillPath);
+        actualizarCantidadSkillPaths(saved.getSubareaId());
+        return AdminManageSkillPathResponseDTO.from(saved);
     }
 
     @Transactional
@@ -173,6 +183,7 @@ public class AdminManageSkillPathService {
         int procesados = 0;
         int creados = 0;
         List<SubArea> subAreas = subAreaRepository.findAll();
+        List<String> subareaIdsToUpdate = new ArrayList<>();
 
         try (CSVReader csvReader = new CSVReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             List<String[]> rows = csvReader.readAll();
@@ -230,12 +241,19 @@ public class AdminManageSkillPathService {
                     skillPath.setXp(0);
                     skillPath.setEstado("DISPONIBLE");
 
-                    skillPathRepository.save(skillPath);
+                    SkillPath saved = skillPathRepository.save(skillPath);
+                    if (saved.getSubareaId() != null && !subareaIdsToUpdate.contains(saved.getSubareaId())) {
+                        subareaIdsToUpdate.add(saved.getSubareaId());
+                    }
                     creados++;
                 } catch (Exception e) {
                     log.error("Error en la fila {}: {}", i + 2, e.getMessage());
                     errores.add("Fila " + (i + 2) + ": " + e.getMessage());
                 }
+            }
+
+            for (String sId : subareaIdsToUpdate) {
+                actualizarCantidadSkillPaths(sId);
             }
 
         } catch (Exception e) {
@@ -260,6 +278,37 @@ public class AdminManageSkillPathService {
             throw new IllegalArgumentException(
                     "La duracion debe tener numero y unidad. Ejemplo: 6 horas"
             );
+        }
+    }
+
+    private void actualizarCantidadSkillPaths(String subareaId) {
+        if (!StringUtils.hasText(subareaId)) return;
+        try {
+            SubArea subArea = null;
+            try {
+                Integer sId = Integer.parseInt(subareaId.trim());
+                subArea = subAreaRepository.findById(sId).orElse(null);
+            } catch (NumberFormatException e) {
+                subArea = subAreaRepository.findByActivoTrue().stream()
+                        .filter(sa -> subareaId.equalsIgnoreCase(sa.getSlug()))
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            if (subArea != null) {
+                String subareaIdStr = String.valueOf(subArea.getIdSubarea());
+                String subareaSlug = subArea.getSlug();
+                
+                long count = skillPathRepository.findByUsuarioIsNullAndActivoTrueAndEstadoPublicacion("ACTIVA").stream()
+                        .filter(sp -> subareaIdStr.equals(sp.getSubareaId()) || (subareaSlug != null && subareaSlug.equalsIgnoreCase(sp.getSubareaId())))
+                        .count();
+                
+                subArea.setCantidadSkillPaths((int) count);
+                subAreaRepository.save(subArea);
+                log.info("Sincronizada cantidad de SkillPaths para SubArea {}: {}", subArea.getNombre(), count);
+            }
+        } catch (Exception e) {
+            log.error("Error al actualizar cantidad de SkillPaths para subareaId {}: {}", subareaId, e.getMessage());
         }
     }
 }

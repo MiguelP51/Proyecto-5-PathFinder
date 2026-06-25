@@ -1,11 +1,57 @@
+export const dynamic = "force-dynamic";
+
 import styles from "@/styles/Landpage.module.css";
 import Footer from "@/components/Footer";
 import SessionOpenNotice from "@/components/SessionOpenNotice";
 import Link from "next/link";
-import { Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
-    Target, Star, Clock3, ShieldCheck, CheckCircle2, Info } from "lucide-react";
+import {
+    Rocket, UsersRound, Globe2, Award, Zap, ArrowRight, TrendingUp, BriefcaseBusiness,
+    Target, Star, Clock3, ShieldCheck, CheckCircle2, Info, HelpCircle
+} from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
-export default function Home() {
+interface PublicStatsDTO {
+  totalStudents: number;
+  totalAreas: number;
+  totalSubareas: number;
+}
+
+interface PublicAreaResponseDTO {
+  idArea: string;
+  nombre: string;
+  emoji: string;
+  descripcion: string;
+  imagenUrl: string;
+  tagline: string;
+  funciones: string;
+  colorFrom: string;
+  colorTo: string;
+}
+
+const ICON_MAP: Record<string, any> = {
+  "recursos-humanos": UsersRound,
+  "marketing": TrendingUp,
+  "finanzas": Award,
+  "comercial": BriefcaseBusiness,
+  "logistica": Target,
+};
+
+const STYLE_MAP: Record<string, { card: string; icon: string; button: string }> = {
+  "recursos-humanos": { card: styles.areaCardPurple, icon: styles.areaIconPurple, button: styles.areaButtonPurple },
+  "marketing": { card: styles.areaCardPink, icon: styles.areaIconPink, button: styles.areaButtonPink },
+  "finanzas": { card: styles.areaCardFuchsia, icon: styles.areaIconFuchsia, button: styles.areaButtonFuchsia },
+  "comercial": { card: styles.areaCardRed, icon: styles.areaIconRed, button: styles.areaButtonRed },
+  "logistica": { card: styles.areaCardOrange, icon: styles.areaIconOrange, button: styles.areaButtonOrange },
+};
+
+export default async function Home() {
+    const stats = await apiFetch<PublicStatsDTO>("/api/public/exploracion/stats").catch(() => null);
+    const areas = await apiFetch<PublicAreaResponseDTO[]>("/api/public/exploracion/areas").catch(() => null);
+
+    const totalStudents = stats?.totalStudents || 500;
+    const totalAreas = stats?.totalAreas || 5;
+    const totalSubareas = stats?.totalSubareas || 12;
+
     return (
         <div className={styles.landing}>
             <SessionOpenNotice />
@@ -14,20 +60,20 @@ export default function Home() {
                     <h1 className={styles.heroTitle}>
                         <span>Encuentra tu</span>
                         <span className={styles.gradientText}>
-              Primera Experiencia
-            </span>
+                            Primera Experiencia
+                        </span>
                         <span>Profesional</span>
                     </h1>
 
                     <p className={styles.heroDescription}>
                         Explora{" "}
                         <span className={styles.highlightPurple}>
-              5 áreas especializadas
-            </span>
+                            {totalAreas} áreas especializadas
+                        </span>
                         , desarrolla habilidades clave y prepárate para tu{" "}
                         <span className={styles.highlightPink}>
-              puesto deseado
-            </span>
+                            puesto deseado
+                        </span>
                     </p>
 
                     <div className={styles.heroButtons}>
@@ -45,77 +91,20 @@ export default function Home() {
 
                     <div className={styles.statsContainer}>
                         <div className={styles.statCard}>
-                            <strong className={styles.statPurple}>500+</strong>
+                            <strong className={styles.statPurple}>{totalStudents}+</strong>
                             <span>Practicantes</span>
                         </div>
 
                         <div className={styles.statCard}>
-                            <strong className={styles.statPurpleLight}>5</strong>
+                            <strong className={styles.statPurpleLight}>{totalAreas}</strong>
                             <span>Áreas</span>
                         </div>
 
                         <div className={styles.statCard}>
-                            <strong className={styles.statPink}>95%</strong>
-                            <span>Inserción</span>
+                            <strong className={styles.statPink}>{totalSubareas}</strong>
+                            <span>Subáreas</span>
                         </div>
                     </div>
-                </div>
-            </section>
-            <section className={styles.benefitsSection}>
-
-                <h2 className={styles.benefitsTitle}>
-                    ¿Por qué elegirnos para tu{" "}
-                    <span>primera experiencia?</span>
-                </h2>
-
-                <p className={styles.benefitsDescription}>
-                    Ofrecemos más que una práctica, te brindamos una experiencia transformadora
-                </p>
-
-                <div className={styles.benefitsGrid}>
-                    <article className={`${styles.benefitCard} ${styles.benefitCardPurple}`}>
-                        <div className={`${styles.benefitIconBox} ${styles.iconRocket}`}>
-                            <Rocket size={28} strokeWidth={2.4} />
-                        </div>
-
-                        <h3>Experiencia Real</h3>
-                        <p>
-                            Trabaja en proyectos reales con impacto directo en organizaciones
-                        </p>
-                    </article>
-
-                    <article className={`${styles.benefitCard} ${styles.benefitCardPink}`}>
-                        <div className={`${styles.benefitIconBox} ${styles.iconUsers}`}>
-                            <UsersRound size={28} strokeWidth={2.4} />
-                        </div>
-
-                        <h3>Mentores Expertos</h3>
-                        <p>
-                            Aprende de profesionales con años de experiencia en el sector
-                        </p>
-                    </article>
-
-                    <article className={`${styles.benefitCard} ${styles.benefitCardFuchsia}`}>
-                        <div className={`${styles.benefitIconBox} ${styles.iconGlobe}`}>
-                            <Globe2 size={28} strokeWidth={2.4} />
-                        </div>
-
-                        <h3>Red de Contactos</h3>
-                        <p>
-                            Conecta con empresas líderes y amplía tu networking profesional
-                        </p>
-                    </article>
-
-                    <article className={`${styles.benefitCard} ${styles.benefitCardOrange}`}>
-                        <div className={`${styles.benefitIconBox} ${styles.iconAward}`}>
-                            <Award size={28} strokeWidth={2.4} />
-                        </div>
-
-                        <h3>Certificación</h3>
-                        <p>
-                            Obtén reconocimiento oficial que impulse tu carrera profesional
-                        </p>
-                    </article>
                 </div>
             </section>
             <section className={styles.areasSection}>
@@ -129,95 +118,38 @@ export default function Home() {
                 </p>
 
                 <div className={styles.areasGrid}>
-                    <article className={`${styles.areaCard} ${styles.areaCardPurple}`}>
-                        <div className={`${styles.areaIconBox} ${styles.areaIconPurple}`}>
-                            <UsersRound size={34} strokeWidth={2.2} />
+                    {areas && areas.length > 0 ? (
+                        areas.map((area) => {
+                            const Icon = ICON_MAP[area.idArea] || HelpCircle;
+                            const classes = STYLE_MAP[area.idArea] || {
+                                card: styles.areaCardPurple,
+                                icon: styles.areaIconPurple,
+                                button: styles.areaButtonPurple
+                            };
+
+                            return (
+                                <article key={area.idArea} className={`${styles.areaCard} ${classes.card}`}>
+                                    <div className={`${styles.areaIconBox} ${classes.icon}`}>
+                                        <Icon size={34} strokeWidth={2.2} />
+                                    </div>
+
+                                    <h3>{area.nombre}</h3>
+                                    <p>{area.descripcion}</p>
+
+                                    <Link
+                                        href={`/areas/${area.idArea}`}
+                                        className={`${styles.areaButton} ${classes.button}`}
+                                    >
+                                        Explorar
+                                    </Link>
+                                </article>
+                            );
+                        })
+                    ) : (
+                        <div className="col-span-full text-center py-10 text-slate-500">
+                            No hay áreas de especialización disponibles en este momento.
                         </div>
-
-                        <h3>Recursos Humanos</h3>
-                        <p>
-                            Gestiona el talento y crea ambientes laborales excepcionales
-                        </p>
-
-                        <Link
-                            href="/areas#recursos-humanos"
-                            className={`${styles.areaButton} ${styles.areaButtonPurple}`}
-                        >
-                            Explorar
-                        </Link>
-                    </article>
-
-                    <article className={`${styles.areaCard} ${styles.areaCardPink}`}>
-                        <div className={`${styles.areaIconBox} ${styles.areaIconPink}`}>
-                            <TrendingUp size={34} strokeWidth={2.2} />
-                        </div>
-
-                        <h3>Marketing</h3>
-                        <p>
-                            Crea estrategias que impulsen el crecimiento de marcas
-                        </p>
-
-                        <Link
-                            href="/areas#marketing"
-                            className={`${styles.areaButton} ${styles.areaButtonPink}`}
-                        >
-                            Explorar
-                        </Link>
-                    </article>
-
-                    <article className={`${styles.areaCard} ${styles.areaCardFuchsia}`}>
-                        <div className={`${styles.areaIconBox} ${styles.areaIconFuchsia}`}>
-                            <Award size={34} strokeWidth={2.2} />
-                        </div>
-
-                        <h3>Finanzas</h3>
-                        <p>
-                            Administra recursos y asegura la estabilidad financiera
-                        </p>
-
-                        <Link
-                            href="/areas#finanzas"
-                            className={`${styles.areaButton} ${styles.areaButtonFuchsia}`}
-                        >
-                            Explorar
-                        </Link>
-                    </article>
-
-                    <article className={`${styles.areaCard} ${styles.areaCardRed}`}>
-                        <div className={`${styles.areaIconBox} ${styles.areaIconRed}`}>
-                            <BriefcaseBusiness size={34} strokeWidth={2.2} />
-                        </div>
-
-                        <h3>Comercial</h3>
-                        <p>
-                            Lidera ventas y relaciones estratégicas con clientes
-                        </p>
-
-                        <Link
-                            href="/areas#comercial"
-                            className={`${styles.areaButton} ${styles.areaButtonRed}`}
-                        >
-                            Explorar
-                        </Link>
-                    </article>
-
-                    <article className={`${styles.areaCard} ${styles.areaCardOrange}`}>
-                        <div className={`${styles.areaIconBox} ${styles.areaIconOrange}`}>
-                            <Target size={34} strokeWidth={2.2} />
-                        </div>
-
-                        <h3>Logística</h3>
-                        <p>
-                            Optimiza la cadena de suministro y distribución
-                        </p>
-
-                        <Link
-                            href="/areas#logistica"
-                            className={`${styles.areaButton} ${styles.areaButtonOrange}`}
-                        >
-                            Explorar
-                        </Link>
-                    </article>
+                    )}
                 </div>
 
                 <Link href="/areas" className={styles.viewAllAreasButton}>
@@ -378,7 +310,7 @@ export default function Home() {
                     </h2>
 
                     <p className={styles.ctaDescription}>
-                        Únete a <strong>500+ practicantes</strong> que ya están transformando
+                        Únete a <strong>{totalStudents}+ practicantes</strong> que ya están transformando
                         su futuro con <strong>PathFinder</strong>
                     </p>
 
@@ -396,10 +328,10 @@ export default function Home() {
                     </div>
 
                     <div className={styles.ctaFeatures}>
-                      <span>
-                        <CheckCircle2 size={16} strokeWidth={2.4} />
-                        Registro gratuito
-                      </span>
+                        <span>
+                            <CheckCircle2 size={16} strokeWidth={2.4} />
+                            Registro gratuito
+                        </span>
 
                         <span>
                             <CheckCircle2 size={16} strokeWidth={2.4} />

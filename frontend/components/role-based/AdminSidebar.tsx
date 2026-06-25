@@ -137,10 +137,6 @@ export default function AdminSidebar({
               Challenges
             </Link>
 
-            <Link href="/admin/subareas" className={linkClass("/admin/subareas")}>
-              <Layers className="h-5 w-5" />
-              Competencias
-            </Link>
 
             <Link href="/admin/disc" className={linkClass("/admin/disc")}>
               <Brain className="h-5 w-5" />

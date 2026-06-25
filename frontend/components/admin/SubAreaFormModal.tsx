@@ -56,7 +56,7 @@ export default function SubAreaFormModal({ onClose, onSuccess, editingItem }: Pr
     setLoading(true);
 
     try {
-      if (editingItem) {
+      if (editingItem && editingItem.idSubarea) {
         await apiFetch(`/api/admin/subareas/${editingItem.idSubarea}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -82,7 +82,7 @@ export default function SubAreaFormModal({ onClose, onSuccess, editingItem }: Pr
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <h2 className="text-xl font-bold text-slate-800">
-            {editingItem ? 'Editar Subárea' : 'Nueva Subárea'}
+            {editingItem && editingItem.idSubarea ? 'Editar Subárea' : 'Nueva Subárea'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
             <X className="h-5 w-5" />
