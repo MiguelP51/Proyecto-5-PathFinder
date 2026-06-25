@@ -115,6 +115,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 estudiante.getCorreo(),
                 estudiante.getNombreCompleto(),
                 mentor.getNombreCompleto(),
+                mentor.getCorreo(),
                 request.getFecha(),
                 request.getHora(),
                 request.getTipo(),
@@ -186,6 +187,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 entrevista.getEstudiante().getCorreo(),
                 entrevista.getEstudiante().getNombreCompleto(),
                 entrevista.getMentor().getNombreCompleto(),
+                entrevista.getMentor().getCorreo(),
                 entrevista.getFecha().toString(),
                 entrevista.getHora(),
                 entrevista.getTipo(),
@@ -509,6 +511,30 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 entrevista.getIdEntrevista()
         );
 
+        // Notificar por correo real tanto al estudiante como al mentor
+        try {
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    entrevista.getEstudiante().getCorreo(),
+                    entrevista.getEstudiante().getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    nuevaFecha.toString(),
+                    nuevaHora,
+                    "Reprogramada",
+                    "La fecha y hora de la simulación de entrevista fueron actualizadas por el PathMentor."
+            );
+            emailService.enviarCorreoCancelacionOReagendacion(
+                    entrevista.getMentor().getCorreo(),
+                    entrevista.getEstudiante().getNombreCompleto(),
+                    entrevista.getMentor().getNombreCompleto(),
+                    nuevaFecha.toString(),
+                    nuevaHora,
+                    "Reprogramada",
+                    "La fecha y hora de la simulación de entrevista fueron actualizadas por el PathMentor."
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar correos de reprogramación: {}", e.getMessage());
+        }
+
         log.info("Entrevista ID {} reprogramada por mentor {}: nueva fecha {}, nueva hora {}",
                 idEntrevista, correoMentor, nuevaFecha, nuevaHora);
 
@@ -721,6 +747,14 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                             .puntajePromedio(avg)
                             .build();
                 })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EntrevistaResponseDTO> obtenerHistorialEstudiante(String correoEstudiante) {
+        List<Entrevista> historial = entrevistaRepository.findByEstudiante_Correo(correoEstudiante);
+        return historial.stream()
+                .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 }

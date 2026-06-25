@@ -119,7 +119,7 @@ export default function SimulationDetailsPage() {
       
       if (data && data.estado === "Completada") {
         try {
-          const surveyData = await apiFetch<{ completada: boolean }>("/api/encuestas/completada", {}, session?.backendJwt);
+          const surveyData = await apiFetch<{ completada: boolean }>(`/api/encuestas/completada?idEntrevista=${data.idEntrevista}`, {}, session?.backendJwt);
           setSurveyCompleted(surveyData.completada);
         } catch (err) {
           console.error("Error checking survey status:", err);
@@ -305,7 +305,7 @@ export default function SimulationDetailsPage() {
                   </div>
                 </div>
                 <Link
-                  href="/user/app/survey"
+                  href={`/user/app/survey?idEntrevista=${entrevista.idEntrevista}`}
                   className="w-full sm:w-auto h-10 px-5 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-90 transition text-xs font-bold text-white shadow-md shadow-purple-200/30 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
                 >
                   Realizar Encuesta
@@ -328,7 +328,7 @@ export default function SimulationDetailsPage() {
                   ) : (
                     <Clock className="h-3.5 w-3.5 animate-pulse" />
                   )}
-                  {entrevista.estado === "Completada" ? "Evaluación Completada" : `Estado: ${entrevista.estado}`}
+                  {entrevista.estado === "Completada" ? "Retroalimentación Disponible" : `Estado: ${entrevista.estado}`}
                 </span>
                 <h1 className="text-3xl font-black tracking-tight text-slate-900 mt-2">
                   Detalles de tu Simulación
@@ -478,6 +478,17 @@ export default function SimulationDetailsPage() {
                           * El mentor agregará el enlace de la reunión próximamente. Te llegará una notificación por correo electrónico automáticamente cuando se registre.
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {entrevista.estado === "Programada" && entrevista.tipo?.toLowerCase() === "presencial" && (
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <div className="rounded-xl bg-amber-50/50 border border-amber-200 p-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <p className="text-xs text-amber-700 font-bold uppercase tracking-wider mb-1">Coordinación de Encuentro</p>
+                        <p className="text-sm text-slate-700 leading-relaxed font-semibold">
+                          📍 Esta entrevista se realizará de forma presencial. Ponte en contacto con tu PathMentor en <a href={`mailto:${entrevista.mentorEmail}`} className="text-[#7447D7] hover:underline font-extrabold">{entrevista.mentorEmail}</a> para coordinar el lugar y hora de encuentro.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

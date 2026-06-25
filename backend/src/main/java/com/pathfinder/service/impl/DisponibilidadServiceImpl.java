@@ -15,6 +15,10 @@ import com.pathfinder.repository.UsuarioRepository;
 import com.pathfinder.repository.FeriadoRepository;
 import com.pathfinder.repository.PerfilCVRepository;
 import com.pathfinder.model.entity.PerfilCV;
+import com.pathfinder.repository.MentorProfileRepository;
+import com.pathfinder.model.entity.MentorProfile;
+import com.pathfinder.model.entity.RespuestaEncuesta;
+import com.pathfinder.repository.RespuestaEncuestaRepository;
 
 import com.pathfinder.service.DisponibilidadService;
 import jakarta.transaction.Transactional;
@@ -39,6 +43,8 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
     private final UsuarioRepository usuarioRepository;
     private final FeriadoRepository feriadoRepository;
     private final PerfilCVRepository perfilCVRepository;
+    private final MentorProfileRepository mentorProfileRepository;
+    private final RespuestaEncuestaRepository respuestaEncuestaRepository;
 
 
     @Override
@@ -107,19 +113,59 @@ public class DisponibilidadServiceImpl implements DisponibilidadService {
         return mentores.stream()
                 .filter(m -> !disponibilidadRepository.findByMentor_IdUsuarioAndActivoTrue(m.getIdUsuario()).isEmpty())
                 .map(m -> {
-                    Optional<PerfilCV> perfilOpt = perfilCVRepository.findByUsuario_IdUsuario(m.getIdUsuario());
-                    return MentorDisponibilidadDTO.builder()
+                    Optional<MentorProfile> perfilOpt = mentorProfileRepository.findByMentor_IdUsuario(m.getIdUsuario());
+                    MentorDisponibilidadDTO dto = MentorDisponibilidadDTO.builder()
                             .idUsuario(m.getIdUsuario())
                             .nombreCompleto(m.getNombreCompleto())
                             .correo(m.getCorreo())
                             .avatarUrl(m.getAvatarUrl())
-                            .linkedinUrl(perfilOpt.map(PerfilCV::getLinkedinUrl).orElse(null))
-                            .perfilProfesional(perfilOpt.map(PerfilCV::getPerfilProfesional).orElse(null))
-                            .celular(perfilOpt.map(PerfilCV::getCelular).orElse(null))
-                            .correoContacto(perfilOpt.map(PerfilCV::getCorreoContacto).orElse(null))
+                            .linkedinUrl(perfilOpt.map(MentorProfile::getLinkedinUrl).orElse(null))
+                            .perfilProfesional(perfilOpt.map(MentorProfile::getBio).orElse(null))
+                            .celular(perfilOpt.map(MentorProfile::getTelefono).orElse(null))
+                            .correoContacto(m.getCorreo())
                             .build();
+                    popMetricasMentor(dto, m.getCorreo(), m.getIdUsuario());
+                    return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private void popMetricasMentor(MentorDisponibilidadDTO dto, String correo, Integer idMentor) {
+        List<Entrevista> entrevistas = entrevistaRepository.findByMentor_Correo(correo);
+        long completadas = entrevistas.stream()
+                .filter(e -> "Completada".equalsIgnoreCase(e.getEstado()))
+                .count();
+        dto.setTotalEvaluaciones((int) completadas);
+
+        double sumaCalificaciones = entrevistas.stream()
+                .filter(e -> e.getCompetenciaComunicacion() != null
+                        && e.getCompetenciaTecnica() != null
+                        && e.getCompetenciaProactividad() != null
+                        && e.getCompetenciaResolucion() != null)
+                .mapToDouble(e -> {
+                    double prom = (e.getCompetenciaComunicacion()
+                            + e.getCompetenciaTecnica()
+                            + e.getCompetenciaProactividad()
+                            + e.getCompetenciaResolucion()) / 4.0;
+                    return Math.round(prom * 10.0) / 10.0;
+                })
+                .sum();
+        double conFeedback = entrevistas.stream()
+                .filter(e -> e.getCompetenciaComunicacion() != null).count();
+
+        double promedio = 0.0;
+        List<RespuestaEncuesta> respuestas = respuestaEncuestaRepository.findByEntrevista_Mentor_IdUsuario(idMentor);
+        List<RespuestaEncuesta> calificacionesMentor = respuestas.stream()
+                .filter(r -> r.getPregunta().getTextoPregunta().contains("calificarías al PathMentor") || r.getPregunta().getTextoPregunta().contains("calificarías al mentor"))
+                .filter(r -> r.getValorEntero() != null)
+                .collect(Collectors.toList());
+        if (!calificacionesMentor.isEmpty()) {
+            double sum = calificacionesMentor.stream().mapToDouble(RespuestaEncuesta::getValorEntero).sum();
+            promedio = Math.round((sum / calificacionesMentor.size()) * 10.0) / 10.0;
+        } else {
+            promedio = conFeedback > 0 ? Math.round(sumaCalificaciones / conFeedback * 10.0) / 10.0 : 0.0;
+        }
+        dto.setCalificacionPromedio(promedio);
     }
 
     @Override

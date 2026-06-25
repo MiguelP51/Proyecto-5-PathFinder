@@ -1,24 +1,30 @@
-package com.pathfinder.dto.request;
+package com.pathfinder.dto.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SubmitEncuestaRequestDTO {
-
+public class EncuestaMentorFeedbackDTO {
     private Integer idEntrevista;
+    private String fecha;
+    private String puestoInteres;
     private List<RespuestaItem> respuestas;
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RespuestaItem {
-        private Integer idPregunta;
-        private Integer valorEntero; // 1-5 rating (null if text question)
-        private String valorTexto;  // open text comment (null if rating question)
+        private String textoPregunta;
+        private String tipoPregunta;
+        private Integer valorEntero;
+        private String valorTexto;
     }
 }
