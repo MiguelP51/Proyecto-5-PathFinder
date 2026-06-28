@@ -25,6 +25,9 @@ interface Feedback {
   fortalezas?: string;
   areasMejora?: string;
   comentarios?: string;
+  darFeedbackCv?: boolean;
+  feedbackCv?: string;
+  cvAvailable?: boolean;
   lastUpdated?: string;
   competenciasEvaluadas?: Array<{
     nombreCompetencia: string;
@@ -143,6 +146,8 @@ export default function PathMentorFeedbacks() {
   const [formComentarios, setFormComentarios] = useState('');
   const [aiFeedbackDraft, setAiFeedbackDraft] = useState<AiFeedbackDraft | null>(null);
   const [loadingAiFeedbackDraft, setLoadingAiFeedbackDraft] = useState(false);
+  const [formDarFeedbackCv, setFormDarFeedbackCv] = useState(true);
+  const [formFeedbackCv, setFormFeedbackCv] = useState('');
 
   // Competencies State
   const [allCompetencias, setAllCompetencias] = useState<any[]>([]);
@@ -304,6 +309,8 @@ export default function PathMentorFeedbacks() {
         let fort = "";
         let amej = "";
         let coms = item.feedbackComentarios;
+        let darCv = false;
+        let fdbCv = "";
         
         // Parse comments if it's JSON
         if (item.feedbackComentarios) {
@@ -312,6 +319,8 @@ export default function PathMentorFeedbacks() {
             fort = parsed.fortalezas || "";
             amej = parsed.areasMejora || "";
             coms = parsed.comentarios || "";
+            darCv = !!parsed.darFeedbackCv;
+            fdbCv = parsed.feedbackCv || "";
           } catch (e) {
             // fallback plain text
           }
@@ -350,6 +359,9 @@ export default function PathMentorFeedbacks() {
           fortalezas: fort,
           areasMejora: amej,
           comentarios: coms,
+          darFeedbackCv: darCv,
+          feedbackCv: fdbCv,
+          cvAvailable: item.cvAvailable,
           lastUpdated: item.fecha,
           position: item.puesto || 'Sin especificar',
           competenciasEvaluadas: item.competenciasEvaluadas || []
@@ -399,6 +411,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    setFormDarFeedbackCv(!!item.darFeedbackCv);
+    setFormFeedbackCv(item.feedbackCv || '');
     
     // Initialize competencies and levels
     const mapped: Record<string, { nivel: number; descripcion: string }> = {};
@@ -431,6 +445,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas(item.fortalezas || '');
     setFormAreasMejora(item.areasMejora || '');
     setFormComentarios(item.comentarios || '');
+    setFormDarFeedbackCv(!!item.darFeedbackCv);
+    setFormFeedbackCv(item.feedbackCv || '');
     loadCompetencias(item.position || 'General', item.id, 'editar');
     setActiveView('form');
   };
@@ -438,8 +454,7 @@ export default function PathMentorFeedbacks() {
   const handleRegistrarFeedback = (item: Feedback) => {
     setSelectedFeedback(item);
     setFormMode('registrar');
-    
-    // Check if there is a draft in local storage
+
     const draft = localStorage.getItem(`draft_feedback_${item.id}`);
     if (draft) {
       try {
@@ -448,6 +463,8 @@ export default function PathMentorFeedbacks() {
         setFormFortalezas(parsed.fortalezas || '');
         setFormAreasMejora(parsed.areasMejora || '');
         setFormComentarios(parsed.comentarios || '');
+        setFormDarFeedbackCv(!!parsed.darFeedbackCv);
+        setFormFeedbackCv(parsed.feedbackCv || '');
       } catch (e) {
         resetFormFields();
       }
@@ -499,6 +516,8 @@ export default function PathMentorFeedbacks() {
     setFormFortalezas('');
     setFormAreasMejora('');
     setFormComentarios('');
+    setFormDarFeedbackCv(true);
+    setFormFeedbackCv('');
     setSelectedCompetencyLevels({});
     setSelectedCompetencyNames([]);
   };
@@ -510,6 +529,8 @@ export default function PathMentorFeedbacks() {
       fortalezas: formFortalezas,
       areasMejora: formAreasMejora,
       comentarios: formComentarios,
+      darFeedbackCv: formDarFeedbackCv,
+      feedbackCv: formFeedbackCv,
       competencyLevels: selectedCompetencyLevels,
       competencyNames: selectedCompetencyNames
     };
@@ -582,7 +603,9 @@ export default function PathMentorFeedbacks() {
       const commentsJson = JSON.stringify({
         fortalezas: formFortalezas,
         areasMejora: formAreasMejora,
-        comentarios: formComentarios
+        comentarios: formComentarios,
+        darFeedbackCv: formDarFeedbackCv,
+        feedbackCv: formFeedbackCv
       });
 
       // Map dynamic competencies (only the ones selected by the mentor)
@@ -626,6 +649,29 @@ export default function PathMentorFeedbacks() {
     } catch (err) {
       console.error("Error publicando feedback:", err);
       toast.error("Error al publicar feedback: " + (err instanceof Error ? err.message : err));
+    }
+  };
+
+  const handleDownloadCV = async () => {
+    const email = selectedFeedback?.studentEmail;
+    if (!email) {
+      toast.warning("No se encuentra el correo del estudiante para descargar el CV");
+      return;
+    }
+    if (!session?.backendJwt) {
+      toast.error("Sesión no autenticada. Inicia sesión nuevamente.");
+      return;
+    }
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+      const res = await fetch(`${baseUrl}/api/cv/download/${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${session.backendJwt}` }
+      });
+      if (!res.ok) throw new Error("CV no disponible");
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch {
+      toast.error("No se pudo descargar el CV del estudiante");
     }
   };
 
@@ -1131,6 +1177,65 @@ export default function PathMentorFeedbacks() {
                 </div>
               </section>
 
+              {/* SECTION 3.5: RETROALIMENTACIÓN DE CV */}
+              <section className={styles.formSection}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionHeaderTitle}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    Retroalimentación de CV
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                    Revisa el CV del estudiante y bríndale retroalimentación sobre la estructura, redacción, presentación y contenido de su currículum.
+                  </p>
+
+                  {selectedFeedback?.cvAvailable !== false ? (
+                    <button
+                      type="button"
+                      onClick={handleDownloadCV}
+                      className={styles.cvDownloadBtn}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Ver CV del estudiante
+                    </button>
+                  ) : (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 p-2 rounded-xl mt-2 font-bold text-center">
+                      ⚠️ El estudiante no ha subido su CV a la plataforma
+                    </div>
+                  )}
+
+                  {/* TEXTAREA ALWAYS VISIBLE */}
+                  <div className="mt-5 space-y-3">
+                    {formMode === 'ver' && formFeedbackCv && (
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Retroalimentación del CV provista:
+                      </div>
+                    )}
+
+                    {(formMode !== 'ver' || formFeedbackCv) && (
+                      <textarea
+                        className={styles.textareaInput}
+                        placeholder="Escribe aquí tu retroalimentación sobre el CV del estudiante, destacando aspectos de forma, fondo, redacción y contenido profesional..."
+                        value={formFeedbackCv}
+                        onChange={(e) => setFormFeedbackCv(e.target.value)}
+                        disabled={formMode === 'ver'}
+                      />
+                    )}
+                  </div>
+                </div>
+              </section>
+
               {/* SECTION 4: RETROALIMENTACIÓN DETALLE */}
               <section className={styles.formSection}>
                 <div className={styles.sectionHeader}>
@@ -1446,7 +1551,7 @@ export default function PathMentorFeedbacks() {
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
-                  Evaluación Completada (Vista Previa Estudiante)
+                  Informe de retroalimentación
                 </span>
                 <h2 className="text-2xl font-black text-slate-950 mt-2">Detalles de tu Simulación</h2>
                 <p className="text-xs text-slate-500 mt-1">Reunión de simulación de entrevista laboral para retroalimentación</p>
@@ -1473,77 +1578,36 @@ export default function PathMentorFeedbacks() {
               </div>
 
               {/* Main Content Layout */}
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="space-y-6">
                 
-                {/* Left side: Comments */}
-                <div className="md:col-span-2 space-y-6">
-                  
-                  {formFortalezas && (
-                    <div className="space-y-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
-                        💪 Fortalezas Clave
-                      </span>
-                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
-                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                          {formFortalezas}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {formAreasMejora && (
-                    <div className="space-y-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
-                        📈 Áreas de Mejora
-                      </span>
-                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
-                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                          {formAreasMejora}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {formComentarios && (
-                    <div className="space-y-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
-                        💬 Observaciones y Recomendaciones
-                      </span>
-                      <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
-                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                          "{formComentarios}"
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right side: Final score & Competencies */}
+                {/* Seccion 1: Calificación por Competencia (Full width) */}
                 <div className="space-y-6">
-                  
-                  {/* Recommended Decision */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">Resultado Final</h4>
-                      <p className="text-[10px] text-slate-400">Decisión de postulación recomendada</p>
-                    </div>
+                  {/* Decision final y promedio side by side */}
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    {/* Recommended Decision */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">Resultado de la Simulación</h4>
+                        <p className="text-[10px] text-slate-400">Decisión de postulación recomendada</p>
+                      </div>
 
-                    <div className={`p-3.5 rounded-xl border text-center font-bold text-xs ${
-                      formResult === "Alta"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                        : formResult === "Media"
-                        ? "bg-amber-50 border-amber-200 text-amber-800"
-                        : "bg-red-50 border-red-200 text-red-800"
-                    }`}>
-                      <span className="text-md block tracking-wide uppercase">
-                        {formResult === "Alta"
-                          ? "Alta probabilidad"
+                      <div className={`p-3.5 rounded-xl border text-center font-bold text-xs ${
+                        formResult === "Alta"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                           : formResult === "Media"
-                          ? "Media probabilidad"
-                          : formResult === "Baja"
-                          ? "Baja probabilidad"
-                          : "Sin resultado"}
-                      </span>
+                          ? "bg-amber-50 border-amber-200 text-amber-800"
+                          : "bg-red-50 border-red-200 text-red-800"
+                      }`}>
+                        <span className="text-md block tracking-wide uppercase">
+                          {formResult === "Alta"
+                            ? "Alta probabilidad"
+                            : formResult === "Media"
+                            ? "Media probabilidad"
+                            : formResult === "Baja"
+                            ? "Baja probabilidad"
+                            : "Sin resultado"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Calculated Average */}
@@ -1553,30 +1617,30 @@ export default function PathMentorFeedbacks() {
                       const total = keys.reduce((acc, curr) => acc + (selectedCompetencyLevels[curr]?.nivel || 0), 0);
                       const avg = (total / keys.length).toFixed(1);
                       return (
-                        <div className="p-3 rounded-xl border border-purple-100 bg-purple-50/20 text-center">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col justify-center text-center">
                           <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Promedio General</span>
-                          <span className="text-2xl font-extrabold text-[#7447D7]">{avg} / 3.0</span>
+                          <span className="text-3xl font-extrabold text-[#7447D7]">{avg} / 3.0</span>
                         </div>
                       );
                     })()}
                   </div>
 
-                  {/* Competencies Breakdown */}
+                  {/* Competencies Breakdown (Full width grid) */}
                   {selectedCompetencyNames.length > 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Calificación por Competencia</span>
                       
-                      <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
                         {selectedCompetencyNames.map((compName) => {
                           const comp = allCompetencias.find(c => c.nombre === compName) || {
                             nivel1: "Alcanza los criterios mínimos"
                           };
                           const selection = selectedCompetencyLevels[compName] || { nivel: 1, descripcion: comp.nivel1 };
                           return (
-                            <div key={compName} className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-1.5 text-[11px]">
+                            <div key={compName} className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2 text-[11px]">
                               <div className="flex justify-between font-extrabold text-slate-800">
-                                <span>{compName}</span>
-                                <span className="text-[#7447D7]">{selection.nivel} / 3</span>
+                                <span className="text-xs">{compName}</span>
+                                <span className="text-[#7447D7] font-black text-xs">{selection.nivel} / 3</span>
                               </div>
 
                               <div className="flex gap-0.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -1592,7 +1656,7 @@ export default function PathMentorFeedbacks() {
                                 ))}
                               </div>
 
-                              <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                              <p className="text-[10px] text-slate-500 leading-relaxed italic mt-1">
                                 <span className="font-bold text-[#7447D7]">
                                   {selection.nivel === 0 ? "Nivel 0 (Bajo esperado): " :
                                    selection.nivel === 1 ? "Nivel 1 (Mínimo): " :
@@ -1607,8 +1671,71 @@ export default function PathMentorFeedbacks() {
                       </div>
                     </div>
                   )}
-
                 </div>
+
+                {/* Seccion 2: Comentarios y Recomendaciones (Full width) */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  {formFortalezas && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 animate-in fade-in">
+                        💪 Fortalezas Clave
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100 h-full">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formFortalezas}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formAreasMejora && (
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800 animate-in fade-in">
+                        📈 Áreas de Mejora
+                      </span>
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100 h-full">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          {formAreasMejora}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {formComentarios && (
+                    <div className="space-y-2 md:col-span-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800 animate-in fade-in">
+                        💬 Observaciones y Recomendaciones
+                      </span>
+                      <div className="rounded-xl bg-purple-50/5 p-4 border border-purple-100/50 italic">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                          "{formComentarios}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Seccion 3: Retroalimentación de CV */}
+                {formDarFeedbackCv && formFeedbackCv && (
+                  <div className="bg-gradient-to-r from-blue-50/40 via-indigo-50/10 to-purple-50/30 rounded-2xl border border-indigo-100 p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </div>
+                      <h4 className="text-xs font-bold text-indigo-900">Retroalimentación Dedicada sobre tu CV</h4>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-indigo-100/60">
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                        {formFeedbackCv}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
               </div>
 

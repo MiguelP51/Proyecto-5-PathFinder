@@ -59,7 +59,9 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/api/auth/**",
                                 "/h2-console/**",
-                                "/api/cv/extract"
+                                "/api/cv/extract",
+                                "/api/public/**",
+                                "/api/areas/*/imagen"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")

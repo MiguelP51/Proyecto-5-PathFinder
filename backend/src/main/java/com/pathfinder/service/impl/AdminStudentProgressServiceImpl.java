@@ -15,6 +15,12 @@ import com.pathfinder.repository.SubAreaRepository;
 import com.pathfinder.repository.UsuarioRepository;
 import com.pathfinder.repository.UsuarioSkillPathRepository;
 import com.pathfinder.repository.VisitaSubAreaRepository;
+import com.pathfinder.repository.ProgresoEstudianteRepository;
+import com.pathfinder.repository.UsuarioPathChallengeRepository;
+import com.pathfinder.model.entity.ProgresoEstudiante;
+import com.pathfinder.model.entity.UsuarioPathChallenge;
+import com.pathfinder.model.enums.EstadoEtapa;
+import com.pathfinder.model.enums.NombreEtapa;
 import com.pathfinder.service.AdminStudentProgressService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +52,8 @@ public class AdminStudentProgressServiceImpl implements AdminStudentProgressServ
     private final SkillPathRepository skillPathRepository;
     private final VisitaSubAreaRepository visitaSubAreaRepository;
     private final DiagnosticoInicialRepository diagnosticoInicialRepository;
+    private final ProgresoEstudianteRepository progresoEstudianteRepository;
+    private final UsuarioPathChallengeRepository usuarioPathChallengeRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,6 +109,34 @@ public class AdminStudentProgressServiceImpl implements AdminStudentProgressServ
         int completados = (int) avances.stream().filter(this::estaCompletado).count();
         int enProgreso = (int) avances.stream().filter(this::estaEnProgreso).count();
 
+        List<ProgresoEstudiante> progresos = progresoEstudianteRepository.findByUsuario_IdUsuario(usuario.getIdUsuario());
+        Map<NombreEtapa, EstadoEtapa> etapas = new EnumMap<>(NombreEtapa.class);
+        for (NombreEtapa e : NombreEtapa.values()) {
+            etapas.put(e, EstadoEtapa.PENDIENTE);
+        }
+        progresos.forEach(p -> etapas.put(p.getNombreEtapa(), p.getEstadoEtapa()));
+
+        String etapaEnrolamiento = "Sin Iniciar";
+        if (etapas.get(NombreEtapa.EVALUACION_ENTREVISTA) == EstadoEtapa.COMPLETADA) {
+            etapaEnrolamiento = "Enrolamiento Completado";
+        } else if (etapas.get(NombreEtapa.AGENDAMIENTO_ENTREVISTA) == EstadoEtapa.COMPLETADA) {
+            etapaEnrolamiento = "Entrevista Agendada";
+        } else if (etapas.get(NombreEtapa.TEST_DISC) == EstadoEtapa.COMPLETADA) {
+            etapaEnrolamiento = "Test DISC Completado";
+        } else if (etapas.get(NombreEtapa.CONFIRMACION_PERFIL) == EstadoEtapa.COMPLETADA) {
+            etapaEnrolamiento = "Perfil Confirmado";
+        } else if (etapas.get(NombreEtapa.CARGA_CV) == EstadoEtapa.COMPLETADA) {
+            etapaEnrolamiento = "CV Cargado";
+        } else if (etapas.get(NombreEtapa.CARGA_CV) == EstadoEtapa.EN_PROGRESO) {
+            etapaEnrolamiento = "Carga de CV";
+        }
+
+        List<UsuarioPathChallenge> misiones = usuarioPathChallengeRepository.findByUsuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario());
+        int totalChallenges = misiones.size();
+        int challengesCompletados = (int) misiones.stream()
+                .filter(m -> "COMPLETADO".equalsIgnoreCase(m.getEstado()))
+                .count();
+
         return AdminStudentProgressSummaryDTO.builder()
                 .idUsuario(usuario.getIdUsuario())
                 .nombre(usuario.getNombreCompleto())
@@ -109,8 +146,9 @@ public class AdminStudentProgressServiceImpl implements AdminStudentProgressServ
                 .totalSkillPathsIniciados(totalIniciados)
                 .skillPathsCompletados(completados)
                 .skillPathsEnProgreso(enProgreso)
-                .totalChallenges(0)
-                .challengesCompletados(0)
+                .totalChallenges(totalChallenges)
+                .challengesCompletados(challengesCompletados)
+                .etapaEnrolamiento(etapaEnrolamiento)
                 .build();
     }
 

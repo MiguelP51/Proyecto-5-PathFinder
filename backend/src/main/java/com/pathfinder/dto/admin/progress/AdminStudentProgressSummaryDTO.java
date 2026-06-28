@@ -16,4 +16,5 @@ public class AdminStudentProgressSummaryDTO {
     private Integer skillPathsEnProgreso;
     private Integer totalChallenges;
     private Integer challengesCompletados;
+    private String etapaEnrolamiento;
 }

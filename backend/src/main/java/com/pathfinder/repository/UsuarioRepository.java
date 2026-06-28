@@ -14,4 +14,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     Optional<Usuario> findByGoogleUid(String googleUid);
     boolean existsByCorreo(String correo);
     List<Usuario> findByRolAndActivoTrue(RolUsuario rol);
+    Optional<Usuario> findByCorreoAndActivoTrue(String correo);
 }

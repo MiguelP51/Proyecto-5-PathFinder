@@ -17,11 +17,11 @@ import {
     Download,
     FileText,
     Lock,
-    PlayCircle,
 } from "lucide-react";
 
 import {
     downloadStudentPathChallengeTaskFile,
+    downloadStudentPathChallengeTaskResource,
     finishStudentPathChallenge,
     saveStudentPathChallengeProgress,
     uploadStudentPathChallengeTaskFile,
@@ -86,7 +86,10 @@ type TaskConfig = {
     documentTitle?: string;
     documentName?: string;
     documentType?: string;
+    documentKey?: string | null;
     previewImageUrl?: string | null;
+    previewImageKey?: string | null;
+    previewImageName?: string | null;
     downloadUrl?: string | null;
     downloadLabel?: string;
 
@@ -97,12 +100,6 @@ type TaskConfig = {
     };
 
     objectives?: string[];
-
-    videoUrl?: string | null;
-    meetingTitle?: string;
-    situationTitle?: string;
-    situationText?: string;
-    notes?: string[];
 
     reviewTitle?: string;
     reviewText?: string;
@@ -550,6 +547,44 @@ export function PathChallengeMissionClient({
         }
     };
 
+    const handleOpenTaskResource = async (
+        task: StudentPathChallengeTask,
+        resourceType: "document" | "preview" = "document",
+    ) => {
+        setError(null);
+        setSuccessMessage(null);
+
+        if (!token) {
+            setError("No se encontró una sesión válida. Vuelve a iniciar sesión.");
+            return;
+        }
+
+        setDownloadingTaskId(task.idPathChallengeTask);
+
+        try {
+            const blob = await downloadStudentPathChallengeTaskResource(
+                challenge.idPathChallenge,
+                task.idPathChallengeTask,
+                resourceType,
+                token,
+            );
+
+            const config = getConfig(task);
+
+            const fallbackName =
+                resourceType === "preview"
+                    ? config.previewImageName ?? "recurso-pathchallenge"
+                    : config.documentName ?? "recurso-pathchallenge";
+
+            openOrDownloadBlob(blob, fallbackName);
+        } catch (err) {
+            console.error(err);
+            setError("No se pudo abrir o descargar el recurso base.");
+        } finally {
+            setDownloadingTaskId(null);
+        }
+    };
+
     const handleSave = async () => {
         setError(null);
         setSuccessMessage(null);
@@ -900,6 +935,7 @@ export function PathChallengeMissionClient({
                                 allResponses={responses}
                                 onUploadFile={handleUploadTaskFile}
                                 onOpenFile={handleOpenTaskFile}
+                                onOpenResource={handleOpenTaskResource}
                                 uploadingTaskId={uploadingTaskId}
                                 downloadingTaskId={downloadingTaskId}
                             />
@@ -972,6 +1008,10 @@ interface TaskRendererProps {
     allResponses: Record<number, TaskResponseState>;
     onUploadFile?: (task: StudentPathChallengeTask, file: File) => Promise<void>;
     onOpenFile?: (task: StudentPathChallengeTask) => Promise<void>;
+    onOpenResource?: (
+        task: StudentPathChallengeTask,
+        resourceType?: "document" | "preview",
+    ) => Promise<void>;
     uploadingTaskId?: number | null;
     downloadingTaskId?: number | null;
 }
@@ -984,6 +1024,7 @@ function TaskRenderer({
                           allResponses,
                           onUploadFile,
                           onOpenFile,
+                          onOpenResource,
                           uploadingTaskId,
                           downloadingTaskId,
                       }: TaskRendererProps) {
@@ -1010,6 +1051,12 @@ function TaskRenderer({
                     downloadUrl={config.downloadUrl}
                     downloadLabel={config.downloadLabel ?? "Descargar archivo adjunto"}
                     previewImageUrl={config.previewImageUrl}
+                    onOpen={
+                        config.documentKey
+                            ? () => onOpenResource?.(task, "document")
+                            : undefined
+                    }
+                    isOpening={downloadingTaskId === task.idPathChallengeTask}
                 />
 
                 {config.companyInfo && (
@@ -1067,71 +1114,6 @@ function TaskRenderer({
                     {response?.completed || jsonResponse.reviewed
                         ? "Documento revisado"
                         : "Marcar documento como revisado"}
-                </button>
-            </div>
-        );
-    }
-
-    if (taskType === "VIDEO_SCENARIO") {
-        return (
-            <div className="space-y-5">
-                <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                        {config.meetingTitle ?? "Reunión de contexto"}
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {task.content || task.description}
-                    </p>
-                </div>
-
-                <VideoResourceCard
-                    title={config.meetingTitle ?? "Video del challenge"}
-                    videoUrl={config.videoUrl}
-                    previewImageUrl={config.previewImageUrl}
-                />
-
-                {(config.situationTitle || config.situationText) && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <h4 className="text-sm font-bold text-slate-900">
-                            {config.situationTitle ?? "Situación hipotética"}
-                        </h4>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">
-                            {config.situationText}
-                        </p>
-                    </div>
-                )}
-
-                {config.notes && config.notes.length > 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <h4 className="text-sm font-bold text-slate-900">
-                            Información obtenida de la reunión
-                        </h4>
-                        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-                            {config.notes.map((note) => (
-                                <li key={note}>{note}</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
-                <button
-                    type="button"
-                    onClick={() =>
-                        onChange({
-                            completed: true,
-                            responseJson: JSON.stringify({ reviewed: true }),
-                        })
-                    }
-                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                        response?.completed || jsonResponse.reviewed
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-[#7447D7] text-white hover:bg-[#6338c5]"
-                    }`}
-                >
-                    <CheckCircle2 className="h-4 w-4" />
-                    {response?.completed || jsonResponse.reviewed
-                        ? "Reunión revisada"
-                        : "Marcar reunión como revisada"}
                 </button>
             </div>
         );
@@ -1726,6 +1708,8 @@ function DocumentResourceCard({
                                   downloadUrl,
                                   downloadLabel,
                                   previewImageUrl,
+                                  onOpen,
+                                  isOpening,
                               }: {
     title: string;
     fileName: string;
@@ -1733,8 +1717,10 @@ function DocumentResourceCard({
     downloadUrl?: string | null;
     downloadLabel: string;
     previewImageUrl?: string | null;
+    onOpen?: () => void;
+    isOpening?: boolean;
 }) {
-    const hasDownload = isPublicUrl(downloadUrl);
+    const hasPublicDownload = isPublicUrl(downloadUrl);
 
     return (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
@@ -1753,7 +1739,21 @@ function DocumentResourceCard({
                     </div>
                 </div>
 
-                {hasDownload ? (
+                {onOpen ? (
+                    <button
+                        type="button"
+                        onClick={onOpen}
+                        disabled={isOpening}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7447D7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6338c5] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isOpening ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Download className="h-4 w-4" />
+                        )}
+                        {downloadLabel}
+                    </button>
+                ) : hasPublicDownload ? (
                     <a
                         href={downloadUrl ?? "#"}
                         target="_blank"
@@ -1796,57 +1796,6 @@ function DocumentResourceCard({
     );
 }
 
-function VideoResourceCard({
-                               title,
-                               videoUrl,
-                               previewImageUrl,
-                           }: {
-    title: string;
-    videoUrl?: string | null;
-    previewImageUrl?: string | null;
-}) {
-    const hasVideo = isPublicUrl(videoUrl);
-
-    return (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-            <div className="flex items-center justify-between gap-4 p-5">
-                <div>
-                    <h4 className="text-base font-bold text-slate-900">{title}</h4>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Recurso audiovisual del challenge
-                    </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-[#7447D7]">
-                    <PlayCircle className="h-7 w-7" />
-                </div>
-            </div>
-
-            {hasVideo ? (
-                <video
-                    src={videoUrl ?? undefined}
-                    controls
-                    poster={previewImageUrl ?? undefined}
-                    className="aspect-video w-full border-t border-slate-100 bg-black"
-                />
-            ) : (
-                <div className="flex aspect-video flex-col items-center justify-center border-t border-slate-100 bg-slate-50 px-6 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#7447D7] shadow-sm">
-                        <PlayCircle className="h-9 w-9" />
-                    </div>
-
-                    <p className="mt-4 text-sm font-semibold text-slate-700">
-                        Video pendiente de carga
-                    </p>
-                    <p className="mt-1 max-w-md text-sm text-slate-500">
-                        Aquí se mostrará la reunión o simulación con la información necesaria
-                        para completar el perfil del puesto.
-                    </p>
-                </div>
-            )}
-        </div>
-    );
-}
 
 function ReviewFileCard({
                             title,
@@ -2040,10 +1989,6 @@ function TaskSummary({
         content = config.documentName
             ? `Plantilla revisada: ${config.documentName}`
             : "Plantilla revisada. Archivo base pendiente de carga.";
-    }
-
-    if (taskType === "VIDEO_SCENARIO") {
-        content = "Reunión revisada. Información de la organización analizada.";
     }
 
     if (taskType === "FILE_UPLOAD") {

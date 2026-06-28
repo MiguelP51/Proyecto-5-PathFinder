@@ -98,6 +98,19 @@ public class EntrevistaController {
         }
     }
 
+    // GET /api/entrevistas/estudiante/historial — Obtener historial de entrevistas (activas e inactivas) del estudiante
+    @GetMapping("/estudiante/historial")
+    public ResponseEntity<ApiResponse<List<EntrevistaResponseDTO>>> getEstudianteInterviewHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<EntrevistaResponseDTO> historial = entrevistaService.obtenerHistorialEstudiante(userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Historial de entrevistas obtenido con éxito", historial));
+        } catch (Exception e) {
+            log.error("Error obteniendo historial de entrevistas del estudiante: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener el historial de entrevistas"));
+        }
+    }
+
     // GET /api/entrevistas/mentor — Obtener lista de entrevistas del mentor logueado (HU-PM-03)
     @GetMapping("/mentor")
     public ResponseEntity<ApiResponse<List<EntrevistaResponseDTO>>> getMentorInterviews(
@@ -223,6 +236,37 @@ public class EntrevistaController {
         } catch (Exception e) {
             log.error("Error eliminando competencia: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al desactivar competencia"));
+        }
+    }
+
+    // PUT /api/entrevistas/{id}/confirmar-reprogramacion — Confirmar reprogramación por el estudiante
+    @PutMapping("/{id}/confirmar-reprogramacion")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> confirmarReprogramacion(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer id) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.confirmarReprogramacion(id, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Reprogramación confirmada exitosamente", dto));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error confirmando reprogramación de entrevista: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al confirmar la reprogramación: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/entrevistas/{id} — Obtener detalle de una entrevista específica por su ID
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<EntrevistaResponseDTO>> getEntrevistaPorId(
+            @PathVariable Integer id) {
+        try {
+            EntrevistaResponseDTO dto = entrevistaService.obtenerEntrevistaPorId(id);
+            return ResponseEntity.ok(ApiResponse.success("Detalle de entrevista obtenido con éxito", dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error al obtener detalle de entrevista ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener detalle de entrevista"));
         }
     }
 }

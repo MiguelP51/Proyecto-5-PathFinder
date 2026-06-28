@@ -12,4 +12,8 @@ public class AreaResponseDTO {
     private String descripcion;
     private String imagenUrl;
     private Boolean activo;
+    private String tagline;
+    private String funciones;
+    private String colorFrom;
+    private String colorTo;
 }

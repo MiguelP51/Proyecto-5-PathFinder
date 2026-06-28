@@ -3,6 +3,8 @@ package com.pathfinder.controller;
 import com.pathfinder.dto.request.SubmitEncuestaRequestDTO;
 import com.pathfinder.dto.response.ApiResponse;
 import com.pathfinder.dto.response.PreguntaResponseDTO;
+import com.pathfinder.dto.response.EncuestaMentorFeedbackDTO;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.pathfinder.service.EncuestaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +39,10 @@ public class EncuestaController {
     // GET /api/encuestas/completada — Retorna si el estudiante ya completó la encuesta
     @GetMapping("/completada")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkCompletada(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) Integer idEntrevista) {
         try {
-            boolean completada = encuestaService.tieneEncuestaCompletada(userDetails.getUsername());
+            boolean completada = encuestaService.tieneEncuestaCompletada(userDetails.getUsername(), idEntrevista);
             return ResponseEntity.ok(ApiResponse.success("Consulta de estado de encuesta exitosa", Map.of("completada", completada)));
         } catch (Exception e) {
             log.error("Error consultando estado de encuesta: {}", e.getMessage(), e);
@@ -60,6 +63,20 @@ public class EncuestaController {
         } catch (Exception e) {
             log.error("Error guardando respuestas de encuesta: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error al guardar las respuestas de la encuesta: " + e.getMessage()));
+        }
+    }
+
+    // GET /api/encuestas/mentor — Obtiene la retroalimentación de alumnos (anónima) para el mentor
+    @GetMapping("/mentor")
+    @PreAuthorize("hasAnyRole('MENTOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<EncuestaMentorFeedbackDTO>>> getMentorFeedback(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<EncuestaMentorFeedbackDTO> feedback = encuestaService.obtenerFeedbackMentor(userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Opiniones de alumnos obtenidas con éxito", feedback));
+        } catch (Exception e) {
+            log.error("Error obteniendo feedback para mentor: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener las opiniones de alumnos"));
         }
     }
 }

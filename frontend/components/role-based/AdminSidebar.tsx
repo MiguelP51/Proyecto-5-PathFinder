@@ -16,6 +16,7 @@ import {
   X,
   MessageSquare,
   Brain,
+  Settings,
 } from "lucide-react";
 
 interface Props {
@@ -35,12 +36,11 @@ export default function AdminSidebar({
     session?.user?.avatarUrl ||
     "";
 
-  // Helper para determinar si un enlace está activo
   const isActive = (path: string) => pathname === path;
 
   // Clase para los enlaces principales
   const linkClass = (path: string) =>
-    `flex items-center gap-3 rounded-xl p-3 transition text-sm font-medium ${isActive(path)
+    `flex items-center gap-3 rounded-xl py-2 px-3 transition text-sm font-medium ${isActive(path)
       ? "bg-[#0E3E66]/10 text-[#0E3E66]"
       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
     }`;
@@ -109,7 +109,7 @@ export default function AdminSidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-col gap-6 p-4">
+        <nav className="flex flex-col gap-4 p-4">
 
           <div className="flex flex-col gap-1">
             <Link href="/admin/dashboard" className={linkClass("/admin/dashboard")}>
@@ -137,14 +137,15 @@ export default function AdminSidebar({
               Challenges
             </Link>
 
-            <Link href="/admin/subareas" className={linkClass("/admin/subareas")}>
-              <Layers className="h-5 w-5" />
-              Competencias
-            </Link>
 
             <Link href="/admin/disc" className={linkClass("/admin/disc")}>
               <Brain className="h-5 w-5" />
-              Preguntas DISC
+              DISC y Competencias
+            </Link>
+
+            <Link href="/admin/enrollment" className={linkClass("/admin/enrollment")}>
+              <Settings className="h-5 w-5" />
+              Configuración de Enrolamiento
             </Link>
 
             <Link href="/admin/sincronizacion" className={linkClass("/admin/sincronizacion")}>

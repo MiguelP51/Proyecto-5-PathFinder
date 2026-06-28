@@ -47,4 +47,7 @@ public class PerfilCV extends AuditoriaBase {
 
     @Column(name = "fecha_actualizacion_cv")
     private LocalDateTime fechaActualizacionCv;
+
+    @Column(name = "campos_adicionales", columnDefinition = "TEXT")
+    private String camposAdicionales;
 }

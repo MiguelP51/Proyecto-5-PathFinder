@@ -83,6 +83,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         area.setEmoji(request.getEmoji());
         area.setDescripcion(request.getDescripcion());
         area.setImagenUrl(request.getImagenUrl());
+        area.setTagline(request.getTagline());
+        area.setFunciones(request.getFunciones());
+        area.setColorFrom(request.getColorFrom());
+        area.setColorTo(request.getColorTo());
         area.setActivo(true);
         area.setFechaRegistro(LocalDateTime.now());
 
@@ -102,6 +106,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
         area.setEmoji(request.getEmoji());
         area.setDescripcion(request.getDescripcion());
         area.setImagenUrl(request.getImagenUrl());
+        area.setTagline(request.getTagline());
+        area.setFunciones(request.getFunciones());
+        area.setColorFrom(request.getColorFrom());
+        area.setColorTo(request.getColorTo());
         area.setFechaModificacion(LocalDateTime.now());
 
         Area guardada = areaRepository.save(area);
@@ -379,6 +387,10 @@ public class AdminAreaServiceImpl implements AdminAreaService {
                 .descripcion(area.getDescripcion())
                 .imagenUrl(area.getImagenUrl())
                 .activo(area.getActivo())
+                .tagline(area.getTagline())
+                .funciones(area.getFunciones())
+                .colorFrom(area.getColorFrom())
+                .colorTo(area.getColorTo())
                 .build();
     }
 

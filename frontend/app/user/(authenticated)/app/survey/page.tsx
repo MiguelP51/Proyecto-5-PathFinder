@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { 
@@ -34,6 +34,9 @@ export default function SurveyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const idEntrevista = searchParams.get("idEntrevista");
+
   const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
   const [completada, setCompletada] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -58,7 +61,10 @@ export default function SurveyPage() {
     try {
       setLoading(true);
       // 1. Check if already completed
-      const statusData = await apiFetch<{ completada: boolean }>("/api/encuestas/completada", {}, session?.backendJwt);
+      const checkUrl = idEntrevista 
+        ? `/api/encuestas/completada?idEntrevista=${idEntrevista}`
+        : "/api/encuestas/completada";
+      const statusData = await apiFetch<{ completada: boolean }>(checkUrl, {}, session?.backendJwt);
       if (statusData.completada) {
         setCompletada(true);
         setLoading(false);
@@ -152,6 +158,7 @@ export default function SurveyPage() {
 
     // Map responses to match API structure
     const payload = {
+      idEntrevista: idEntrevista ? parseInt(idEntrevista, 10) : null,
       respuestas: Object.keys(respuestas).map(idStr => {
         const id = parseInt(idStr, 10);
         return {

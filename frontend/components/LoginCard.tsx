@@ -19,10 +19,10 @@ const LoginCard = () => {
           <p>Inicia sesión con tu cuenta de Google para continuar y descubrir tu mejor camino.</p>
         </div>
         <button
-          className={styles.googleBtn}
+          className="flex flex-row items-center justify-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white font-bold text-sm shadow-md transition cursor-pointer w-[300px]"
           onClick={handleGoogleLogin}
         >
-          <Image src="/assets/google.png" alt="Google" className={styles.googleLogo} width={20} height={20} />
+          <Image src="/assets/google.png" alt="Google" className="h-5 w-5 brightness-0 invert" width={20} height={20} />
           <span>Continuar con Google</span>
         </button>
       </div>

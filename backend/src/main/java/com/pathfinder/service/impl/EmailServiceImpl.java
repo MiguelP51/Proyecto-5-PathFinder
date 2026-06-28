@@ -3,6 +3,7 @@ package com.pathfinder.service.impl;
 import com.pathfinder.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -14,12 +15,17 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username:no-reply@pathfinder.work.gd}")
+    private String fromEmail;
+
     @Override
-    public boolean enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String tipo, String enlace) {
+    public boolean enviarCorreoConfirmacion(String destinatario, String estudianteNombre, String mentorNombre, String mentorCorreo, String fecha, String hora, String tipo, String enlace) {
         log.info("Enviando correo real de confirmación de entrevista para: {}", destinatario);
         
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            String sender = (fromEmail == null || fromEmail.trim().isEmpty()) ? "no-reply@pathfinder.work.gd" : fromEmail;
+            message.setFrom(sender);
             message.setTo(destinatario);
             message.setSubject("Confirmación de Entrevista Simulada - PathFinder");
             
@@ -29,13 +35,19 @@ public class EmailServiceImpl implements EmailService {
                 .append("Detalles de la Cita:\n")
                 .append("  Mentor: ").append(mentorNombre).append("\n")
                 .append("  Fecha: ").append(fecha).append("\n")
-                .append("  Hora: ").append(hora).append(" hs\n")
-                .append("  Modalidad: ").append(tipo).append("\n");
+                .append("  Hora: ").append(hora).append(" hs\n");
             
-            if (enlace != null && !enlace.isEmpty()) {
-                text.append("  Enlace Virtual: ").append(enlace).append("\n");
+            if ("presencial".equalsIgnoreCase(tipo)) {
+                text.append("  Modalidad: Presencial. Por favor ponte en contacto con tu PathMentor en ")
+                    .append(mentorCorreo)
+                    .append(" para acordar el lugar físico de encuentro en el campus.\n");
             } else {
-                text.append("  Enlace Virtual: Pendiente de registrar por el mentor.\n");
+                text.append("  Modalidad: ").append(tipo).append("\n");
+                if (enlace != null && !enlace.isEmpty()) {
+                    text.append("  Enlace Virtual: ").append(enlace).append("\n");
+                } else {
+                    text.append("  Enlace Virtual: Pendiente de registrar por el mentor.\n");
+                }
             }
             
             text.append("\n¡Prepárate adecuadamente y ten tu CV listo!\n\n")
@@ -52,11 +64,51 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    public boolean enviarCorreoConfirmacionMentor(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String tipo) {
+        log.info("Enviando correo real de confirmación de entrevista al mentor: {}", destinatario);
+        
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            String sender = (fromEmail == null || fromEmail.trim().isEmpty()) ? "no-reply@pathfinder.work.gd" : fromEmail;
+            message.setFrom(sender);
+            message.setTo(destinatario);
+            message.setSubject("Nueva Entrevista Simulada Agendada - PathFinder");
+            
+            StringBuilder text = new StringBuilder();
+            text.append("Hola ").append(mentorNombre).append(",\n\n")
+                .append("Un estudiante ha agendado una simulación de entrevista contigo.\n\n")
+                .append("Detalles de la Cita:\n")
+                .append("  Estudiante: ").append(estudianteNombre).append("\n")
+                .append("  Fecha: ").append(fecha).append("\n")
+                .append("  Hora: ").append(hora).append(" hs\n")
+                .append("  Modalidad: ").append(tipo).append("\n");
+            
+            if ("virtual".equalsIgnoreCase(tipo)) {
+                text.append("\nPor favor, recuerda ingresar a la plataforma PathFinder para registrar el enlace virtual de la reunión (Zoom, Google Meet, Teams, etc.) a fin de que el estudiante pueda unirse.\n");
+            } else {
+                text.append("\nLa sesión es presencial. Por favor ponte en contacto con el estudiante si es necesario coordinar el aula o cubículo en el campus.\n");
+            }
+            
+            text.append("\nAtentamente,\nEl equipo de PathFinder");
+                
+            message.setText(text.toString());
+            mailSender.send(message);
+            log.info("Correo de confirmación al mentor enviado exitosamente a {}", destinatario);
+            return true;
+        } catch (Exception e) {
+            log.error("Fallo al enviar el correo real de confirmación al mentor a {}: {}", destinatario, e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
     public boolean enviarCorreoCancelacionOReagendacion(String destinatario, String estudianteNombre, String mentorNombre, String fecha, String hora, String nuevoEstado, String motivo) {
         log.info("Enviando correo real de {} para: {}", nuevoEstado, destinatario);
         
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            String sender = (fromEmail == null || fromEmail.trim().isEmpty()) ? "no-reply@pathfinder.work.gd" : fromEmail;
+            message.setFrom(sender);
             message.setTo(destinatario);
             message.setSubject("Actualización de Entrevista Simulada - " + nuevoEstado + " - PathFinder");
             

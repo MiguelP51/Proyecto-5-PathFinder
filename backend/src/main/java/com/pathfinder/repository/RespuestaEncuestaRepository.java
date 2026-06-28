@@ -9,4 +9,7 @@ import java.util.List;
 public interface RespuestaEncuestaRepository extends JpaRepository<RespuestaEncuesta, Integer> {
     boolean existsByEstudiante_Correo(String correo);
     List<RespuestaEncuesta> findByEstudiante_Correo(String correo);
+    boolean existsByEntrevista_IdEntrevista(Integer idEntrevista);
+    List<RespuestaEncuesta> findByEntrevista_IdEntrevista(Integer idEntrevista);
+    List<RespuestaEncuesta> findByEntrevista_Mentor_IdUsuario(Integer idMentor);
 }

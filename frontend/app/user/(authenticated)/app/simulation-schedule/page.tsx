@@ -13,7 +13,8 @@ import {
   Loader2,
   CheckCircle2,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -27,6 +28,8 @@ interface Mentor {
   perfilProfesional?: string | null;
   celular?: string | null;
   correoContacto?: string | null;
+  calificacionPromedio?: number | null;
+  totalEvaluaciones?: number | null;
 }
 
 interface HolidayDTO {
@@ -41,6 +44,10 @@ export default function SimulationSchedulePage() {
   // Data states
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [selectedRoleType, setSelectedRoleType] = useState<string>("");
+  const [selectedArea, setSelectedArea] = useState<string>("");
+  const [areaPositions, setAreaPositions] = useState<Record<string, string[]>>({});
+  const [puestoSearch, setPuestoSearch] = useState("");
 
   // Date range states
   const [startDate, setStartDate] = useState("");
@@ -145,14 +152,40 @@ export default function SimulationSchedulePage() {
       loadMentors(mentorIdParam);
       loadHolidays();
 
-      // Fetch profile to pre-fill the practicing role
-      apiFetch<any>("/api/profile", {}, session.backendJwt)
-        .then(profile => {
-          if (profile && profile.interesesProfesionales) {
-            setPuestoInteres(profile.interesesProfesionales);
-          }
+      // Fetch dynamic areas and puestos
+      apiFetch<Record<string, string[]>>("/api/entrevistas/areas", {}, session.backendJwt)
+        .then(data => {
+          setAreaPositions(data || {});
+
+          // Fetch profile to pre-fill the practicing role
+          apiFetch<any>("/api/profile", {}, session.backendJwt)
+            .then(profile => {
+              if (profile && profile.interesesProfesionales) {
+                const interest = profile.interesesProfesionales.trim();
+                setPuestoInteres(interest);
+                
+                let foundArea = "";
+                let foundRole = "";
+                for (const [area, positions] of Object.entries(data || {})) {
+                  if (positions.includes(interest)) {
+                    foundArea = area;
+                    foundRole = interest;
+                    break;
+                  }
+                }
+                
+                if (foundArea) {
+                  setSelectedArea(foundArea);
+                  setSelectedRoleType(foundRole);
+                } else if (interest !== "") {
+                  setSelectedArea("Otros");
+                  setSelectedRoleType("Otros");
+                }
+              }
+            })
+            .catch(err => console.log("Error loading profile interests:", err));
         })
-        .catch(err => console.log("Error loading profile interests:", err));
+        .catch(err => console.error("Error fetching areas:", err));
 
       // Default range: tomorrow until 7 days later
       const tomorrow = new Date();
@@ -401,7 +434,16 @@ export default function SimulationSchedulePage() {
                       />
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">{mentor.nombreCompleto}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{mentor.correo}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-xs">
+                          {mentor.calificacionPromedio !== undefined && mentor.calificacionPromedio !== null && mentor.calificacionPromedio > 0 ? (
+                            <>
+                              <span className="text-amber-500 font-bold">★ {mentor.calificacionPromedio.toFixed(1)}</span>
+                              <span className="text-slate-400 font-medium">({mentor.totalEvaluaciones || 0} {mentor.totalEvaluaciones === 1 ? 'evaluación' : 'evaluaciones'})</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-medium">★ -- (Sin evaluaciones)</span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}
@@ -410,7 +452,7 @@ export default function SimulationSchedulePage() {
                   <div className="mt-6 p-4 rounded-xl bg-purple-50/30 border border-purple-100/50 space-y-3 animate-fade-in">
                     <h4 className="text-xs font-bold text-[#7447D7] uppercase tracking-wider">Acerca del PathMentor</h4>
                     {selectedMentor.perfilProfesional && (
-                      <p className="text-xs text-slate-600 leading-relaxed italic">
+                      <p className="text-xs text-slate-600 leading-relaxed italic break-words">
                         &ldquo;{selectedMentor.perfilProfesional}&rdquo;
                       </p>
                     )}
@@ -620,18 +662,117 @@ export default function SimulationSchedulePage() {
                         Presencial
                       </button>
                     </div>
+                    {modality === "presencial" && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                        💡 <strong>Coordinación Presencial:</strong> Deberás ponerte en contacto con tu mentor por correo electrónico ({selectedMentor?.correo || "correo de contacto"}) para coordinar el lugar de encuentro.
+                      </div>
+                    )}
                   </div>
 
-                  {/* Position Input */}
-                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  {/* Position Selector */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
                     <span className="text-xs text-slate-400 block uppercase font-bold">Puesto al que Postulas</span>
-                    <input
-                      type="text"
-                      placeholder="Ej: Marketing, RRHH"
-                      value={puestoInteres}
-                      onChange={(e) => setPuestoInteres(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-                    />
+                    
+                    {/* Area Dropdown */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Área de Interés</label>
+                      <select
+                        value={selectedArea}
+                        onChange={(e) => {
+                          const area = e.target.value;
+                          setSelectedArea(area);
+                          setPuestoSearch("");
+                          if (area === "Otros") {
+                            setSelectedRoleType("Otros");
+                            setPuestoInteres("");
+                          } else {
+                            setSelectedRoleType("");
+                            setPuestoInteres("");
+                          }
+                        }}
+                        className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 transition hover:border-slate-300"
+                      >
+                        <option value="">-- Selecciona un Área --</option>
+                        {Object.keys(areaPositions).map((area) => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                        <option value="Otros">Otros (Especificar manualmente)</option>
+                      </select>
+                    </div>
+
+                    {/* Chips Navbar for selected Area */}
+                    {selectedArea && selectedArea !== "Otros" && (
+                      <div className="space-y-1.5 pt-1.5 animate-in fade-in duration-200">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Puestos Disponibles</label>
+                        
+                        {/* Search input if positions > 5 */}
+                        {(areaPositions[selectedArea] || []).length > 5 && (
+                          <div className="relative mb-2">
+                            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                            <input
+                              type="text"
+                              value={puestoSearch}
+                              onChange={(e) => setPuestoSearch(e.target.value)}
+                              placeholder="Filtrar puestos..."
+                              className="w-full h-8 pl-8 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                          {(areaPositions[selectedArea] || [])
+                            .filter(role => role.toLowerCase().includes(puestoSearch.toLowerCase()))
+                            .map((role) => {
+                              const isSelected = selectedRoleType === role;
+                              return (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedRoleType(role);
+                                    setPuestoInteres(role);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                                    isSelected
+                                      ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
+                                      : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800"
+                                  }`}
+                                >
+                                  {role}
+                                </button>
+                              );
+                            })}
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedRoleType("Otros");
+                              setPuestoInteres("");
+                            }}
+                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                              selectedRoleType === "Otros"
+                                ? "bg-gradient-to-r from-[#7447D7] to-[#D43EE6] border-purple-400 text-white shadow-sm shadow-purple-100/50"
+                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800"
+                            }`}
+                          >
+                            Otros
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Text Input (only shown when 'Otros' is selected) */}
+                    {(selectedArea === "Otros" || selectedRoleType === "Otros") && (
+                      <div className="pt-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <input
+                          type="text"
+                          placeholder="Escribe el puesto manualmente..."
+                          value={puestoInteres}
+                          onChange={(e) => setPuestoInteres(e.target.value)}
+                          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#7447D7] bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -745,7 +886,7 @@ export default function SimulationSchedulePage() {
                   {mentorProfileDetails.bio && (
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Biografía</h4>
-                      <p className="text-xs leading-relaxed font-semibold italic bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-xs leading-relaxed font-semibold italic bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-words">
                         &ldquo;{mentorProfileDetails.bio}&rdquo;
                       </p>
                     </div>

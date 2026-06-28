@@ -28,4 +28,16 @@ public class Area extends AuditoriaBase {
 
     @Column(name = "imagen_url", length = 500)
     private String imagenUrl;
+
+    @Column(name = "tagline", length = 255)
+    private String tagline;
+
+    @Column(name = "funciones", columnDefinition = "TEXT")
+    private String funciones;
+
+    @Column(name = "color_from", length = 20)
+    private String colorFrom;
+
+    @Column(name = "color_to", length = 20)
+    private String colorTo;
 }

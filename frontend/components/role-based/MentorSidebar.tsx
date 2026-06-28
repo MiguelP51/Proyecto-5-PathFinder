@@ -14,16 +14,11 @@ import {
   MessageSquare,
   BarChart3,
   User,
-  Home,
-  Map,
-  Info,
-  Mail,
-  Target,
   LogOut,
   ChevronDown,
   ChevronRight,
   X,
-  Compass,
+  Smile,
 } from "lucide-react";
 
 interface Props {
@@ -36,7 +31,6 @@ export default function MentorSidebar({ open, onClose }: Props) {
   const pathname = usePathname();
 
   const [panelExpanded, setPanelExpanded] = useState(true);
-  const [explorarExpanded, setExplorarExpanded] = useState(true);
 
   const userName = session?.user?.name || "Mentor";
   const userEmail = session?.user?.email || "";
@@ -189,29 +183,9 @@ export default function MentorSidebar({ open, onClose }: Props) {
                 {renderLink("/mentor/interviews", "Mis Entrevistas", <Calendar className="h-5 w-5" />)}
                 {renderLink("/mentor/availability", "Disponibilidad", <Clock className="h-5 w-5" />)}
                 {renderLink("/mentor/feedbacks", "Feedback", <MessageSquare className="h-5 w-5" />)}
+                {renderLink("/mentor/student-feedback", "Opiniones de Alumnos", <Smile className="h-5 w-5" />)}
                 {renderLink("/mentor/metrics", "Mis Métricas", <BarChart3 className="h-5 w-5" />)}
                 {renderLink("/mentor/profile", "Mi Perfil", <User className="h-5 w-5" />)}
-              </div>
-            )}
-          </div>
-
-          {/* Section: EXPLORAR */}
-          <div className="group relative space-y-1.5">
-            {renderAccordionTrigger(
-              "Explorar",
-              explorarExpanded,
-              () => setExplorarExpanded(!explorarExpanded),
-              <Compass className="h-4 w-4" />
-            )}
-
-            {/* Accordion Vertical List */}
-            {explorarExpanded && (
-              <div className="space-y-1.5 pl-2 border-l border-slate-100 dark:border-slate-800 ml-3">
-                {renderLink("/", "Inicio", <Home className="h-5 w-5" />)}
-                {renderLink("/areas", "Áreas", <Map className="h-5 w-5" />)}
-                {renderLink("/about", "Sobre nosotros", <Info className="h-5 w-5" />)}
-                {renderLink("/contact", "Contacto", <Mail className="h-5 w-5" />)}
-                {renderLink("/simulation", "Simulación", <Target className="h-5 w-5" />)}
               </div>
             )}
           </div>

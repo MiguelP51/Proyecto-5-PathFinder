@@ -126,6 +126,8 @@ export default async function SkillPathDetailPage({
                     </div>
                 </section>
 
+                <SkillPathRewardSummary skillPath={skillPath} />
+
                 <section className="mb-6 grid gap-4 md:grid-cols-3">
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -258,8 +260,6 @@ export default async function SkillPathDetailPage({
                     skillPathPlatform={skillPath.platform}
                     initialEvidence={skillPath.evidence}
                 />
-
-                <SkillPathRewardSummary skillPath={skillPath} />
             </section>
         </main>
     );

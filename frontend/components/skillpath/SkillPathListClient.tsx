@@ -28,9 +28,7 @@ const difficultyOptions: Array<SkillPathDifficulty | "TODOS"> = [
 
 const statusOptions: Array<SkillPathStatus | "TODOS"> = [
     "TODOS",
-    "DISPONIBLE",
     "EN_PROGRESO",
-    "COMPLETADO",
     "CERTIFICADO_PENDIENTE",
     "VALIDACION_PENDIENTE",
     "VALIDADO",
@@ -100,7 +98,7 @@ export function SkillPathListClient({
                                 type="text"
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Buscar por curso, plataforma o habilidad"
+                                placeholder="Buscar por curso o plataforma"
                                 className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#7447D7] focus:ring-2 focus:ring-purple-100"
                             />
                         </div>
@@ -188,8 +186,8 @@ export function SkillPathListClient({
                     </h3>
 
                     <p className="mt-2 text-sm text-slate-600">
-                        Intenta cambiar los filtros o limpiar la búsqueda para ver más
-                        recursos disponibles.
+                        Intenta cambiar los filtros o limpiar la búsqueda para ver tus
+                        SkillPaths iniciados.
                     </p>
                 </div>
             )}

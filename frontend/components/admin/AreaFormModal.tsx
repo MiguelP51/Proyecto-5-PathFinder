@@ -19,7 +19,11 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
     nombre: editingItem?.nombre || '',
     emoji: editingItem?.emoji || '',
     descripcion: editingItem?.descripcion || '',
-    imagenUrl: editingItem?.imagenUrl || ''
+    imagenUrl: editingItem?.imagenUrl || '',
+    tagline: editingItem?.tagline || '',
+    funciones: editingItem?.funciones || '',
+    colorFrom: editingItem?.colorFrom || '',
+    colorTo: editingItem?.colorTo || ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -34,7 +38,7 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
 
     try {
       let resultArea: any;
-      if (editingItem) {
+      if (editingItem && editingItem.idArea) {
         resultArea = await apiFetch<any>(`/api/admin/areas/${editingItem.idArea}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -42,7 +46,11 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
             nombre: formData.nombre,
             emoji: formData.emoji,
             descripcion: formData.descripcion,
-            imagenUrl: formData.imagenUrl
+            imagenUrl: formData.imagenUrl,
+            tagline: formData.tagline,
+            funciones: formData.funciones,
+            colorFrom: formData.colorFrom,
+            colorTo: formData.colorTo
           })
         }, session?.backendJwt);
       } else {
@@ -53,7 +61,11 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
             nombre: formData.nombre,
             emoji: formData.emoji,
             descripcion: formData.descripcion,
-            imagenUrl: ''
+            imagenUrl: '',
+            tagline: formData.tagline,
+            funciones: formData.funciones,
+            colorFrom: formData.colorFrom,
+            colorTo: formData.colorTo
           })
         }, session?.backendJwt);
       }
@@ -79,17 +91,17 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <h2 className="text-xl font-bold text-slate-800">
-            {editingItem ? 'Editar Área' : 'Nueva Área'}
+            {editingItem && editingItem.idArea ? 'Editar Área' : 'Nueva Área'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>}
 
           <div>
@@ -103,8 +115,30 @@ export default function AreaFormModal({ onClose, onSuccess, editingItem }: Props
           </div>
 
           <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Frase Corta (Tagline)</label>
+            <input name="tagline" value={formData.tagline} onChange={handleChange} placeholder="Frase motivadora del área..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+          </div>
+
+          <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
             <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Descripción de la especialidad..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" rows={3} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Funciones Específicas</label>
+            <textarea name="funciones" value={formData.funciones} onChange={handleChange} placeholder="Título 1: Descripción 1 | Título 2: Descripción 2..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" rows={3} />
+            <p className="text-[10px] text-slate-400 mt-1">Usa los dos puntos ':' para separar el título de la descripción y el pipe '|' para separar funciones.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Color Desde (Hex)</label>
+              <input name="colorFrom" value={formData.colorFrom} onChange={handleChange} placeholder="Ej. #6f63ff" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Color Hasta (Hex)</label>
+              <input name="colorTo" value={formData.colorTo} onChange={handleChange} placeholder="Ej. #8f4df0" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500" />
+            </div>
           </div>
 
           <div>

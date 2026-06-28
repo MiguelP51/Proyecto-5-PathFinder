@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface EntrevistaRepository extends JpaRepository<Entrevista, Integer> {
     List<Entrevista> findByEstudiante_CorreoAndActivoTrue(String correo);
+    List<Entrevista> findByEstudiante_Correo(String correo);
     List<Entrevista> findByMentor_CorreoAndActivoTrue(String correo);
     List<Entrevista> findByMentor_Correo(String correo);
     List<Entrevista> findByMentor_IdUsuarioAndFechaAndActivoTrue(Integer idUsuario, LocalDate fecha);

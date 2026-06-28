@@ -2,195 +2,67 @@
 // Ruta: /areas/[area]
 // Accesible desde el botón "Explorar área" en /areas
 // Muestra: hero del área + funciones específicas + subáreas (Especializa tu carrera)
+export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Footer from "@/components/Footer";
+import { apiFetch } from "@/lib/api";
 
-// ─── Datos de las áreas ───────────────────────────────────────────────────────
-const areasData = {
-  "recursos-humanos": {
-    title: "Recursos Humanos",
-    emoji: "👥",
-    badge: "Recursos Humanos",
-    colorFrom: "#6f63ff",
-    colorTo: "#8f4df0",
-    tagline:
-      "Aprende a gestionar el talento humano y desarrollar estrategias de reclutamiento y selección",
-    description:
-      "Esta área se enfoca en desarrollar profesionales capaces de gestionar el recurso más valioso de cualquier organización: las personas. Aprenderás a diseñar estrategias de atracción, desarrollo y retención de talento, así como a crear ambientes laborales productivos y saludables.",
-    image: "/areas/rrhh.jpg",
-    funciones: [
-      "Gestión estratégica de talento humano",
-      "Administración de compensaciones",
-      "Cumplimiento normativo",
-      "Desarrollo organizacional",
-      "Clima y cultura laboral",
-    ],
-    subareas: [
-      {
-        emoji: "🎯",
-        nombre: "Reclutamiento y Selección",
-        descripcion: "Procesos de atracción y selección de talento",
-      },
-      {
-        emoji: "📊",
-        nombre: "Gestión del Desempeño",
-        descripcion: "Evaluación y desarrollo de colaboradores",
-      },
-      {
-        emoji: "✨",
-        nombre: "Clima Organizacional",
-        descripcion: "Cultura y ambiente laboral",
-      },
-    ],
-  },
-  marketing: {
-    title: "Marketing",
-    emoji: "📱",
-    badge: "Marketing",
-    colorFrom: "#ba42dc",
-    colorTo: "#ef4bc8",
-    tagline:
-      "Domina estrategias de marketing digital y tradicional para impulsar marcas",
-    description:
-      "Esta área se enfoca en desarrollar profesionales capaces de gestionar el recurso más valioso de cualquier organización: las personas. Aprenderás a diseñar estrategias de atracción, desarrollo y retención de talento, así como a crear ambientes laborales productivos y saludables.",
-    image: "/areas/marketing.jpg",
-    funciones: [
-      "Gestión estratégica de talento humano",
-      "Administración de compensaciones",
-      "Cumplimiento normativo",
-      "Desarrollo organizacional",
-      "Clima y cultura laboral",
-    ],
-    subareas: [
-      {
-        emoji: "💻",
-        nombre: "Marketing Digital",
-        descripcion: "SEO, SEM y estrategias digitales",
-      },
-      {
-        emoji: "📱",
-        nombre: "Social Media",
-        descripcion: "Gestión de redes sociales",
-      },
-      {
-        emoji: "🎨",
-        nombre: "Branding",
-        descripcion: "Construcción y gestión de marca",
-      },
-    ],
-  },
-  finanzas: {
-    title: "Finanzas",
-    emoji: "💰",
-    badge: "Finanzas",
-    colorFrom: "#f73586",
-    colorTo: "#f2186c",
-    tagline:
-      "Desarrolla habilidades en análisis financiero y gestión de inversiones",
-    description:
-      "Esta área se enfoca en desarrollar profesionales capaces de gestionar el recurso más valioso de cualquier organización: las personas. Aprenderás a diseñar estrategias de atracción, desarrollo y retención de talento, así como a crear ambientes laborales productivos y saludables.",
-    image: "/areas/finanzas.jpg",
-    funciones: [
-      "Gestión estratégica de talento humano",
-      "Administración de compensaciones",
-      "Cumplimiento normativo",
-      "Desarrollo organizacional",
-      "Clima y cultura laboral",
-    ],
-    subareas: [
-      {
-        emoji: "📈",
-        nombre: "Análisis Financiero",
-        descripcion: "Evaluación de estados financieros",
-      },
-      {
-        emoji: "💹",
-        nombre: "Gestión de Inversiones",
-        descripcion: "Portafolios y estrategias de inversión",
-      },
-    ],
-  },
-  comercial: {
-    title: "Comercial",
-    emoji: "🤝",
-    badge: "Comercial",
-    colorFrom: "#ff3f6e",
-    colorTo: "#ff4438",
-    tagline:
-      "Aprende técnicas de ventas y negociación para impulsar resultados comerciales",
-    description:
-      "Esta área se enfoca en desarrollar profesionales capaces de gestionar el recurso más valioso de cualquier organización: las personas. Aprenderás a diseñar estrategias de atracción, desarrollo y retención de talento, así como a crear ambientes laborales productivos y saludables.",
-    image: "/areas/comercial.jpg",
-    funciones: [
-      "Gestión estratégica de talento humano",
-      "Administración de compensaciones",
-      "Cumplimiento normativo",
-      "Desarrollo organizacional",
-      "Clima y cultura laboral",
-    ],
-    subareas: [
-      {
-        emoji: "💼",
-        nombre: "Técnicas de Ventas",
-        descripcion: "Estrategias de venta efectivas",
-      },
-      {
-        emoji: "🤝",
-        nombre: "Negociación",
-        descripcion: "Habilidades de negociación comercial",
-      },
-    ],
-  },
-  logistica: {
-    title: "Logística",
-    emoji: "📦",
-    badge: "Logística",
-    colorFrom: "#ff6a00",
-    colorTo: "#f7931e",
-    tagline: "Optimiza cadenas de suministro y gestiona operaciones logísticas",
-    description:
-      "Esta área se enfoca en desarrollar profesionales capaces de gestionar el recurso más valioso de cualquier organización: las personas. Aprenderás a diseñar estrategias de atracción, desarrollo y retención de talento, así como a crear ambientes laborales productivos y saludables.",
-    image: "/areas/logistica.jpg",
-    funciones: [
-      "Gestión estratégica de talento humano",
-      "Administración de compensaciones",
-      "Cumplimiento normativo",
-      "Desarrollo organizacional",
-      "Clima y cultura laboral",
-    ],
-    subareas: [
-      {
-        emoji: "🔗",
-        nombre: "Cadena de Suministro",
-        descripcion: "Gestión de supply chain",
-      },
-      {
-        emoji: "📊",
-        nombre: "Gestión de Inventarios",
-        descripcion: "Control y optimización de inventarios",
-      },
-    ],
-  },
-};
+interface PublicSubAreaResponseDTO {
+  idSubarea: number;
+  nombre: string;
+  emoji: string;
+  descripcion: string;
+  nivel: string;
+  cantidadSkillPaths: number;
+  cantidadPathChallenges: number;
+  plataformasSkillPath: string;
+  slug: string;
+}
 
-// ─── Página ───────────────────────────────────────────────────────────────────
+interface PublicAreaResponseDTO {
+  idArea: string;
+  nombre: string;
+  emoji: string;
+  descripcion: string;
+  imagenUrl: string;
+  tagline: string;
+  funciones: string;
+  colorFrom: string;
+  colorTo: string;
+  subareas: PublicSubAreaResponseDTO[];
+}
+
 export default async function AreaDetailPage({
   params,
 }: {
   params: Promise<{ area: string }>;
 }) {
-  const { area: areaSlug } = await params;
-  const area = areasData[areaSlug as keyof typeof areasData];
+  const { area: areaId } = await params;
+  const area = await apiFetch<PublicAreaResponseDTO>(`/api/public/exploracion/areas/${areaId}`).catch(() => null);
 
   if (!area) notFound();
 
+  const colorFrom = area.colorFrom || "#6f63ff";
+  const colorTo = area.colorTo || "#8f4df0";
+
+  const imageUrl = area.imagenUrl
+    ? (area.imagenUrl.startsWith("areas/")
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"}/api/areas/${area.idArea}/imagen`
+      : area.imagenUrl)
+    : "/areas/placeholder.jpg";
+
+  // Parse functions
+  const funcionesList = area.funciones
+    ? area.funciones.split("|").map((f) => f.trim()).filter(Boolean)
+    : [];
+
   // Divide funciones en dos columnas
-  const mitad = Math.ceil(area.funciones.length / 2);
-  const col1 = area.funciones.slice(0, mitad);
-  const col2 = area.funciones.slice(mitad);
+  const mitad = Math.ceil(funcionesList.length / 2);
+  const col1 = funcionesList.slice(0, mitad);
+  const col2 = funcionesList.slice(mitad);
 
   return (
     <div className="min-h-screen bg-[#f9f9fb]">
@@ -214,17 +86,17 @@ export default async function AreaDetailPage({
             <span
               className="mb-4 inline-block rounded-full px-4 py-1.5 text-sm font-bold text-white"
               style={{
-                background: `linear-gradient(135deg, ${area.colorFrom}, ${area.colorTo})`,
+                background: `linear-gradient(135deg, ${colorFrom}, ${colorTo})`,
               }}
             >
-              {area.badge}
+              {area.nombre}
             </span>
 
             {/* Ícono + Título */}
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">{area.emoji}</span>
+              <span className="text-5xl">{area.emoji || "📁"}</span>
               <h1 className="text-4xl font-black text-slate-900 md:text-5xl">
-                {area.title}
+                {area.nombre}
               </h1>
             </div>
 
@@ -235,15 +107,15 @@ export default async function AreaDetailPage({
 
             {/* Descripción */}
             <p className="mb-8 text-slate-500 leading-relaxed">
-              {area.description}
+              {area.descripcion}
             </p>
 
             {/* Botón */}
             <a
-              href={`/areas/${areaSlug}/subareas`}
+              href={`/areas/${area.idArea}/subareas`}
               className="inline-flex items-center rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
               style={{
-                background: `linear-gradient(135deg, ${area.colorFrom}, ${area.colorTo})`,
+                background: `linear-gradient(135deg, ${colorFrom}, ${colorTo})`,
               }}
             >
               Explorar subáreas
@@ -253,8 +125,8 @@ export default async function AreaDetailPage({
           {/* Imagen */}
           <div>
             <img
-              src={area.image}
-              alt={area.title}
+              src={imageUrl}
+              alt={area.nombre}
               className="w-full h-80 rounded-2xl object-cover shadow-xl lg:h-96"
             />
           </div>
@@ -262,24 +134,26 @@ export default async function AreaDetailPage({
       </section>
 
       {/* ── Funciones específicas ── */}
-      <section className="mx-auto max-w-6xl px-6 pb-12">
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="mb-6 text-xl font-black text-slate-900">
-            Funciones específicas del área
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            {[...col1, ...col2].map((funcion) => (
-              <div key={funcion} className="flex items-center gap-3">
-                <CheckCircle2
-                  className="h-5 w-5 flex-shrink-0"
-                  style={{ color: area.colorFrom }}
-                />
-                <span className="text-sm text-slate-700">{funcion}</span>
-              </div>
-            ))}
+      {funcionesList.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-12">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="mb-6 text-xl font-black text-slate-900">
+              Funciones específicas del área
+            </h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              {[...col1, ...col2].map((funcion) => (
+                <div key={funcion} className="flex items-center gap-3">
+                  <CheckCircle2
+                    className="h-5 w-5 flex-shrink-0"
+                    style={{ color: colorFrom }}
+                  />
+                  <span className="text-sm text-slate-700">{funcion}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Especializa tu carrera ── */}
       <section id="subareas" className="mx-auto max-w-6xl px-6 pb-16">
@@ -287,32 +161,34 @@ export default async function AreaDetailPage({
           Especializa tu carrera
         </h2>
         <p className="mb-8 text-slate-500">
-          Explora las {area.subareas.length} subáreas especializadas de{" "}
-          {area.title} y comienza tu desarrollo profesional.
+          Explora las {area.subareas?.length || 0} subáreas especializadas de{" "}
+          {area.nombre} y comienza tu desarrollo profesional.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {area.subareas.map((subarea) => (
-            <div
-              key={subarea.nombre}
-              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-slate-300"
-            >
-              <span className="mb-4 block text-3xl">{subarea.emoji}</span>
-              <h3 className="mb-1 font-bold text-slate-900">
-                {subarea.nombre}
-              </h3>
-              <p className="text-sm text-slate-500">{subarea.descripcion}</p>
+          {area.subareas && area.subareas.length > 0 ? (
+            area.subareas.map((subarea) => (
+              <a
+                href={`/areas/${area.idArea}/subareas`}
+                key={subarea.idSubarea}
+                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-slate-300"
+              >
+                <span className="mb-4 block text-3xl">{subarea.emoji || "🎯"}</span>
+                <h3 className="mb-1 font-bold text-slate-900">
+                  {subarea.nombre}
+                </h3>
+                <p className="text-sm text-slate-500">{subarea.descripcion}</p>
+              </a>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-slate-400">
+              No hay subáreas configuradas para esta área aún.
             </div>
-          ))}
+          )}
         </div>
       </section>
 
       <Footer />
     </div>
   );
-}
-
-// Genera las rutas estáticas para las 5 áreas
-export function generateStaticParams() {
-  return Object.keys(areasData).map((area) => ({ area }));
 }

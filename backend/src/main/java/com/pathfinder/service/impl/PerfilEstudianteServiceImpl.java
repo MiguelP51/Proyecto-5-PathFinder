@@ -116,6 +116,7 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
                 .interesesProfesionales(perfil.getInteresesProfesionales())
                 .objetivosLaborales(perfil.getObjetivosLaborales())
                 .fechaActualizacionCv(perfil.getFechaActualizacionCv())
+                .camposAdicionales(perfil.getCamposAdicionales())
                 .cvNombreArchivo(archivoOpt.map(ArchivoCV::getNombreArchivo).orElse(null))
                 .cvUploaded(archivoOpt.isPresent())
                 .experiencias(mapExperiencias(
@@ -157,6 +158,7 @@ public class PerfilEstudianteServiceImpl implements PerfilEstudianteService {
         perfil.setPerfilProfesional(req.getPerfilProfesional());
         perfil.setInteresesProfesionales(req.getInteresesProfesionales());
         perfil.setObjetivosLaborales(req.getObjetivosLaborales());
+        perfil.setCamposAdicionales(req.getCamposAdicionales());
         perfil.setFechaActualizacionCv(LocalDateTime.now());
 
         perfil = perfilCVRepository.save(perfil);

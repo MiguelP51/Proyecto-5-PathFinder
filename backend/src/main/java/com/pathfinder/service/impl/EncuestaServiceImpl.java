@@ -2,12 +2,15 @@ package com.pathfinder.service.impl;
 
 import com.pathfinder.dto.request.SubmitEncuestaRequestDTO;
 import com.pathfinder.dto.response.PreguntaResponseDTO;
+import com.pathfinder.dto.response.EncuestaMentorFeedbackDTO;
 import com.pathfinder.model.entity.PreguntaEncuesta;
 import com.pathfinder.model.entity.RespuestaEncuesta;
 import com.pathfinder.model.entity.Usuario;
+import com.pathfinder.model.entity.Entrevista;
 import com.pathfinder.repository.PreguntaEncuestaRepository;
 import com.pathfinder.repository.RespuestaEncuestaRepository;
 import com.pathfinder.repository.UsuarioRepository;
+import com.pathfinder.repository.EntrevistaRepository;
 import com.pathfinder.service.EncuestaService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ public class EncuestaServiceImpl implements EncuestaService {
     private final PreguntaEncuestaRepository preguntaEncuestaRepository;
     private final RespuestaEncuestaRepository respuestaEncuestaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EntrevistaRepository entrevistaRepository;
 
     @Override
     public List<PreguntaResponseDTO> obtenerPreguntasActivas() {
@@ -49,18 +53,37 @@ public class EncuestaServiceImpl implements EncuestaService {
     }
 
     @Override
+    public boolean tieneEncuestaCompletada(String correoEstudiante, Integer idEntrevista) {
+        if (idEntrevista != null) {
+            return respuestaEncuestaRepository.existsByEntrevista_IdEntrevista(idEntrevista);
+        }
+        return tieneEncuestaCompletada(correoEstudiante);
+    }
+
+    @Override
     @Transactional
     public void guardarEncuesta(String correoEstudiante, SubmitEncuestaRequestDTO request) {
         String correoClean = correoEstudiante.trim().toLowerCase();
         Usuario estudiante = usuarioRepository.findByCorreo(correoClean)
                 .orElseThrow(() -> new IllegalArgumentException("Estudiante no encontrado"));
 
-        if (tieneEncuestaCompletada(correoClean)) {
-            throw new IllegalStateException("Ya has respondido esta encuesta de satisfacción.");
+        final Integer finalIdEntrevista = (request.getIdEntrevista() != null) ? request.getIdEntrevista() :
+            entrevistaRepository.findFirstByEstudiante_CorreoAndActivoTrueOrderByFechaDescHoraDesc(correoClean)
+                    .map(Entrevista::getIdEntrevista)
+                    .orElse(null);
+
+        if (tieneEncuestaCompletada(correoClean, finalIdEntrevista)) {
+            throw new IllegalStateException("Ya has respondido esta encuesta de satisfacción para la simulación correspondiente.");
         }
 
         if (request == null || request.getRespuestas() == null || request.getRespuestas().isEmpty()) {
             throw new IllegalArgumentException("La solicitud de encuesta no puede estar vacía.");
+        }
+
+        Entrevista entrevista = null;
+        if (finalIdEntrevista != null) {
+            entrevista = entrevistaRepository.findById(finalIdEntrevista)
+                    .orElseThrow(() -> new IllegalArgumentException("Entrevista no encontrada: " + finalIdEntrevista));
         }
 
         List<PreguntaEncuesta> preguntasActivas = preguntaEncuestaRepository.findByActivoTrueOrderByIdPreguntaAsc();
@@ -101,6 +124,7 @@ public class EncuestaServiceImpl implements EncuestaService {
             RespuestaEncuesta respuesta = new RespuestaEncuesta();
             respuesta.setEstudiante(estudiante);
             respuesta.setPregunta(pregunta);
+            respuesta.setEntrevista(entrevista);
             respuesta.setValorEntero(item.getValorEntero());
             respuesta.setValorTexto(item.getValorTexto());
             respuesta.setFechaCompletada(LocalDateTime.now());
@@ -110,5 +134,42 @@ public class EncuestaServiceImpl implements EncuestaService {
         }
 
         log.info("Encuesta guardada con éxito para el estudiante {}", correoClean);
+    }
+
+    @Override
+    public List<EncuestaMentorFeedbackDTO> obtenerFeedbackMentor(String correoMentor) {
+        Usuario mentor = usuarioRepository.findByCorreo(correoMentor.trim().toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Mentor no encontrado"));
+
+        List<RespuestaEncuesta> respuestas = respuestaEncuestaRepository.findByEntrevista_Mentor_IdUsuario(mentor.getIdUsuario());
+
+        // Group responses by Entrevista
+        Map<Entrevista, List<RespuestaEncuesta>> respuestasPorEntrevista = respuestas.stream()
+                .filter(r -> r.getEntrevista() != null)
+                .collect(Collectors.groupingBy(RespuestaEncuesta::getEntrevista));
+
+        return respuestasPorEntrevista.entrySet().stream()
+                .map(entry -> {
+                    Entrevista entrevista = entry.getKey();
+                    List<RespuestaEncuesta> respuestasEntrevista = entry.getValue();
+
+                    List<EncuestaMentorFeedbackDTO.RespuestaItem> items = respuestasEntrevista.stream()
+                            .map(r -> EncuestaMentorFeedbackDTO.RespuestaItem.builder()
+                                    .textoPregunta(r.getPregunta().getTextoPregunta())
+                                    .tipoPregunta(r.getPregunta().getTipoPregunta())
+                                    .valorEntero(r.getValorEntero())
+                                    .valorTexto(r.getValorTexto())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    return EncuestaMentorFeedbackDTO.builder()
+                            .idEntrevista(entrevista.getIdEntrevista())
+                            .fecha(entrevista.getFecha().toString())
+                            .puestoInteres(entrevista.getPuesto())
+                            .respuestas(items)
+                            .build();
+                })
+                .sorted((a, b) -> b.getFecha().compareTo(a.getFecha())) // Sort newest first
+                .collect(Collectors.toList());
     }
 }

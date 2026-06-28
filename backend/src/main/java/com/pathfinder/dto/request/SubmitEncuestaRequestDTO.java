@@ -10,6 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SubmitEncuestaRequestDTO {
 
+    private Integer idEntrevista;
     private List<RespuestaItem> respuestas;
 
     @Data

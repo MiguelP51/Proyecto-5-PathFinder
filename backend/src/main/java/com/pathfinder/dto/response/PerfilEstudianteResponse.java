@@ -37,6 +37,7 @@ public class PerfilEstudianteResponse {
 
     private String      cvNombreArchivo;
     private boolean     cvUploaded;
+    private String      camposAdicionales; // JSON string for dynamic fields
 
     // ── Items — reflejan campos reales de las entidades ──────
 
