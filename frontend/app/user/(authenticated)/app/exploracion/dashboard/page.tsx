@@ -885,6 +885,13 @@ export default function ExploracionDashboardPage() {
                     }}
                   />
                 </div>
+
+                <Link
+                  href="/user/app/mi-progreso"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#7447D7] hover:text-[#7447D7]"
+                >
+                  Ver mi progreso completo
+                </Link>
               </div>
 
               {/* Tus Habilidades — cuadro propio */}
