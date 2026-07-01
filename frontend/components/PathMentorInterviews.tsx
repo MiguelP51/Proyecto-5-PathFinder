@@ -22,6 +22,23 @@ interface Interview {
   feedbackComentarios?: string;
 }
 
+interface AiMentorRecommendations {
+  resumenEstudiante?: string;
+  tipsCv?: string[];
+  skillpathsRecomendados?: Array<{
+    idSkillPath: number;
+    titulo: string;
+    prioridad: string;
+    motivo: string;
+  }>;
+  preguntasSugeridas?: Array<{
+    tipo: string;
+    pregunta: string;
+    objetivo: string;
+  }>;
+  puntosAValidar?: string[];
+}
+
 const CameraIcon = () => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
@@ -169,6 +186,8 @@ export default function PathMentorInterviews() {
   // Detail Modal States
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDetailInterview, setSelectedDetailInterview] = useState<Interview | null>(null);
+  const [aiMentorRecommendations, setAiMentorRecommendations] = useState<AiMentorRecommendations | null>(null);
+  const [loadingAiMentorRecommendations, setLoadingAiMentorRecommendations] = useState(false);
 
   // Student Profile detail view states
   const [selectedStudentProfile, setSelectedStudentProfile] = useState<any | null>(null);
@@ -392,6 +411,11 @@ export default function PathMentorInterviews() {
     return () => { cancelled = true; };
   }, [status, session, searchParams, router]);
 
+  useEffect(() => {
+    setAiMentorRecommendations(null);
+    setLoadingAiMentorRecommendations(false);
+  }, [selectedDetailInterview?.id]);
+
   const loadStudentProfile = async (email: string) => {
     if (!session?.backendJwt) return;
     try {
@@ -417,6 +441,26 @@ export default function PathMentorInterviews() {
       console.error("Error cargando resultado DISC del estudiante:", err);
     } finally {
       setLoadingDISC(false);
+    }
+  };
+
+  const handleGenerateAiRecommendations = async () => {
+    if (!session?.backendJwt || !selectedDetailInterview) return;
+
+    try {
+      setLoadingAiMentorRecommendations(true);
+      const response = await apiFetch<AiMentorRecommendations>(
+        `/api/ai/mentor/entrevistas/${selectedDetailInterview.id}/recomendaciones`,
+        { method: "POST" },
+        session.backendJwt
+      );
+      setAiMentorRecommendations(response);
+      toast.success("Recomendaciones IA generadas.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "No se pudieron generar recomendaciones IA";
+      toast.error(msg);
+    } finally {
+      setLoadingAiMentorRecommendations(false);
     }
   };
 
@@ -1143,6 +1187,117 @@ export default function PathMentorInterviews() {
                     </button>
                   </div>
                 </div>
+
+                <section className={styles.aiAssistantSection}>
+                  <div className={styles.aiAssistantHeader}>
+                    <div>
+                      <span className={styles.aiAssistantEyebrow}>Asistente IA</span>
+                      <h3>Preparacion del estudiante</h3>
+                    </div>
+                    <span className={styles.aiAssistantStatus}>Conectado a Gemini</span>
+                  </div>
+
+                  <p className={styles.aiAssistantIntro}>
+                    Usa el CV, DISC, entrevista y SkillPaths activos para apoyar la preparacion de la entrevista.
+                  </p>
+
+                  {aiMentorRecommendations ? (
+                    <div className={styles.aiResultsStack}>
+                      {aiMentorRecommendations.resumenEstudiante && (
+                        <div className={styles.aiResultBlock}>
+                          <span className={styles.aiAssistantItemTitle}>Resumen rapido</span>
+                          <p>{aiMentorRecommendations.resumenEstudiante}</p>
+                        </div>
+                      )}
+
+                      {(aiMentorRecommendations.tipsCv?.length ?? 0) > 0 && (
+                        <div className={styles.aiResultBlock}>
+                          <span className={styles.aiAssistantItemTitle}>Mejoras de CV</span>
+                          <ul className={styles.aiResultList}>
+                            {aiMentorRecommendations.tipsCv?.map((tip, idx) => (
+                              <li key={idx}>{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(aiMentorRecommendations.skillpathsRecomendados?.length ?? 0) > 0 && (
+                        <div className={styles.aiResultBlock}>
+                          <span className={styles.aiAssistantItemTitle}>SkillPaths sugeridos</span>
+                          <div className={styles.aiSkillPathList}>
+                            {aiMentorRecommendations.skillpathsRecomendados?.map((skillPath) => (
+                              <div key={skillPath.idSkillPath} className={styles.aiSkillPathItem}>
+                                <div>
+                                  <strong>{skillPath.titulo}</strong>
+                                  <p>{skillPath.motivo}</p>
+                                </div>
+                                <span>{skillPath.prioridad}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(aiMentorRecommendations.preguntasSugeridas?.length ?? 0) > 0 && (
+                        <div className={styles.aiResultBlock}>
+                          <span className={styles.aiAssistantItemTitle}>Preguntas guia</span>
+                          <div className={styles.aiQuestionList}>
+                            {aiMentorRecommendations.preguntasSugeridas?.map((item, idx) => (
+                              <div key={idx} className={styles.aiQuestionItem}>
+                                <span>{item.tipo}</span>
+                                <strong>{item.pregunta}</strong>
+                                <p>{item.objetivo}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(aiMentorRecommendations.puntosAValidar?.length ?? 0) > 0 && (
+                        <div className={styles.aiResultBlock}>
+                          <span className={styles.aiAssistantItemTitle}>Puntos a validar</span>
+                          <ul className={styles.aiResultList}>
+                            {aiMentorRecommendations.puntosAValidar?.map((item, idx) => (
+                              <li key={idx}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={styles.aiAssistantGrid}>
+                      <div className={styles.aiAssistantItem}>
+                        <span className={styles.aiAssistantItemTitle}>Resumen rapido</span>
+                        <p>Perfil, experiencia, habilidades principales y puntos que conviene validar.</p>
+                      </div>
+                      <div className={styles.aiAssistantItem}>
+                        <span className={styles.aiAssistantItemTitle}>Mejoras de CV</span>
+                        <p>Tips concretos para ordenar el perfil y reforzar logros del estudiante.</p>
+                      </div>
+                      <div className={styles.aiAssistantItem}>
+                        <span className={styles.aiAssistantItemTitle}>SkillPaths sugeridos</span>
+                        <p>Recomendaciones basadas solo en SkillPaths activos del catalogo.</p>
+                      </div>
+                      <div className={styles.aiAssistantItem}>
+                        <span className={styles.aiAssistantItemTitle}>Preguntas guia</span>
+                        <p>Preguntas conductuales y tecnicas para usar durante la entrevista.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className={styles.aiAssistantButton}
+                    disabled={loadingAiMentorRecommendations}
+                    onClick={handleGenerateAiRecommendations}
+                  >
+                    {loadingAiMentorRecommendations
+                      ? 'Generando recomendaciones...'
+                      : aiMentorRecommendations
+                      ? 'Generar nuevamente'
+                      : 'Generar recomendaciones'}
+                  </button>
+                </section>
 
                 {/* DETAILED PANELS GRID */}
                 {(showCVDetails || showDISCDetails) && (
