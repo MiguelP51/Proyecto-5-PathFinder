@@ -129,20 +129,9 @@ interface AvailabilityResponse {
   bloques: BloqueDTO[];
 }
 
-interface GoogleCalendarEvent {
-  googleEventId: string;
-  summary: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  allDay: boolean;
-}
-
 export default function AvailabilityPage() {
   const { data: session, status } = useSession();
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [duracion, setDuracion] = useState<number>(60);
@@ -150,6 +139,7 @@ export default function AvailabilityPage() {
   const [maxEntrevistas, setMaxEntrevistas] = useState<number>(4);
 
   const [weekOffset, setWeekOffset] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>(['Lunes']);
@@ -281,59 +271,6 @@ export default function AvailabilityPage() {
     toast.success('Bloque eliminado');
   };
 
-  const handleGoogleSync = () => {
-    if (syncing) return;
-    setSyncing(true);
-
-    try {
-      const gis = (window as any).google?.accounts?.oauth2;
-      if (!gis) {
-        toast.error('Google Identity Services no está disponible. Recarga la página o intenta más tarde.');
-        setSyncing(false);
-        return;
-      }
-
-      const client = gis.initTokenClient({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/calendar.readonly',
-        callback: async (response: any) => {
-          if (response?.access_token) {
-            try {
-              const weekStart = weekDates[0].date.toISOString().slice(0, 10);
-              const weekEnd = weekDates[6].date.toISOString().slice(0, 10);
-              const events = await apiFetch<GoogleCalendarEvent[]>('/api/disponibilidad/google-calendar/sync', {
-                method: 'POST',
-                body: JSON.stringify({
-                  accessToken: response.access_token,
-                  weekStart,
-                  weekEnd,
-                }),
-              }, session?.backendJwt);
-              setGoogleEvents(events || []);
-              const count = events?.length || 0;
-              if (count > 0) {
-                toast.success(`${count} evento${count > 1 ? 's' : ''} sincronizado${count > 1 ? 's' : ''} desde Google Calendar`);
-              } else {
-                toast.success('No se encontraron eventos en este rango de fechas');
-              }
-            } catch (err) {
-              console.error('Error sincronizando Google Calendar:', err);
-              toast.error('Error al sincronizar Google Calendar: ' + (err instanceof Error ? err.message : err));
-            }
-          } else {
-            toast.error('No se pudo obtener acceso al calendario');
-          }
-          setSyncing(false);
-        },
-      });
-      client.requestAccessToken();
-    } catch (err) {
-      console.error('Error al iniciar GIS:', err);
-      toast.error('Error al conectar con Google Calendar');
-      setSyncing(false);
-    }
-  };
-
   return (
     <>
       <div className={styles.container}>
@@ -342,25 +279,94 @@ export default function AvailabilityPage() {
           <p>Configura tus horarios disponibles para entrevistas</p>
         </div>
 
-        <div className={styles.syncCard}>
-          <div className={styles.syncIcon}>📅</div>
-          <div className={styles.syncContent}>
-            <h2>Sincronización de Calendario</h2>
-            <p>Conecta tu Google Calendar u Outlook para sincronizar automáticamente tu disponibilidad y evitar conflictos de horarios.</p>
-            <div className={styles.syncButtons}>
-              <button className={styles.calendarButton} onClick={handleGoogleSync} disabled={syncing}>
-                <img src="/assets/google.png" alt="Google" />
-                {syncing ? 'Sincronizando…' : 'Google Calendar'}
-              </button>
-              <button className={styles.calendarButton}>
-                <img src="/assets/outlook.png" alt="Outlook" />
-                Outlook
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Mobile sidebar trigger — visible on tablet/mobile */}
+        <button className={styles.sidebarTrigger} onClick={() => setSidebarOpen(true)}>
+          Configuración
+        </button>
 
-        <div className={styles.card}>
+        <div className={styles.mainGrid}>
+          {/* SIDEBAR — desktop config panel + sync + save */}
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarContent}>
+              {/* Config Panel */}
+              <section className={styles.configPanel}>
+                <h3>Configuración</h3>
+                <div className={styles.sidebarSelects}>
+                  <div className={styles.selectGroup}>
+                    <label>Duración de cada entrevista</label>
+                    <select value={duracion} onChange={(e) => setDuracion(Number(e.target.value))}>
+                      <option value={30}>30 min</option>
+                      <option value={45}>45 min</option>
+                      <option value={60}>60 min</option>
+                      <option value={90}>90 min</option>
+                    </select>
+                  </div>
+                  <div className={styles.selectGroup}>
+                    <label>Descanso entre entrevistas</label>
+                    <select value={tiempoDescanso} onChange={(e) => setTiempoDescanso(Number(e.target.value))}>
+                      <option value={0}>0 min</option>
+                      <option value={5}>5 min</option>
+                      <option value={10}>10 min</option>
+                      <option value={15}>15 min</option>
+                      <option value={20}>20 min</option>
+                      <option value={30}>30 min</option>
+                    </select>
+                  </div>
+                  <div className={styles.selectGroup}>
+                    <label>Límite diario de entrevistas</label>
+                    <select value={maxEntrevistas} onChange={(e) => setMaxEntrevistas(Number(e.target.value))}>
+                      <option value={1}>1</option>
+                      <option value={2}>2</option>
+                      <option value={3}>3</option>
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                      <option value={6}>6</option>
+                    </select>
+                  </div>
+                  <button className={styles.addButton} onClick={() => {
+                    setSelectedDays(['Lunes']);
+                    setStartTime('09:00');
+                    setEndTime('10:00');
+                    setSelectedType('virtual');
+                    setIsTypeDropdownOpen(false);
+                    setIsModalOpen(true);
+                  }}>
+                    + Añadir horario
+                  </button>
+                </div>
+              </section>
+
+              {/* Sync Card — compact */}
+              <section className={styles.sidebarSyncCard}>
+                <h3>📅 Sincronización de Calendario</h3>
+                <p>Conecta tu Google Calendar para evitar conflictos de horarios. Próximamente disponible.</p>
+                <button className={styles.calendarButton} disabled title="Funcionalidad no disponible aún">
+                  <img src="/assets/google.png" alt="Google Calendar" />
+                  Google Calendar
+                  <span className={styles.comingSoonBadge}>Próximamente</span>
+                </button>
+              </section>
+
+              {/* Save Button */}
+              {(() => {
+                const hasInvalidBlocks = invalidBlocks.length > 0;
+                const canSave = !hasInvalidBlocks && !hasExceededSlots;
+                return (
+                  <button
+                    className={`${styles.sidebarSaveButton} ${!canSave ? styles.disabledSaveButton : ''}`}
+                    onClick={handleSaveAll}
+                    disabled={!canSave}
+                  >
+                    💾 Guardar Configuración
+                  </button>
+                );
+              })()}
+            </div>
+          </aside>
+
+          {/* MAIN CONTENT — calendar grid + legend + validation */}
+          <main className={styles.mainContent}>
+            <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Configuración Semanal</h2>
             <p>Visualiza y administra tus horarios en la semana</p>
@@ -374,52 +380,6 @@ export default function AvailabilityPage() {
             <button className={styles.weekNavToday} onClick={() => setWeekOffset(0)}>Hoy</button>
           </div>
 
-          {/* Config Bar — inline controls + add button */}
-          <div className={styles.configBar}>
-            <div className={styles.configSelects}>
-              <div className={styles.selectGroup}>
-                <label>Duración de cada entrevista</label>
-                <select value={duracion} onChange={(e) => setDuracion(Number(e.target.value))}>
-                  <option value={30}>30 min</option>
-                  <option value={45}>45 min</option>
-                  <option value={60}>60 min</option>
-                  <option value={90}>90 min</option>
-                </select>
-              </div>
-              <div className={styles.selectGroup}>
-                <label>Descanso entre entrevistas</label>
-                <select value={tiempoDescanso} onChange={(e) => setTiempoDescanso(Number(e.target.value))}>
-                  <option value={0}>0 min</option>
-                  <option value={5}>5 min</option>
-                  <option value={10}>10 min</option>
-                  <option value={15}>15 min</option>
-                  <option value={20}>20 min</option>
-                  <option value={30}>30 min</option>
-                </select>
-              </div>
-              <div className={styles.selectGroup}>
-                <label>Límite diario de entrevistas</label>
-                <select value={maxEntrevistas} onChange={(e) => setMaxEntrevistas(Number(e.target.value))}>
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                  <option value={4}>4</option>
-                  <option value={5}>5</option>
-                  <option value={6}>6</option>
-                </select>
-              </div>
-            </div>
-            <button className={styles.addButton} onClick={() => {
-              setSelectedDays(['Lunes']);
-              setStartTime('09:00');
-              setEndTime('10:00');
-              setSelectedType('virtual');
-              setIsTypeDropdownOpen(false);
-              setIsModalOpen(true);
-            }}>
-              + Añadir horario
-            </button>
-          </div>
 
           {loading ? (
             <div className={styles.loadingState}>Cargando disponibilidad…</div>
@@ -467,17 +427,7 @@ export default function AvailabilityPage() {
                           </div>
                         );
                       })}
-                      {googleEvents.filter(e => e.day === dayName).map(evt => {
-                        const top = timeToY(evt.startTime);
-                        const h = Math.max(timeToY(evt.endTime) - top, 20);
-                        return (
-                          <div key={evt.googleEventId} className={`${styles.calBlock} ${styles.blockGoogleSync}`} style={{ top, height: h }}>
-                            <div className={styles.calBlockTime}>{evt.startTime} - {evt.endTime}</div>
-                            <div className={styles.calBlockLabel}>{evt.summary}</div>
-                            <span className={styles.calBlockBadge}>Google Calendar</span>
-                          </div>
-                        );
-                      })}
+
                     </div>
                   ))}
                 </div>
@@ -488,16 +438,14 @@ export default function AvailabilityPage() {
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.blockVirtual}`}></span> Virtual</span>
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.blockPresencial}`}></span> Presencial</span>
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.blockAmbos}`}></span> Ambos</span>
-                <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.blockGoogleSync}`}></span> Google Calendar</span>
                 <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#e2e8f0' }}></span> Haz clic en una celda para añadir</span>
               </div>
             </>
           )}
 
-          {/* Save / Validation */}
+          {/* Validation errors */}
           {(() => {
             const hasInvalidBlocks = invalidBlocks.length > 0;
-            const canSave = !hasInvalidBlocks && !hasExceededSlots;
             return (
               <>
                 {hasInvalidBlocks && (
@@ -510,27 +458,92 @@ export default function AvailabilityPage() {
                     ⚠️ El total de entrevistas en uno o más días supera el límite diario permitido ({maxEntrevistas}). Ajusta tus bloques para poder guardar.
                   </div>
                 )}
-                <button
-                  className={`${styles.saveButton} ${!canSave ? styles.disabledSaveButton : ''}`}
-                  onClick={handleSaveAll}
-                  disabled={!canSave}
-                >
-                  💾 Guardar Configuración
-                </button>
               </>
             );
           })()}
         </div>
+      </main>
+    </div>
+  </div>
 
-        {/* Link Card — below main card */}
-        <div className={styles.linkCard}>
-          <div className={styles.linkIcon}>🔗</div>
-          <div>
-            <h2>Generación automática de enlaces</h2>
-            <p>Los enlaces de Google Meet o Teams se generan automáticamente al confirmar una entrevista virtual.</p>
-          </div>
+  {/* MOBILE DRAWER OVERLAY */}
+  {sidebarOpen && (
+    <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)}>
+      <aside className={styles.sidebarDrawer} onClick={(e) => e.stopPropagation()}>
+        <button className={styles.drawerClose} onClick={() => setSidebarOpen(false)}>×</button>
+        <div className={styles.sidebarContent}>
+          <section className={styles.configPanel}>
+            <h3>Configuración</h3>
+            <div className={styles.sidebarSelects}>
+              <div className={styles.selectGroup}>
+                <label>Duración de cada entrevista</label>
+                <select value={duracion} onChange={(e) => setDuracion(Number(e.target.value))}>
+                  <option value={30}>30 min</option>
+                  <option value={45}>45 min</option>
+                  <option value={60}>60 min</option>
+                  <option value={90}>90 min</option>
+                </select>
+              </div>
+              <div className={styles.selectGroup}>
+                <label>Descanso entre entrevistas</label>
+                <select value={tiempoDescanso} onChange={(e) => setTiempoDescanso(Number(e.target.value))}>
+                  <option value={0}>0 min</option>
+                  <option value={5}>5 min</option>
+                  <option value={10}>10 min</option>
+                  <option value={15}>15 min</option>
+                  <option value={20}>20 min</option>
+                  <option value={30}>30 min</option>
+                </select>
+              </div>
+              <div className={styles.selectGroup}>
+                <label>Límite diario de entrevistas</label>
+                <select value={maxEntrevistas} onChange={(e) => setMaxEntrevistas(Number(e.target.value))}>
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                  <option value={6}>6</option>
+                </select>
+              </div>
+              <button className={styles.addButton} onClick={() => {
+                setSelectedDays(['Lunes']);
+                setStartTime('09:00');
+                setEndTime('10:00');
+                setSelectedType('virtual');
+                setIsTypeDropdownOpen(false);
+                setIsModalOpen(true);
+              }}>
+                + Añadir horario
+              </button>
+            </div>
+          </section>
+          <section className={styles.sidebarSyncCard}>
+            <h3>📅 Sincronización de Calendario</h3>
+            <p>Conecta tu Google Calendar para evitar conflictos de horarios. Próximamente disponible.</p>
+            <button className={styles.calendarButton} disabled title="Funcionalidad no disponible aún">
+              <img src="/assets/google.png" alt="Google Calendar" />
+              Google Calendar
+              <span className={styles.comingSoonBadge}>Próximamente</span>
+            </button>
+          </section>
+          {(() => {
+            const hasInvalidBlocks = invalidBlocks.length > 0;
+            const canSave = !hasInvalidBlocks && !hasExceededSlots;
+            return (
+              <button
+                className={`${styles.sidebarSaveButton} ${!canSave ? styles.disabledSaveButton : ''}`}
+                onClick={handleSaveAll}
+                disabled={!canSave}
+              >
+                💾 Guardar Configuración
+              </button>
+            );
+          })()}
         </div>
-      </div>
+      </aside>
+    </div>
+  )}
 
       {/* MODAL */}
       {isModalOpen && (
