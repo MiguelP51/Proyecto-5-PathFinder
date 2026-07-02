@@ -31,7 +31,6 @@ const Icon = ({ className = "" }: { className?: string }) => (
 
 const Bell = (props: { className?: string }) => <Icon {...props} />;
 const Users = (props: { className?: string }) => <Icon {...props} />;
-const ArrowRight = (props: { className?: string }) => <Icon {...props} />;
 const Search = (props: { className?: string }) => <Icon {...props} />;
 const Calendar = (props: { className?: string }) => <Icon {...props} />;
 
@@ -474,14 +473,6 @@ export default function ExploracionDashboardPage() {
   const habilidades = dashboard?.habilidades ?? [];
   const hasSkillPathsActivos = skillPathsActivos.length > 0;
   const hasPathChallengesActivos = pathChallengesActivos.length > 0;
-  const skillPathRecomendado =
-      skillPathsActivos.find((sp) => sp.status === "EN_PROGRESO") ??
-      skillPathsActivos[0] ??
-      null;
-
-  const progresoSkillPathRecomendado = skillPathRecomendado
-      ? Math.min(Math.max(skillPathRecomendado.progressPercentage ?? 0, 0), 100)
-      : 0;
 
   if (status === "unauthenticated") {
     return (
@@ -598,55 +589,29 @@ export default function ExploracionDashboardPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* ── Columna izquierda (2/3) ── */}
             <div className="space-y-6 lg:col-span-2">
-              {/* Siguiente acción */}
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <ArrowRight className="h-4 w-4 text-blue-500" />
-                  Siguiente acción recomendada
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#7447D7]">
-                    <BookOpen className="h-6 w-6 text-white" />
+              {/* Explorar nuevas áreas */}
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100">
+                    <Search className="h-6 w-6 text-blue-500" />
                   </div>
-                  <div className="flex-1">
-                    {skillPathRecomendado ? (
-                        <>
-                          <p className="font-bold">
-                            Continúa con {skillPathRecomendado.title}
-                          </p>
 
-                          <p className="mt-1 text-sm text-slate-600">
-                            Llevas un {progresoSkillPathRecomendado}% de progreso.
-                            {skillPathRecomendado.platform
-                                ? ` Disponible en ${skillPathRecomendado.platform}.`
-                                : " Sigue avanzando en tu ruta de aprendizaje."}
-                          </p>
-
-                          <Link
-                              href={`/user/app/skillpaths/${skillPathRecomendado.id}`}
-                              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7447D7] px-4 text-sm font-bold text-white hover:bg-[#6338c4]"
-                          >
-                            Continuar aprendiendo
-                          </Link>
-                        </>
-                    ) : (
-                        <>
-                          <p className="font-bold">Explora nuevos SkillPaths</p>
-
-                          <p className="mt-1 text-sm text-slate-600">
-                            Aún no tienes SkillPaths iniciados. Explora una subárea para comenzar una ruta de aprendizaje.
-                          </p>
-
-                          <Link
-                              href="/user/app/exploracion-intro"
-                              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7447D7] px-4 text-sm font-bold text-white hover:bg-[#6338c4]"
-                          >
-                            Explorar SkillPaths
-                          </Link>
-                        </>
-                    )}
+                  <div>
+                    <p className="font-bold">
+                      Explora nuevas áreas profesionales
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Descubre más áreas y subáreas para expandir tus habilidades
+                    </p>
                   </div>
                 </div>
+
+                <Link
+                    href="/user/explore"
+                    className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]"
+                >
+                  Explorar
+                </Link>
               </div>
 
               {/* PathChallenges activos */}
@@ -825,27 +790,6 @@ export default function ExploracionDashboardPage() {
                       </p>
                   )}
                 </div>
-              </div>
-
-              {/* Explorar nuevas áreas */}
-              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100">
-                    <Search className="h-6 w-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="font-bold">
-                      Explora nuevas áreas profesionales
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      Descubre más áreas y subáreas para expandir tus
-                      habilidades
-                    </p>
-                  </div>
-                </div>
-                <button className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-[#7447D7] hover:text-[#7447D7]">
-                  Explorar
-                </button>
               </div>
             </div>
 
