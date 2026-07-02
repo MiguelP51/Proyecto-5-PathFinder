@@ -1,5 +1,9 @@
 package com.pathfinder.service.impl;
 
+import com.pathfinder.model.entity.UsuarioPathChallenge;
+import com.pathfinder.model.entity.UsuarioSkillPath;
+import com.pathfinder.repository.UsuarioPathChallengeRepository;
+import com.pathfinder.repository.UsuarioSkillPathRepository;
 import com.pathfinder.dto.response.DashboardResumenDTO;
 import com.pathfinder.model.entity.PerfilEntrenamiento;
 import com.pathfinder.model.entity.Usuario;
@@ -22,12 +26,17 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
+    private static final int XP_BASE_POR_NIVEL = 1000;
+
     private final UsuarioRepository usuarioRepository;
     private final PerfilEntrenamientoRepository perfilEntrenamientoRepository;
     private final PerfilCVRepository perfilCVRepository;
     private final PerfilCVHabilidadRepository perfilCVHabilidadRepository;
+    private final UsuarioSkillPathRepository usuarioSkillPathRepository;
+    private final UsuarioPathChallengeRepository usuarioPathChallengeRepository;
 
     @Override
+    @Transactional
     public DashboardResumenDTO obtenerResumen(String correoUsuario) {
         // 1. Obtener usuario
         Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
@@ -37,6 +46,7 @@ public class DashboardServiceImpl implements DashboardService {
         PerfilEntrenamiento perfil = perfilEntrenamientoRepository
                 .findByUsuario_Correo(correoUsuario)
                 .orElseGet(() -> crearPerfilInicial(usuario));
+        sincronizarPerfilConAvances(perfil, correoUsuario);
 
         // 3. Obtener habilidades del CV (reutilizamos lo que ya existe)
         List<DashboardResumenDTO.HabilidadDashboardDTO> habilidades = Collections.emptyList();
@@ -97,5 +107,64 @@ public class DashboardServiceImpl implements DashboardService {
         nuevo.setXpSiguienteNivel(1000);
         nuevo.setExploracionIniciada(false);
         return perfilEntrenamientoRepository.save(nuevo);
+    }
+
+    private void sincronizarPerfilConAvances(
+            PerfilEntrenamiento perfil,
+            String correoUsuario
+    ) {
+        int xpSkillPaths = usuarioSkillPathRepository
+                .findSkillPathsIniciadosByUsuarioCorreo(correoUsuario)
+                .stream()
+                .filter(this::esSkillPathConXp)
+                .map(UsuarioSkillPath::getSkillPath)
+                .filter(skillPath -> skillPath != null && skillPath.getXp() != null)
+                .mapToInt(skillPath -> skillPath.getXp())
+                .sum();
+
+        int xpPathChallenges = usuarioPathChallengeRepository
+                .findIniciadosByUsuarioCorreo(correoUsuario)
+                .stream()
+                .filter(this::esPathChallengeConXp)
+                .map(UsuarioPathChallenge::getPathChallenge)
+                .filter(pathChallenge -> pathChallenge != null && pathChallenge.getXp() != null)
+                .mapToInt(pathChallenge -> pathChallenge.getXp())
+                .sum();
+
+        int xpTotalCalculado = xpSkillPaths + xpPathChallenges;
+
+        perfil.setXpTotal(xpTotalCalculado);
+        recalcularNivel(perfil);
+        perfilEntrenamientoRepository.save(perfil);
+    }
+
+    private boolean esSkillPathConXp(UsuarioSkillPath avance) {
+        if (avance == null || avance.getEstado() == null) {
+            return false;
+        }
+
+        return "VALIDADO".equalsIgnoreCase(avance.getEstado());
+    }
+
+    private boolean esPathChallengeConXp(UsuarioPathChallenge avance) {
+        if (avance == null || avance.getEstado() == null) {
+            return false;
+        }
+
+        return "COMPLETADO".equalsIgnoreCase(avance.getEstado());
+    }
+
+    private void recalcularNivel(PerfilEntrenamiento perfil) {
+        int nivel = 1;
+        int xpTotal = perfil.getXpTotal() != null ? perfil.getXpTotal() : 0;
+        int umbralSiguiente = XP_BASE_POR_NIVEL;
+
+        while (xpTotal >= umbralSiguiente) {
+            nivel++;
+            umbralSiguiente += XP_BASE_POR_NIVEL * nivel;
+        }
+
+        perfil.setNivel(nivel);
+        perfil.setXpSiguienteNivel(umbralSiguiente);
     }
 }

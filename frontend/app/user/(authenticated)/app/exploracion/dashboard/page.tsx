@@ -132,14 +132,8 @@ const isSkillPathActivoDashboard = (status?: string) =>
         status ?? "",
     );
 
-const isSkillPathConXpDashboard = (status?: string) =>
-    ["COMPLETADO", "VALIDADO"].includes(status ?? "");
-
 const isPathChallengeActivoDashboard = (status?: string) =>
     status === "EN_PROGRESO";
-
-const isPathChallengeConXpDashboard = (status?: string) =>
-    status === "COMPLETADO";
 
 const getSkillPathDashboardStatusLabel = (status?: string) =>
     status ? getSkillPathStatusLabel(status as any) ?? status : "Sin estado";
@@ -289,16 +283,6 @@ export default function ExploracionDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const xpSkillPaths = skillPathsActivos
-      .filter((sp) => isSkillPathConXpDashboard(sp.status))
-      .reduce((total, sp) => total + (sp.reward?.xpAwarded ?? sp.xp ?? 0), 0);
-
-  const xpPathChallenges = pathChallengesActivos
-      .filter((ch) => isPathChallengeConXpDashboard(ch.status))
-      .reduce((total, ch) => total + (ch.reward?.xpAwarded ?? ch.xp ?? 0), 0);
-
-  const xpTotalCalculado = xpSkillPaths + xpPathChallenges;
-
   const usuario = {
     nombre: dashboard?.nombre ?? usuarioMock.nombre,
     email: dashboard?.correo ?? usuarioMock.email,
@@ -308,7 +292,7 @@ export default function ExploracionDashboardPage() {
         dashboard?.xpSiguienteNivel ?? usuarioMock.xpSiguienteNivel,
   };
 
-  const xpActualDashboard = xpTotalCalculado;
+  const xpActualDashboard = usuario.xpActual;
   const xpSiguienteNivelDashboard = usuario.xpSiguienteNivel || 1000;
   const porcentajeNivelDashboard = Math.min(
       100,

@@ -62,22 +62,17 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
   }, [area, session]);
 
   const handleSeleccionarSubarea = async (subarea: SubAreaDTO) => {
-    // Si ya completó el diagnóstico, va directo al dashboard, sin pasar por la descripción.
-    if (subarea.diagnosticoCompletado) {
-      router.push(`/areas/${area}/subareas/${subarea.idSubarea}/dashboard`);
-      return;
-    }
-
     try {
       await apiFetch(
-        `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
-        { method: "POST" },
-        session?.backendJwt
+          `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
+          { method: "POST" },
+          session?.backendJwt
       );
-      router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
     } catch {
-      router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
+      // Si falla el marcado de visita, igual dejamos que el estudiante vea la descripción.
     }
+
+    router.push(`/areas/${area}/subareas/${subarea.idSubarea}`);
   };
 
   const config = areaConfig[area] ?? { titulo: area, emoji: "📁", colorFrom: "#6f63ff", colorTo: "#8f4df0" };
@@ -184,10 +179,10 @@ export default function SubareasPage({ params }: { params: Promise<{ area: strin
                   }
                 >
                   {subarea.diagnosticoCompletado
-                    ? "Continuar"
-                    : subarea.diagnosticoIniciado
-                      ? "Continuar diagnóstico"
-                      : "Comenzar"}
+                      ? "Ver subárea"
+                      : subarea.diagnosticoIniciado
+                          ? "Continuar diagnóstico"
+                          : "Comenzar"}
                 </button>
               </div>
             ))}

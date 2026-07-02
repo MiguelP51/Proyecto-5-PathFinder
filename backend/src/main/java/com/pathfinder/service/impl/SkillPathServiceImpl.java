@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.InputStream;
+import com.pathfinder.service.GamificacionService;
 import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
 import com.pathfinder.model.enums.CertificateValidationStatus;
 import com.pathfinder.service.integration.certificate.CertificateValidationResult;
@@ -46,6 +47,7 @@ public class SkillPathServiceImpl implements SkillPathService {
     private final EvidenciaSkillPathRepository evidenciaSkillPathRepository;
     private final S3Client s3Client;
     private final CertificateValidationService certificateValidationService;
+    private final GamificacionService gamificacionService;
 
     @Value("${aws.bucket-name}")
     private String bucketName;
@@ -484,6 +486,10 @@ public class SkillPathServiceImpl implements SkillPathService {
             usuarioSkillPath.setFechaCompletado(LocalDateTime.now());
             usuarioSkillPath.setFechaValidacion(LocalDateTime.now());
             usuarioSkillPath.setFechaModificacion(LocalDateTime.now());
+
+            gamificacionService.sumarXp(usuario, skillPath.getXp());
+            gamificacionService.evaluarYOtorgarInsignias(usuario);
+
             return;
         }
 

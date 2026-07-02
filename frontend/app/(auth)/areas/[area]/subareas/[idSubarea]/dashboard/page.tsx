@@ -64,14 +64,37 @@ const difficultyColor: Record<string, string> = {
 
 const statusColor: Record<string, string> = {
   EN_PROGRESO: "bg-blue-100 text-blue-700",
+  CERTIFICADO_PENDIENTE: "bg-orange-100 text-orange-700",
+  VALIDACION_PENDIENTE: "bg-yellow-100 text-yellow-700",
+  VALIDADO: "bg-green-100 text-green-700",
+  RECHAZADO: "bg-red-100 text-red-700",
   COMPLETADO: "bg-green-100 text-green-700",
   DISPONIBLE: "bg-slate-100 text-slate-600",
 };
 
 const statusLabel: Record<string, string> = {
   EN_PROGRESO: "En progreso",
+  CERTIFICADO_PENDIENTE: "Certificado pendiente",
+  VALIDACION_PENDIENTE: "Validación pendiente",
+  VALIDADO: "Validado",
+  RECHAZADO: "Rechazado",
   COMPLETADO: "Completado",
   DISPONIBLE: "Disponible",
+};
+
+const formatStatusLabel = (status?: string | null) => {
+  if (!status) return "Sin estado";
+
+  if (statusLabel[status]) {
+    return statusLabel[status];
+  }
+
+  return status
+      .toLowerCase()
+      .split("_")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
 };
 
 export default function DashboardSubareaPage({
@@ -268,7 +291,7 @@ export default function DashboardSubareaPage({
     </div>
   );
 
-  const skillPathsCompletados = skillPaths.filter(sp => sp.status === "COMPLETADO").length;
+  const skillPathsCompletados = skillPaths.filter((sp) => sp.status === "VALIDADO",).length;
   const challengesCompletados = pathChallenges.filter((c) => c.status === "COMPLETADO",).length;
   const progresoGeneral = skillPaths.length > 0
     ? Math.round(skillPaths.reduce((acc, sp) => acc + sp.progressPercentage, 0) / skillPaths.length)
@@ -346,8 +369,12 @@ export default function DashboardSubareaPage({
                             <p className="text-xs text-slate-400">{sp.platform}</p>
                           </div>
                         </div>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[sp.status] ?? "bg-slate-100 text-slate-600"}`}>
-                          {statusLabel[sp.status] ?? sp.status}
+                        <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                statusColor[sp.status] ?? "bg-slate-100 text-slate-600"
+                            }`}
+                        >
+                          {formatStatusLabel(sp.status)}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-400 mb-3 ml-11">
@@ -357,18 +384,7 @@ export default function DashboardSubareaPage({
                           {sp.difficulty}
                         </span>
                       </div>
-                      <div className="ml-11">
-                        <div className="flex justify-between text-xs text-slate-400 mb-1">
-                          <span>Progreso</span>
-                          <span>{sp.progressPercentage}%</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-[#6f63ff]"
-                            style={{ width: `${sp.progressPercentage}%` }}
-                          />
-                        </div>
-                      </div>
+
 
                       <div className="ml-11 mt-4">
                         <button
@@ -384,7 +400,11 @@ export default function DashboardSubareaPage({
                               </>
                           ) : (
                               <>
-                                {sp.status === "DISPONIBLE" ? "Iniciar SkillPath" : "Continuar SkillPath"}
+                                {sp.status === "DISPONIBLE"
+                                    ? "Iniciar SkillPath"
+                                    : sp.status === "VALIDADO" || sp.status === "RECHAZADO"
+                                        ? "Ver SkillPath"
+                                        : "Continuar SkillPath"}
                                 <ArrowRight className="h-4 w-4" />
                               </>
                           )}
@@ -436,7 +456,7 @@ export default function DashboardSubareaPage({
                                     statusColor[ch.status] ?? "bg-slate-100 text-slate-600"
                                 }`}
                             >
-                                {statusLabel[ch.status] ?? ch.status}
+                                {formatStatusLabel(ch.status)}
                             </span>
                           </div>
 

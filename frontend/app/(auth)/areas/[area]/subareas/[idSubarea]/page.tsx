@@ -196,15 +196,21 @@ export default function SubAreaDetallePage({
           className="rounded-2xl p-8 text-center text-white"
           style={{ background: "linear-gradient(135deg, #6f63ff, #c850c0)" }}
         >
-          <h2 className="text-xl font-black mb-2">Comienza tu diagnóstico inicial</h2>
+          <h2 className="text-xl font-black mb-2">
+            {subarea.diagnosticoCompletado
+                ? "Consulta tu avance en esta subárea"
+                : "Comienza tu diagnóstico inicial"}
+          </h2>
           <p className="text-white/80 text-sm mb-6">
-            Realiza una evaluación rápida para identificar tu nivel actual y recibir recomendaciones personalizadas
+            {subarea.diagnosticoCompletado
+                ? "Ya completaste el diagnóstico inicial. Revisa tus SkillPaths, PathChallenges y progreso recomendado."
+                : "Realiza una evaluación rápida para identificar tu nivel actual y recibir recomendaciones personalizadas"}
           </p>
           <button
             onClick={handleComenzar}
             className="rounded-full bg-white px-8 py-3 text-sm font-bold text-[#6f63ff] hover:bg-white/90 transition"
           >
-            {subarea.diagnosticoCompletado ? "Ir al dashboard" : "Iniciar diagnóstico"}
+            {subarea.diagnosticoCompletado ? "Ver dashboard" : "Iniciar diagnóstico"}
           </button>
         </div>
       </section>

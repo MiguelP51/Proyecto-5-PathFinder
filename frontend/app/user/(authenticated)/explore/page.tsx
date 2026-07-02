@@ -110,19 +110,14 @@ export default function ExplorePage() {
   }, [session]);
 
   const handleSeleccionarSubarea = async (areaId: string, subarea: SubAreaDTO) => {
-    if (subarea.diagnosticoCompletado) {
-      router.push(`/areas/${areaId}/subareas/${subarea.idSubarea}/dashboard`);
-      return;
-    }
-
     try {
       await apiFetch(
-        `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
-        { method: "POST" },
-        session?.backendJwt,
+          `/api/exploracion/subareas/${subarea.idSubarea}/visitar`,
+          { method: "POST" },
+          session?.backendJwt,
       );
     } catch {
-      // si falla el registro de visita, igual dejamos avanzar al estudiante
+      // Si falla el registro de visita, igual dejamos que el estudiante vea la descripción.
     }
 
     router.push(`/areas/${areaId}/subareas/${subarea.idSubarea}`);
@@ -270,10 +265,10 @@ export default function ExplorePage() {
                           className="mt-4 flex w-full items-center justify-between text-sm font-semibold text-[#7447D7] transition hover:text-[#6036c4]"
                         >
                           {activa
-                            ? "Ver dashboard"
-                            : subarea.diagnosticoIniciado
-                              ? "Continuar diagnóstico"
-                              : "Comenzar diagnóstico"}
+                              ? "Ver subárea"
+                              : subarea.diagnosticoIniciado
+                                  ? "Continuar diagnóstico"
+                                  : "Comenzar diagnóstico"}
                           <ChevronRight className="h-4 w-4" />
                         </button>
                       </div>
