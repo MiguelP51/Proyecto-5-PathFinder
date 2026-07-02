@@ -11,7 +11,9 @@ import {
   Loader2,
   AlertCircle,
   HelpCircle,
-  ThumbsUp
+  ThumbsUp,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,6 +34,14 @@ export default function StudentFeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   useEffect(() => {
     if (status === "authenticated" && session?.backendJwt) {
@@ -92,10 +102,11 @@ export default function StudentFeedbackPage() {
   // Calculate metrics
   const totalOpinions = feedbacks.length;
   const ratingQuestions = [
-    { key: "calificarías al PathMentor", label: "Calidad de Asesoría" },
-    { key: "útil para tu preparación", label: "Utilidad del Feedback" },
-    { key: "cómodo expresando tus ideas", label: "Ambiente de Confianza" }
+    { key: "calificarías al PathMentor", label: "Calidad de Asesoría" }
   ];
+
+  // Sort feedbacks by idEntrevista descending (newest first)
+  const sortedFeedbacks = [...feedbacks].sort((a, b) => (b.idEntrevista || 0) - (a.idEntrevista || 0));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 pb-16 font-sans">
@@ -129,8 +140,8 @@ export default function StudentFeedbackPage() {
         ) : (
           <div className="space-y-8">
             
-            {/* Overview Stats Dashboard */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Overview Stats Dashboard (Only Total and Calidad de Asesoría in 2 columns) */}
+            <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
               
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 flex flex-col justify-between">
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider block">Total de Respuestas</span>
@@ -156,28 +167,31 @@ export default function StudentFeedbackPage() {
 
             </div>
 
-            {/* List of Feedback Cards */}
+            {/* List of Feedback Accordions */}
             <div className="space-y-6">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <ThumbsUp className="h-5 w-5 text-[#7447D7]" />
                 Detalle del Feedback de Estudiantes
               </h3>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                {feedbacks.map((f, index) => {
+              <div className="space-y-4 max-w-4xl">
+                {sortedFeedbacks.map((f, index) => {
                   const ratingAnswers = f.respuestas.filter((r) => r.tipoPregunta === "RATING");
                   const textAnswers = f.respuestas.filter((r) => r.tipoPregunta === "TEXT");
+                  const isExpanded = !!expandedRows[f.idEntrevista];
 
                   return (
                     <div
                       key={f.idEntrevista || index}
-                      className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 shadow-sm flex flex-col justify-between hover:border-[#7447D7]/40 dark:hover:border-purple-800/40 transition-colors duration-200"
+                      className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm overflow-hidden hover:border-[#7447D7]/40 dark:hover:border-purple-800/40 transition-all duration-200"
                     >
-                      <div>
-                        
-                        {/* Header of card */}
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4 flex-wrap gap-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      {/* Accordion Header */}
+                      <button
+                        onClick={() => toggleRow(f.idEntrevista)}
+                        className="w-full flex items-center justify-between p-6 text-left focus:outline-none cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
                             <Calendar className="h-4 w-4 text-[#7447D7]" />
                             <span>{f.fecha}</span>
                           </div>
@@ -186,49 +200,60 @@ export default function StudentFeedbackPage() {
                             <span>Postulante a: {f.puestoInteres || "No especificado"}</span>
                           </div>
                         </div>
+                        <div className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                          {isExpanded ? (
+                            <ChevronUp className="h-5.5 w-5.5 text-[#7447D7]" />
+                          ) : (
+                            <ChevronDown className="h-5.5 w-5.5 text-slate-400" />
+                          )}
+                        </div>
+                      </button>
 
-                        {/* Rating answers */}
-                        {ratingAnswers.length > 0 && (
-                          <div className="space-y-3.5 mb-4">
-                            {ratingAnswers.map((r, rIdx) => (
-                              <div key={rIdx} className="space-y-1">
-                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-tight block">
-                                  {r.textoPregunta}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  {r.valorEntero != null ? (
-                                    <>
-                                      {renderStars(r.valorEntero)}
-                                      <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                                        {r.valorEntero} / 5
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-slate-400 italic">No respondida</span>
-                                  )}
+                      {/* Accordion Content */}
+                      {isExpanded && (
+                        <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-950/20 animate-in slide-in-from-top-2 duration-200">
+                          {/* Rating answers */}
+                          {ratingAnswers.length > 0 && (
+                            <div className="space-y-4 mb-5 pt-3">
+                              {ratingAnswers.map((r, rIdx) => (
+                                <div key={rIdx} className="space-y-1">
+                                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-tight block">
+                                    {r.textoPregunta}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {r.valorEntero != null ? (
+                                      <>
+                                        {renderStars(r.valorEntero)}
+                                        <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                                          {r.valorEntero} / 5
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-slate-400 italic">No respondida</span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          )}
 
-                        {/* Text answers / comments */}
-                        {textAnswers.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-dashed border-slate-100 dark:border-slate-800 space-y-4">
-                            {textAnswers.map((r, rIdx) => (
-                              <div key={rIdx} className="space-y-1">
-                                <span className="text-[11px] font-bold text-[#7447D7] dark:text-purple-400 uppercase tracking-wider block">
-                                  {r.textoPregunta}
-                                </span>
-                                <p className="text-xs font-semibold leading-relaxed italic bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-350">
-                                  &ldquo;{r.valorTexto || "Sin comentarios."}&rdquo;
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                      </div>
+                          {/* Text answers / comments */}
+                          {textAnswers.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-dashed border-slate-150 dark:border-slate-800 space-y-4">
+                              {textAnswers.map((r, rIdx) => (
+                                <div key={rIdx} className="space-y-1.5">
+                                  <span className="text-[11px] font-bold text-[#7447D7] dark:text-purple-400 uppercase tracking-wider block">
+                                    {r.textoPregunta}
+                                  </span>
+                                  <p className="text-xs font-semibold leading-relaxed italic bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-350 break-words">
+                                    &ldquo;{r.valorTexto || "Sin comentarios."}&rdquo;
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

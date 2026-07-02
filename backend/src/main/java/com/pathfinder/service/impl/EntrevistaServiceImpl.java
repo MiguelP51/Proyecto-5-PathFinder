@@ -389,6 +389,8 @@ public class EntrevistaServiceImpl implements EntrevistaService {
                 sumVal += ec.getNivelSeleccionado();
             }
             double avg = sumVal / ent.getCompetenciasEvaluadas().size();
+            // Normalizar escala de competencias dinámicas (0-3) a la escala de visualización (1-5) para que coincida con el máximo de 5.0/5.0
+            avg = 1.0 + (avg / 3.0) * 4.0;
             promedio = Math.round(avg * 10.0) / 10.0;
         } else if (ent.getCompetenciaComunicacion() != null && ent.getCompetenciaTecnica() != null &&
             ent.getCompetenciaProactividad() != null && ent.getCompetenciaResolucion() != null) {

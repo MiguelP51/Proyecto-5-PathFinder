@@ -896,6 +896,195 @@
     min-height: 44px;
 }
 
+.aiAssistantSection {
+    margin-top: 24px;
+    padding: 22px;
+    border-radius: 20px;
+    border: 1px solid #c7d2fe;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 56%, #f5f3ff 100%);
+}
+
+.aiAssistantHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.aiAssistantEyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.aiAssistantHeader h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.aiAssistantStatus {
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 1px solid #c4b5fd;
+    background: #ffffff;
+    color: #6d28d9;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 7px 10px;
+    text-transform: uppercase;
+}
+
+.aiAssistantIntro {
+    margin: 0 0 16px 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.aiAssistantGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.aiAssistantItem {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.76);
+    padding: 14px;
+}
+
+.aiAssistantItemTitle {
+    display: block;
+    margin-bottom: 5px;
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.aiAssistantItem p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.aiAssistantButton {
+    margin-top: 16px;
+    width: 100%;
+    border: 1px solid #4f46e5;
+    border-radius: 14px;
+    background: #4f46e5;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aiAssistantButton:hover:not(:disabled) {
+    background: #4338ca;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.18);
+}
+
+.aiAssistantButton:disabled {
+    border-color: #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.aiResultsStack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aiResultBlock {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.82);
+    padding: 14px;
+}
+
+.aiResultBlock p {
+    margin: 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.aiResultList {
+    margin: 0;
+    padding-left: 18px;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.aiResultList li + li {
+    margin-top: 6px;
+}
+
+.aiSkillPathList,
+.aiQuestionList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.aiSkillPathItem {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 12px;
+}
+
+.aiSkillPathItem strong,
+.aiQuestionItem strong {
+    display: block;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.aiSkillPathItem p,
+.aiQuestionItem p {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.aiSkillPathItem span,
+.aiQuestionItem span {
+    align-self: flex-start;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 5px 8px;
+    text-transform: uppercase;
+}
+
+.aiQuestionItem {
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 12px;
+}
+
 .btnCardAction {
     width: 100%;
     height: 48px;
@@ -942,6 +1131,15 @@
     
     .metricsGrid {
         grid-template-columns: 1fr;
+    }
+
+    .cardsGrid,
+    .aiAssistantGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .aiAssistantHeader {
+        flex-direction: column;
     }
     
     .table td, .table th {

@@ -109,21 +109,12 @@ export default function Navbar() {
               </Link>
 
               {!session ? (
-                <>
-                  <Link
-                    href="/login"
-                    className="font-semibold text-slate-600 hover:text-[#7447D7] dark:text-slate-300 dark:hover:text-white transition-colors duration-200"
-                  >
-                    Iniciar sesión
-                  </Link>
-
-                  <Link
-                    href="/register"
-                    className="rounded-xl bg-gradient-to-r from-[#1E3A8A] to-[#A855F7] px-5 py-3 font-semibold text-white hover:opacity-90 transition-opacity"
-                  >
-                    Empieza ahora
-                  </Link>
-                </>
+                <Link
+                  href="/login"
+                  className="rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-5 py-3 font-semibold text-white hover:opacity-90 transition-opacity"
+                >
+                  Empieza ahora
+                </Link>
               ) : (
                 <>
                   {/* USER CARD */}
@@ -326,23 +317,13 @@ export default function Navbar() {
           )}
 
           {!session && (
-            <>
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              >
-                Iniciar sesión
-              </Link>
-
-              <Link
-                href="/register"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl bg-gradient-to-r from-[#1E3A8A] to-[#A855F7] px-4 py-3 text-center font-semibold text-white"
-              >
-                Empieza ahora
-              </Link>
-            </>
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] px-4 py-3 text-center font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              Empieza ahora
+            </Link>
           )}
         </nav>
       </aside>

@@ -16,6 +16,7 @@ import {
   UserCheck,
   ChevronDown,
   Download,
+  X,
 } from "lucide-react";
 
 interface Usuario {
@@ -61,6 +62,8 @@ export default function UsuariosPage() {
   const [updating, setUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [updateError, setUpdateError] = useState("");
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleSearchTerm, setRoleSearchTerm] = useState("");
 
   const cargarUsuarios = async () => {
     try {
@@ -254,7 +257,13 @@ export default function UsuariosPage() {
             Consulte la lista completa de personas inscritas a través de Google y asigne los accesos de administradores y Path Mentors del sistema.
           </p>
         </div>
-
+        <button
+          onClick={() => setShowRoleModal(true)}
+          className="h-11 px-5 rounded-2xl bg-gradient-to-r from-[#0E3E66] to-[#7447D7] hover:opacity-95 text-white text-xs font-bold transition shadow-md cursor-pointer flex items-center gap-2"
+        >
+          <Shield className="h-4 w-4" />
+          <span>Cambiar Rol de Usuario</span>
+        </button>
       </section>
 
       {/* Alertas de Notificación de Éxito */}
@@ -362,6 +371,11 @@ export default function UsuariosPage() {
                 <ChevronDown className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-slate-400" />
               </div>
 
+              {/* Contador de estudiantes */}
+              <span className="inline-flex items-center justify-center bg-blue-50 text-[#0E3E66] border border-blue-200/50 px-3.5 h-11 rounded-2xl text-xs font-extrabold shadow-sm">
+                Estudiantes en esta etapa: {usuariosFiltrados.length}
+              </span>
+
               {/* Botón Descargar CSV */}
               <button
                 onClick={exportarCSV}
@@ -413,7 +427,6 @@ export default function UsuariosPage() {
                   <th className="px-6 py-4">Etapa de Enrolamiento</th>
                   <th className="px-6 py-4">Progreso SkillPaths</th>
                   <th className="px-6 py-4">Challenges Completados</th>
-                  <th className="px-6 py-4 text-right">Acción / Rol</th>
                 </tr>
               </thead>
             ) : (
@@ -423,8 +436,6 @@ export default function UsuariosPage() {
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Correo Electrónico</th>
                   <th className="px-6 py-4">Fecha de Registro</th>
-                  <th className="px-6 py-4">Rol Actual</th>
-                  <th className="px-6 py-4 text-right">Acción</th>
                 </tr>
               </thead>
             )}
@@ -560,51 +571,14 @@ export default function UsuariosPage() {
                               : "No registrada"}
                           </td>
 
-                          {/* Columna Rol */}
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold border ${usuario.rol === "ADMIN"
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : usuario.rol === "MENTOR"
-                                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                                  : "bg-purple-50 text-purple-700 border-purple-200"
-                                }`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${usuario.rol === "ADMIN"
-                                  ? "bg-rose-500"
-                                  : usuario.rol === "MENTOR"
-                                    ? "bg-blue-500"
-                                    : "bg-purple-500"
-                                  }`}
-                              />
-                              {getRoleDisplayName(usuario.rol)}
-                            </span>
-                          </td>
                         </>
                       )}
-
-                      {/* Columna Acción - Siempre Visible para permitir cambio de rol */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="relative inline-block w-40">
-                          <select
-                            value={usuario.rol}
-                            onChange={(e) => handleRoleChangeInitiate(usuario, e.target.value)}
-                            className="w-full h-9 rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-xs font-bold text-slate-600 outline-none appearance-none cursor-pointer hover:border-[#0E3E66] transition"
-                          >
-                            <option value="USER">Estudiante</option>
-                            <option value="MENTOR">Path Mentor</option>
-                            <option value="ADMIN">Administrador</option>
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-slate-400" />
-                        </div>
-                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={roleFilter === "USER" ? 6 : 5} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={roleFilter === "USER" ? 5 : 3} className="px-6 py-12 text-center text-slate-400">
                     <p className="font-semibold text-slate-500">No se encontraron usuarios</p>
                     <p className="text-xs text-slate-400 mt-1">Prueba a modificar los filtros o término de búsqueda.</p>
                   </td>
@@ -708,6 +682,110 @@ export default function UsuariosPage() {
               </button>
             </div>
           </article>
+        </div>
+      )}
+
+      {/* Modal/Diálogo de Búsqueda y Cambio de Rol (Ventana Saliente) */}
+      {showRoleModal && (
+        <div className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 flex flex-col gap-4 max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-lg font-black text-[#0E3E66]">Gestión de Roles</h3>
+                <p className="text-xs text-slate-400">Busca un usuario por su nombre o correo para asignarle un nuevo rol.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setRoleSearchTerm("");
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Buscador dentro del modal */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Escribe el nombre o correo del usuario..."
+                value={roleSearchTerm}
+                onChange={(e) => setRoleSearchTerm(e.target.value)}
+                className="w-full h-11 rounded-2xl border border-slate-200 pl-10 pr-4 text-xs font-semibold text-slate-700 outline-none focus:border-[#0E3E66] transition bg-slate-50/50"
+              />
+            </div>
+
+            {/* Listado de resultados filtrados */}
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[50vh]">
+              {(() => {
+                const matched = roleSearchTerm.trim() === ""
+                  ? usuarios.slice(0, 10)
+                  : usuarios.filter(u =>
+                      u.nombreCompleto?.toLowerCase().includes(roleSearchTerm.toLowerCase()) ||
+                      u.correo?.toLowerCase().includes(roleSearchTerm.toLowerCase())
+                    );
+
+                if (matched.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      No se encontraron usuarios coincidentes.
+                    </div>
+                  );
+                }
+
+                return matched.map(u => (
+                  <div key={u.idUsuario} className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-slate-50/40 hover:bg-slate-50 transition">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {u.avatarUrl ? (
+                        <img
+                          src={u.avatarUrl}
+                          alt={u.nombreCompleto}
+                          className="h-9 w-9 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600 shrink-0">
+                          {getInitials(u.nombreCompleto)}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-xs truncate">{u.nombreCompleto}</p>
+                        <p className="text-[10px] text-slate-400 font-mono truncate">{u.correo}</p>
+                      </div>
+                    </div>
+
+                    <div className="relative shrink-0 w-36">
+                      <select
+                        value={u.rol}
+                        onChange={(e) => handleRoleChangeInitiate(u, e.target.value)}
+                        className="w-full h-8 rounded-xl border border-slate-200 bg-white pl-2 pr-7 text-[11px] font-bold text-slate-600 outline-none appearance-none cursor-pointer hover:border-[#0E3E66] transition"
+                      >
+                        <option value="USER">Estudiante</option>
+                        <option value="MENTOR">Path Mentor</option>
+                        <option value="ADMIN">Administrador</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 pointer-events-none text-slate-400" />
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setRoleSearchTerm("");
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

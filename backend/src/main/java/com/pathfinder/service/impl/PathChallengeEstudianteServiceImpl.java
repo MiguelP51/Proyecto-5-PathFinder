@@ -1,5 +1,9 @@
 package com.pathfinder.service.impl;
 
+import com.pathfinder.model.entity.PerfilEntrenamiento;
+import com.pathfinder.repository.PerfilEntrenamientoRepository;
+import com.pathfinder.repository.InsigniaRepository;
+import com.pathfinder.service.GamificacionService;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeAvanceRequestDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeEstudianteResponseDTO;
 import com.pathfinder.dto.student.pathchallenge.PathChallengeFinalizarRequestDTO;
@@ -64,6 +68,7 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
     private final UsuarioPathChallengeTaskRepository usuarioPathChallengeTaskRepository;
     private final ObjectMapper objectMapper;
     private final S3Client s3Client;
+    private final GamificacionService gamificacionService;
 
     @Value("${aws.bucket-name}")
     private String bucketName;
@@ -336,6 +341,10 @@ public class PathChallengeEstudianteServiceImpl implements PathChallengeEstudian
 
             challenge.setCompletadas(completadasActuales + 1);
             pathChallengeRepository.save(challenge);
+
+            // HU-EST-32: otorgar XP e insignias al completar la misión por primera vez
+            gamificacionService.sumarXp(usuario, challenge.getXp());
+            gamificacionService.evaluarYOtorgarInsignias(usuario);
         }
 
         return mapToResponse(challenge, avance, true);

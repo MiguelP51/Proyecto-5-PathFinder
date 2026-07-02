@@ -452,7 +452,7 @@ export default function SimulationSchedulePage() {
                   <div className="mt-6 p-4 rounded-xl bg-purple-50/30 border border-purple-100/50 space-y-3 animate-fade-in">
                     <h4 className="text-xs font-bold text-[#7447D7] uppercase tracking-wider">Acerca del PathMentor</h4>
                     {selectedMentor.perfilProfesional && (
-                      <p className="text-xs text-slate-600 leading-relaxed italic">
+                      <p className="text-xs text-slate-600 leading-relaxed italic break-words">
                         &ldquo;{selectedMentor.perfilProfesional}&rdquo;
                       </p>
                     )}
@@ -886,7 +886,7 @@ export default function SimulationSchedulePage() {
                   {mentorProfileDetails.bio && (
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Biografía</h4>
-                      <p className="text-xs leading-relaxed font-semibold italic bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-xs leading-relaxed font-semibold italic bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-words">
                         &ldquo;{mentorProfileDetails.bio}&rdquo;
                       </p>
                     </div>

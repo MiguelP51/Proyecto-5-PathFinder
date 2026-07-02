@@ -2,7 +2,9 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { Award, BookOpen, Target, TrendingUp } from "lucide-react";
 import Footer from "@/components/Footer";
 import { apiFetch } from "@/lib/api";
@@ -229,6 +231,30 @@ export default function ExploracionDashboardPage() {
   const { data: session, status } = useSession();
   const token = (session as { backendJwt?: string } | null)?.backendJwt;
   const { notificaciones: notificacionesReales, loading: notificationsLoading } = useNotifications(token);
+  const router = useRouter();
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetProgress = async () => {
+    const confirmReset = window.confirm(
+      "¿Estás seguro de que deseas iniciar una nueva simulación? Esto archivará tu entrevista actual y reiniciará tus etapas de CV y preparación, pero conservarás tus resultados del test DISC."
+    );
+    if (!confirmReset) return;
+
+    try {
+      setResetting(true);
+      await apiFetch("/api/profile/reset", {
+        method: "POST",
+      }, session?.backendJwt);
+      
+      toast.success("¡Tu progreso de simulación ha sido reiniciado! Ahora puedes iniciar de nuevo.");
+      router.push("/user/home");
+    } catch (err) {
+      console.error("Error al reiniciar progreso:", err);
+      toast.error("No se pudo reiniciar el progreso de simulación.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const getTipoLabel = (tipo: string) => {
     switch (tipo) {
@@ -526,72 +552,35 @@ export default function ExploracionDashboardPage() {
 
           {/* Resultados de la Entrevista (Feedback) */}
           {interviewFeedback && (
-            <section className="mb-8 rounded-3xl border border-purple-200 bg-white p-6 md:p-8 shadow-md">
-              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-purple-100 pb-4 mb-6">
+            <section className="mb-8 rounded-3xl border border-purple-200 bg-purple-50/40 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-sm animate-fade-in">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-[#7447D7]">
+                  <Award className="h-6 w-6" />
+                </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#7447D7] tracking-wider block">Resultados de tu Proceso</span>
-                  <h2 className="text-xl font-black text-slate-900">Informe de retroalimentación</h2>
-                  <p className="text-xs text-slate-500 mt-1 font-semibold">
-                    Simulación de Entrevista para: <span className="text-[#7447D7]">{interviewFeedback.puesto || "General"}</span> | Realizada por el mentor <span className="font-bold text-slate-800">{interviewFeedback.mentorNombre}</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#7447D7] block font-extrabold">Simulación Finalizada</span>
+                  <h3 className="text-sm font-bold text-slate-800 mt-0.5">
+                    Tu simulación de entrevista para <span className="text-[#7447D7] font-extrabold">{interviewFeedback.puesto || "General"}</span> ha sido completada y calificada.
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Ya puedes ver el desglose completo de tus calificaciones y comentarios en el informe de evaluación, o programar una nueva simulación si deseas rehacerla.
                   </p>
                 </div>
-                {interviewFeedback.promedioCalificacion && (
-                  <div className="mt-4 md:mt-0 flex flex-col items-center bg-purple-50 border border-purple-100 rounded-2xl p-4 shrink-0">
-                    <span className="text-[10px] text-purple-700 font-extrabold uppercase block tracking-wider">Promedio General</span>
-                    <span className="text-3xl font-black text-[#7447D7]">{interviewFeedback.promedioCalificacion.toFixed(1)}/5.0</span>
-                  </div>
-                )}
               </div>
-
-              {/* 1. Calificaciones por Competencias - Ocupa todo el ancho */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Calificación por competencias</h3>
-                <div className="grid gap-4 sm:grid-cols-4">
-                  {interviewFeedback.competenciasEvaluadas && interviewFeedback.competenciasEvaluadas.length > 0 ? (
-                    interviewFeedback.competenciasEvaluadas.map((comp: any, idx: number) => (
-                      <div key={idx} className="p-4 rounded-2xl bg-purple-50/20 border border-purple-100/35 space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold">
-                          <span className="text-slate-800 truncate" title={comp.nombreCompetencia}>{comp.nombreCompetencia}</span>
-                          <span className="text-[#7447D7] bg-purple-100 px-2 py-0.5 rounded-full shrink-0">Nivel {comp.nivelSeleccionado}</span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-slate-500 font-medium">
-                          {comp.descripcionNivel}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    // Fallback to legacy
-                    [
-                      { label: "Comunicación", score: interviewFeedback.competenciaComunicacion },
-                      { label: "Habilidades Técnicas", score: interviewFeedback.competenciaTecnica },
-                      { label: "Proactividad e Iniciativa", score: interviewFeedback.competenciaProactividad },
-                      { label: "Resolución de Problemas", score: interviewFeedback.competenciaResolucion }
-                    ].map((comp, idx) => (
-                      <div key={idx} className="p-4 rounded-2xl bg-purple-50/20 border border-purple-100/35 space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold">
-                          <span className="text-slate-800">{comp.label}</span>
-                          <span className="text-[#7447D7] bg-purple-100 px-2 py-0.5 rounded-full">{comp.score}/5</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#7447D7] to-[#D43EE6] rounded-full"
-                            style={{ width: `${((comp.score || 0) / 5) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* 2. Observaciones del Mentor */}
-              <div className="space-y-3 border-t border-slate-100 pt-5">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Comentarios y observaciones</h3>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100/80">
-                  <p className="text-sm font-semibold italic text-slate-600 leading-relaxed">
-                    &ldquo;{interviewFeedback.feedbackComentarios || "Sin comentarios adicionales por el momento."}&rdquo;
-                  </p>
-                </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto flex-shrink-0">
+                <Link
+                  href="/user/app/simulation-details"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#7447D7] to-[#D43EE6] hover:opacity-95 text-white text-xs font-bold px-6 transition shadow-md shadow-purple-200/30 cursor-pointer text-center whitespace-nowrap"
+                >
+                  Ver mi Evaluación
+                </Link>
+                <button
+                  onClick={handleResetProgress}
+                  disabled={resetting}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-[#7447D7] disabled:opacity-50 text-xs font-bold px-6 transition cursor-pointer text-center whitespace-nowrap"
+                >
+                  {resetting ? "Reiniciando..." : "Rehacer Simulación"}
+                </button>
               </div>
             </section>
           )}
@@ -896,6 +885,13 @@ export default function ExploracionDashboardPage() {
                     }}
                   />
                 </div>
+
+                <Link
+                  href="/user/app/mi-progreso"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#7447D7] hover:text-[#7447D7]"
+                >
+                  Ver mi progreso completo
+                </Link>
               </div>
 
               {/* Tus Habilidades — cuadro propio */}
