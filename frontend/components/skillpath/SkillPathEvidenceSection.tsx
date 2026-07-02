@@ -109,6 +109,27 @@ export function SkillPathEvidenceSection({
         setSelectedFile(file);
     };
 
+    const getUploadSuccessMessage = (
+        uploadedEvidence?: SkillPathEvidence | null,
+        wasReplacing?: boolean,
+    ) => {
+        if (uploadedEvidence?.status === "VALIDO") {
+            return "Tu certificado fue validado automáticamente. El SkillPath se actualizó correctamente.";
+        }
+
+        if (uploadedEvidence?.status === "RECHAZADO") {
+            return "No se pudo validar automáticamente el certificado. Revisa el enlace o sube una nueva evidencia.";
+        }
+
+        if (uploadedEvidence?.reviewerComment?.includes("[MOCK COURSERA API]")) {
+            return "Tu evidencia fue recibida. La validación automática no fue concluyente y quedó pendiente de revisión.";
+        }
+
+        return wasReplacing
+            ? "Evidencia reemplazada correctamente. Quedó pendiente de validación."
+            : "Evidencia enviada correctamente. Quedó pendiente de validación.";
+    };
+
     const handleUpload = async () => {
         const cleanUrl = verificationUrl.trim();
 
@@ -146,9 +167,7 @@ export function SkillPathEvidenceSection({
             setSelectedFile(null);
             setVerificationUrl(updatedSkillPath.evidence?.verificationUrl ?? cleanUrl);
             setSuccessMessage(
-                evidence
-                    ? "Evidencia reemplazada correctamente. Quedó pendiente de validación."
-                    : "Evidencia enviada correctamente. Quedó pendiente de validación.",
+                getUploadSuccessMessage(updatedSkillPath.evidence, Boolean(evidence)),
             );
 
             if (fileInputRef.current) {

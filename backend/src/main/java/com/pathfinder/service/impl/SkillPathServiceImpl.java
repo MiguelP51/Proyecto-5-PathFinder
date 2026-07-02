@@ -8,6 +8,9 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.InputStream;
 import com.pathfinder.dto.response.SkillPathEstudianteResponseDTO;
+import com.pathfinder.model.enums.CertificateValidationStatus;
+import com.pathfinder.service.integration.certificate.CertificateValidationResult;
+import com.pathfinder.service.integration.certificate.CertificateValidationService;
 import com.pathfinder.model.entity.SkillPath;
 import com.pathfinder.model.entity.UsuarioSkillPath;
 import com.pathfinder.repository.SkillPathRepository;
@@ -42,6 +45,7 @@ public class SkillPathServiceImpl implements SkillPathService {
     private final UsuarioRepository usuarioRepository;
     private final EvidenciaSkillPathRepository evidenciaSkillPathRepository;
     private final S3Client s3Client;
+    private final CertificateValidationService certificateValidationService;
 
     @Value("${aws.bucket-name}")
     private String bucketName;
@@ -383,12 +387,25 @@ public class SkillPathServiceImpl implements SkillPathService {
         evidencia.setEstadoValidacion("PENDIENTE");
         evidencia.setFechaSubida(LocalDateTime.now());
 
+        if ("COURSERA".equals(plataformaNormalizada) && tieneUrlVerificacion) {
+            aplicarValidacionMockCoursera(
+                    evidencia,
+                    avanceGuardado,
+                    usuario,
+                    skillPath,
+                    urlVerificacionLimpia
+            );
+        }
+
+        UsuarioSkillPath avanceActualizado =
+                usuarioSkillPathRepository.save(avanceGuardado);
+
         EvidenciaSkillPath evidenciaGuardada =
                 evidenciaSkillPathRepository.save(evidencia);
 
         return mapToSkillPathEstudianteResponse(
                 skillPath,
-                avanceGuardado,
+                avanceActualizado,
                 evidenciaGuardada
         );
     }
@@ -438,6 +455,51 @@ public class SkillPathServiceImpl implements SkillPathService {
                 avanceGuardado,
                 null
         );
+    }
+
+    private void aplicarValidacionMockCoursera(
+            EvidenciaSkillPath evidencia,
+            UsuarioSkillPath usuarioSkillPath,
+            Usuario usuario,
+            SkillPath skillPath,
+            String urlVerificacion
+    ) {
+        CertificateValidationResult validationResult =
+                certificateValidationService.validateCourseraCertificate(
+                        urlVerificacion,
+                        usuario.getCorreo(),
+                        skillPath.getTitulo()
+                );
+
+        evidencia.setComentarioRevision(
+                "[MOCK COURSERA API] " + validationResult.message()
+        );
+
+        if (validationResult.status() == CertificateValidationStatus.VALID) {
+            evidencia.setEstadoValidacion("VALIDO");
+            evidencia.setFechaRevision(LocalDateTime.now());
+
+            usuarioSkillPath.setEstado("VALIDADO");
+            usuarioSkillPath.setProgreso(100);
+            usuarioSkillPath.setFechaCompletado(LocalDateTime.now());
+            usuarioSkillPath.setFechaValidacion(LocalDateTime.now());
+            usuarioSkillPath.setFechaModificacion(LocalDateTime.now());
+            return;
+        }
+
+        if (validationResult.status() == CertificateValidationStatus.INVALID) {
+            evidencia.setEstadoValidacion("RECHAZADO");
+            evidencia.setFechaRevision(LocalDateTime.now());
+
+            usuarioSkillPath.setEstado("RECHAZADO");
+            usuarioSkillPath.setFechaModificacion(LocalDateTime.now());
+            return;
+        }
+
+        evidencia.setEstadoValidacion("PENDIENTE");
+
+        usuarioSkillPath.setEstado("VALIDACION_PENDIENTE");
+        usuarioSkillPath.setFechaModificacion(LocalDateTime.now());
     }
 
     private void validarArchivoEvidenciaOpcional(MultipartFile file) {
