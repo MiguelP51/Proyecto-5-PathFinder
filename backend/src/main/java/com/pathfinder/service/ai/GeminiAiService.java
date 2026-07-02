@@ -3,6 +3,8 @@ package com.pathfinder.service.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pathfinder.config.AiProperties;
+import com.pathfinder.dto.ai.MentorFeedbackDraftResponseDTO;
+import com.pathfinder.dto.ai.MentorInterviewRecommendationsResponseDTO;
 import com.pathfinder.dto.ai.StudentCvSuggestionsResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +32,7 @@ public class GeminiAiService {
     private final ObjectMapper objectMapper;
 
     public <T> T generateJson(String prompt, Class<T> responseType) {
-        String responseText = generateText(prompt);
+        String responseText = generateText(prompt, responseType);
         String json = extractJson(responseText);
 
         try {
@@ -46,7 +48,7 @@ public class GeminiAiService {
         }
     }
 
-    private String generateText(String prompt) {
+    private String generateText(String prompt, Class<?> responseType) {
         validateConfiguration();
 
         try {
@@ -63,7 +65,7 @@ public class GeminiAiService {
                             "thinking_level", "low",
                             "max_output_tokens", aiProperties.getMaxOutputTokens()
                     ),
-                    "response_format", buildCvSuggestionsResponseFormat()
+                    "response_format", buildResponseFormat(responseType)
             ));
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -90,6 +92,18 @@ public class GeminiAiService {
             throw new IllegalStateException("No se pudo conectar con Gemini: "
                     + e.getClass().getSimpleName() + " - " + e.getMessage(), e);
         }
+    }
+
+    private Map<String, Object> buildResponseFormat(Class<?> responseType) {
+        if (MentorFeedbackDraftResponseDTO.class.equals(responseType)) {
+            return buildMentorFeedbackDraftResponseFormat();
+        }
+
+        if (MentorInterviewRecommendationsResponseDTO.class.equals(responseType)) {
+            return buildMentorRecommendationsResponseFormat();
+        }
+
+        return buildCvSuggestionsResponseFormat();
     }
 
     private void validateConfiguration() {
@@ -237,6 +251,112 @@ public class GeminiAiService {
                                 "accionesPrioritarias",
                                 "camposPorCompletar",
                                 "perfilProfesionalSugerido"
+                        )
+                )
+        );
+    }
+
+    private Map<String, Object> buildMentorRecommendationsResponseFormat() {
+        return Map.of(
+                "type", "text",
+                "mime_type", "application/json",
+                "schema", Map.of(
+                        "type", "object",
+                        "properties", Map.ofEntries(
+                                entry("resumenEstudiante", Map.of(
+                                        "type", "string",
+                                        "maxLength", 220
+                                )),
+                                entry("tipsCv", Map.of(
+                                        "type", "array",
+                                        "maxItems", 3,
+                                        "items", Map.of("type", "string", "maxLength", 160)
+                                )),
+                                entry("skillpathsRecomendados", Map.of(
+                                        "type", "array",
+                                        "maxItems", 3,
+                                        "items", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "idSkillPath", Map.of("type", "integer"),
+                                                        "titulo", Map.of("type", "string", "maxLength", 120),
+                                                        "prioridad", Map.of("type", "string", "maxLength", 10),
+                                                        "motivo", Map.of("type", "string", "maxLength", 180)
+                                                ),
+                                                "required", List.of("idSkillPath", "titulo", "prioridad", "motivo")
+                                        )
+                                )),
+                                entry("preguntasSugeridas", Map.of(
+                                        "type", "array",
+                                        "maxItems", 4,
+                                        "items", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "tipo", Map.of("type", "string", "maxLength", 30),
+                                                        "pregunta", Map.of("type", "string", "maxLength", 180),
+                                                        "objetivo", Map.of("type", "string", "maxLength", 160)
+                                                ),
+                                                "required", List.of("tipo", "pregunta", "objetivo")
+                                        )
+                                )),
+                                entry("puntosAValidar", Map.of(
+                                        "type", "array",
+                                        "maxItems", 3,
+                                        "items", Map.of("type", "string", "maxLength", 160)
+                                ))
+                        ),
+                        "required", List.of(
+                                "resumenEstudiante",
+                                "tipsCv",
+                                "skillpathsRecomendados",
+                                "preguntasSugeridas",
+                                "puntosAValidar"
+                        )
+                )
+        );
+    }
+
+    private Map<String, Object> buildMentorFeedbackDraftResponseFormat() {
+        return Map.of(
+                "type", "text",
+                "mime_type", "application/json",
+                "schema", Map.of(
+                        "type", "object",
+                        "properties", Map.ofEntries(
+                                entry("resultadoSugerido", Map.of(
+                                        "type", "string",
+                                        "maxLength", 10
+                                )),
+                                entry("fortalezas", Map.of(
+                                        "type", "string",
+                                        "maxLength", 600
+                                )),
+                                entry("areasMejora", Map.of(
+                                        "type", "string",
+                                        "maxLength", 600
+                                )),
+                                entry("comentarios", Map.of(
+                                        "type", "string",
+                                        "maxLength", 700
+                                )),
+                                entry("recomendacionesSeguimiento", Map.of(
+                                        "type", "array",
+                                        "maxItems", 3,
+                                        "items", Map.of("type", "string", "maxLength", 160)
+                                )),
+                                entry("advertencias", Map.of(
+                                        "type", "array",
+                                        "maxItems", 2,
+                                        "items", Map.of("type", "string", "maxLength", 160)
+                                ))
+                        ),
+                        "required", List.of(
+                                "resultadoSugerido",
+                                "fortalezas",
+                                "areasMejora",
+                                "comentarios",
+                                "recomendacionesSeguimiento",
+                                "advertencias"
                         )
                 )
         );

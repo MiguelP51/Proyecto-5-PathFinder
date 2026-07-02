@@ -36,6 +36,15 @@ interface Feedback {
   }>;
 }
 
+interface AiFeedbackDraft {
+  resultadoSugerido?: 'Alta' | 'Media' | 'Baja' | '';
+  fortalezas?: string;
+  areasMejora?: string;
+  comentarios?: string;
+  recomendacionesSeguimiento?: string[];
+  advertencias?: string[];
+}
+
 // Inline SVG Icons
 const ChatIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -135,6 +144,8 @@ export default function PathMentorFeedbacks() {
   const [formFortalezas, setFormFortalezas] = useState('');
   const [formAreasMejora, setFormAreasMejora] = useState('');
   const [formComentarios, setFormComentarios] = useState('');
+  const [aiFeedbackDraft, setAiFeedbackDraft] = useState<AiFeedbackDraft | null>(null);
+  const [loadingAiFeedbackDraft, setLoadingAiFeedbackDraft] = useState(false);
   const [formDarFeedbackCv, setFormDarFeedbackCv] = useState(true);
   const [formFeedbackCv, setFormFeedbackCv] = useState('');
 
@@ -281,6 +292,11 @@ export default function PathMentorFeedbacks() {
       loadFeedbacks();
     }
   }, [status, session]);
+
+  useEffect(() => {
+    setAiFeedbackDraft(null);
+    setLoadingAiFeedbackDraft(false);
+  }, [selectedFeedback?.id]);
 
   const loadFeedbacks = async () => {
     try {
@@ -522,6 +538,58 @@ export default function PathMentorFeedbacks() {
     toast.success("Borrador guardado localmente.");
     setActiveView('list');
     loadFeedbacks();
+  };
+
+  const handleGenerateAiFeedbackDraft = async () => {
+    if (!selectedFeedback || !session?.backendJwt) return;
+
+    const competenciasEvaluadas = selectedCompetencyNames.map(name => {
+      const c = allCompetencias.find(comp => comp.nombre === name) || {
+        nombre: name,
+        nivel1: 'Alcanza los criterios minimos'
+      };
+      const sel = selectedCompetencyLevels[name] || { nivel: 1, descripcion: c.nivel1 };
+      return {
+        nombreCompetencia: name,
+        nivelSeleccionado: sel.nivel,
+        descripcionNivel: sel.descripcion
+      };
+    });
+
+    try {
+      setLoadingAiFeedbackDraft(true);
+      const response = await apiFetch<AiFeedbackDraft>(
+        `/api/ai/mentor/entrevistas/${selectedFeedback.id}/feedback-borrador`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            resultadoActual: formResult,
+            fortalezasActuales: formFortalezas,
+            areasMejoraActuales: formAreasMejora,
+            comentariosActuales: formComentarios,
+            competenciasEvaluadas
+          })
+        },
+        session.backendJwt
+      );
+
+      setAiFeedbackDraft(response);
+
+      const resultadoSugerido = response.resultadoSugerido;
+      if (resultadoSugerido === 'Alta' || resultadoSugerido === 'Media' || resultadoSugerido === 'Baja') {
+        setFormResult(resultadoSugerido);
+      }
+      if (response.fortalezas) setFormFortalezas(response.fortalezas);
+      if (response.areasMejora) setFormAreasMejora(response.areasMejora);
+      if (response.comentarios) setFormComentarios(response.comentarios);
+
+      toast.success('Borrador IA aplicado al formulario.');
+    } catch (err) {
+      console.error('Error generando borrador IA de feedback:', err);
+      toast.error('Error al generar borrador IA: ' + (err instanceof Error ? err.message : err));
+    } finally {
+      setLoadingAiFeedbackDraft(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -1211,6 +1279,55 @@ export default function PathMentorFeedbacks() {
                     disabled={formMode === 'ver'}
                   />
                 </div>
+              </section>
+
+              {/* SECTION 5: ASISTENTE DE IA */}
+              <section className={styles.aiCard}>
+                <div className={styles.aiCardTitle}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                  Asistente de IA para feedback
+                </div>
+                <p className={styles.aiCardText}>
+                  Genera un borrador editable usando el perfil del estudiante, DISC, puesto y competencias seleccionadas.
+                </p>
+                {formMode !== 'ver' && (
+                  <button
+                    type="button"
+                    className={styles.aiDraftButton}
+                    onClick={handleGenerateAiFeedbackDraft}
+                    disabled={loadingAiFeedbackDraft}
+                  >
+                    {loadingAiFeedbackDraft ? 'Generando borrador...' : 'Generar borrador IA'}
+                  </button>
+                )}
+                {aiFeedbackDraft && (
+                  <div className={styles.aiDraftResult}>
+                    {(aiFeedbackDraft.recomendacionesSeguimiento?.length ?? 0) > 0 && (
+                      <div>
+                        <span className={styles.aiDraftResultTitle}>Recomendaciones de seguimiento</span>
+                        <ul>
+                          {aiFeedbackDraft.recomendacionesSeguimiento?.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(aiFeedbackDraft.advertencias?.length ?? 0) > 0 && (
+                      <div>
+                        <span className={styles.aiDraftResultTitle}>Advertencias</span>
+                        <ul>
+                          {aiFeedbackDraft.advertencias?.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
 
               {/* ACTION BUTTONS */}
