@@ -57,3 +57,11 @@ scripts/
 db_schema/
 observaciones/
 
+# =========================================================================
+# TERRAFORM
+# =========================================================================
+*.tfvars
+*.tfvars.private
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/

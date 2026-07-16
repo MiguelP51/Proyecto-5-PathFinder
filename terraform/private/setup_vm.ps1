@@ -205,21 +205,21 @@ mkdir -p certbot/www
 mkdir -p nginx
 
 echo "Configuring SSL Certificate fallback..."
-CERT_PATH="/etc/letsencrypt/live/pathfinder.2bd.net/fullchain.pem"
+CERT_PATH="/etc/letsencrypt/live/pathfinder.work.gd/fullchain.pem"
 if [ -f "$CERT_PATH" ]; then
     echo "SSL mode enabled. Using SSL Nginx configuration."
 else
     echo "Falling back to HTTP (non-SSL) configuration..."
     # Copy local.conf configuration to Nginx configuration
-    cp nginx/local.conf nginx/nginx.prod.conf
+    cp nginx/local.conf nginx/nginx.conf
     # Replace localhost server name with current domain
-    sed -i 's/server_name localhost;/server_name pathfinder.2bd.net www.pathfinder.2bd.net;/g' nginx/nginx.prod.conf
+    sed -i 's/server_name localhost;/server_name pathfinder.work.gd www.pathfinder.work.gd;/g' nginx/nginx.conf
 fi
 
 echo "Building and launching Docker containers..."
-docker-compose -f docker-compose.prod.yml down
+docker-compose down
 docker system prune -af
-docker-compose -f docker-compose.prod.yml up -d --build
+docker-compose up -d --build
 
 echo ""
 echo "=== Project Directory Content === "
@@ -244,5 +244,5 @@ Write-Host "                  CONFIGURATION COMPLETED SUCCESSFULLY              
 Write-Host "==========================================================================" -ForegroundColor Cyan
 Write-Host "The VM is now prepared, packages are installed, and branch 'develop' has"
 Write-Host "been cloned to /home/ubuntu/Proyecto-5-PathFinder."
-Write-Host "You are ready to configure the .env and run 'docker-compose -f docker-compose.prod.yml up -d --build'."
+Write-Host "You are ready to configure the .env and run 'docker-compose up -d --build'."
 Write-Host ""
