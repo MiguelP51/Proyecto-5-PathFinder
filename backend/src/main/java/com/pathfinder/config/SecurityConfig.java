@@ -102,6 +102,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "https://pathfinder.work.gd",
                 "https://www.pathfinder.work.gd",
+                "https://pathfinderbg.work.gd",
+                "https://www.pathfinderbg.work.gd",
                 "http://localhost:8080",
                 "http://localhost:3000",
                 "http://localhost"
