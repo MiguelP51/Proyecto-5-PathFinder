@@ -65,6 +65,13 @@ export default function UsuariosPage() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleSearchTerm, setRoleSearchTerm] = useState("");
 
+  // Estados del Modal de Reinicio
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [userToReset, setUserToReset] = useState<Usuario | null>(null);
+  const [resetConfirmationText, setResetConfirmationText] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+
   const cargarUsuarios = async () => {
     try {
       setLoading(true);
@@ -143,6 +150,54 @@ export default function UsuariosPage() {
       );
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleResetInitiate = (user: Usuario) => {
+    setUserToReset(user);
+    setShowResetModal(true);
+    setResetConfirmationText("");
+    setResetError("");
+  };
+
+  const handleResetConfirm = async () => {
+    if (!userToReset) return;
+    if (resetConfirmationText.trim().toUpperCase() !== "REINICIAR") {
+      setResetError("Debes escribir la palabra REINICIAR exactamente.");
+      return;
+    }
+
+    try {
+      setResetting(true);
+      setResetError("");
+
+      await apiFetch(
+        `/api/admin/users/${userToReset.idUsuario}/reset`,
+        {
+          method: "DELETE",
+        },
+        session?.backendJwt
+      );
+
+      setSuccessMessage(
+        `¡Progreso y perfil de ${userToReset.nombreCompleto} reiniciados con éxito!`
+      );
+      setTimeout(() => setSuccessMessage(""), 5000);
+      setShowResetModal(false);
+      setUserToReset(null);
+      setResetConfirmationText("");
+
+      // Recargar la lista de usuarios y progreso
+      await cargarUsuarios();
+    } catch (err) {
+      console.error("Error al reiniciar usuario:", err);
+      setResetError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo reiniciar el progreso del estudiante."
+      );
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -427,6 +482,7 @@ export default function UsuariosPage() {
                   <th className="px-6 py-4">Etapa de Enrolamiento</th>
                   <th className="px-6 py-4">Progreso SkillPaths</th>
                   <th className="px-6 py-4">Challenges Completados</th>
+                  <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
             ) : (
@@ -556,6 +612,18 @@ export default function UsuariosPage() {
                               <span className="text-xs text-slate-400 font-medium">Sin iniciar challenges</span>
                             )}
                           </td>
+
+                          {/* Columna Acciones */}
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => handleResetInitiate(usuario)}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-rose-200 hover:border-rose-300 bg-rose-50/50 hover:bg-rose-50 px-3 text-xs font-bold text-rose-700 transition cursor-pointer"
+                              title="Reiniciar estudiante a su estado inicial"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              <span>Reiniciar</span>
+                            </button>
+                          </td>
                         </>
                       ) : (
                         // CELDAS GENERALES PARA OTROS ROLES
@@ -578,7 +646,7 @@ export default function UsuariosPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={roleFilter === "USER" ? 5 : 3} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={roleFilter === "USER" ? 6 : 3} className="px-6 py-12 text-center text-slate-400">
                     <p className="font-semibold text-slate-500">No se encontraron usuarios</p>
                     <p className="text-xs text-slate-400 mt-1">Prueba a modificar los filtros o término de búsqueda.</p>
                   </td>
@@ -786,6 +854,104 @@ export default function UsuariosPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal/Diálogo de Reinicio de Estudiante */}
+      {showResetModal && userToReset && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <article className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 p-6 transform transition-all duration-300 scale-100 flex flex-col gap-4">
+            {/* Header del Modal */}
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">¿Reiniciar progreso de estudiante?</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Esta acción es **irreversible** y eliminará todos los SkillPaths, tests DISC, CV y respuestas del estudiante.
+                </p>
+              </div>
+            </div>
+
+            {/* Detalles del Usuario */}
+            <div className="rounded-2xl bg-rose-50/20 p-4 border border-rose-100 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                {userToReset.avatarUrl ? (
+                  <img
+                    src={userToReset.avatarUrl}
+                    alt={userToReset.nombreCompleto}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
+                    {getInitials(userToReset.nombreCompleto)}
+                  </div>
+                )}
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">{userToReset.nombreCompleto}</p>
+                  <p className="text-xs text-slate-500 font-mono">{userToReset.correo}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Campo de doble verificación */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-600">
+                Escribe la palabra <span className="font-mono text-rose-700 font-black">REINICIAR</span> para confirmar:
+              </label>
+              <input
+                type="text"
+                placeholder="Escribe REINICIAR..."
+                value={resetConfirmationText}
+                onChange={(e) => setResetConfirmationText(e.target.value)}
+                className="w-full h-10 rounded-xl border border-slate-200 px-3.5 text-xs font-semibold outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10 text-slate-700"
+              />
+            </div>
+
+            {/* Sección de Error */}
+            {resetError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5">
+                <AlertCircle className="h-4.5 w-4.5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-rose-800">No se pudo realizar el reinicio</p>
+                  <p className="text-[11px] text-rose-600 mt-0.5 leading-relaxed">{resetError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Acciones */}
+            <div className="flex justify-end gap-2.5 mt-2">
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={() => {
+                  setShowResetModal(false);
+                  setUserToReset(null);
+                  setResetConfirmationText("");
+                  setResetError("");
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-4 transition cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={resetting || resetConfirmationText.trim().toUpperCase() !== "REINICIAR"}
+                onClick={handleResetConfirm}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 transition shadow-md shadow-rose-100 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {resetting ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    Reiniciando...
+                  </>
+                ) : (
+                  "Confirmar reinicio"
+                )}
+              </button>
+            </div>
+          </article>
         </div>
       )}
     </div>

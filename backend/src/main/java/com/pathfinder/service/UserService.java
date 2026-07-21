@@ -12,4 +12,5 @@ public interface UserService {
 
     List<Usuario> listarUsuarios();
     Usuario actualizarRolUsuario(Integer idUsuario, RolUsuario nuevoRol, String correoAdminActual);
+    void reiniciarEstudiante(Integer idUsuario, String correoAdminActual);
 }

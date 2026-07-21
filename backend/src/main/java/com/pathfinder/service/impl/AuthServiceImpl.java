@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -29,8 +30,8 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PerfilCVRepository perfilCVRepository;
 
-    @Value("${app.admin.email:jhuamanp@pucp.edu.pe}")
-    private String adminEmail;
+    @Value("${app.admin.emails:jhuamanp@pucp.edu.pe}")
+    private List<String> adminEmails;
 
     @Override
     @Transactional
@@ -92,7 +93,7 @@ public class AuthServiceImpl implements AuthService {
             usuario.setAvatarUrl(request.getAvatarUrl().trim());
         }
 
-        if (adminEmail.equalsIgnoreCase(usuario.getCorreo())) {
+        if (usuario.getCorreo() != null && adminEmails.stream().anyMatch(admin -> admin.trim().equalsIgnoreCase(usuario.getCorreo()))) {
             usuario.setRol(RolUsuario.ADMIN);
         } else if (usuario.getRol() == null) {
             usuario.setRol(RolUsuario.USER);
@@ -105,25 +106,25 @@ public class AuthServiceImpl implements AuthService {
         usuario.setFechaModificacion(LocalDateTime.now());
 
         return usuarioRepository.save(usuario);
-    }
+     }
 
-    private void registrarSesionExitosa(Usuario usuario) {
-        SesionAutenticacion sesion = new SesionAutenticacion();
-        sesion.setUsuario(usuario);
-        sesion.setFechaInicio(LocalDateTime.now());
-        sesion.setEstadoSesion(EstadoSesion.EXITOSA);
-        sesion.setActivo(true);
+     private void registrarSesionExitosa(Usuario usuario) {
+         SesionAutenticacion sesion = new SesionAutenticacion();
+         sesion.setUsuario(usuario);
+         sesion.setFechaInicio(LocalDateTime.now());
+         sesion.setEstadoSesion(EstadoSesion.EXITOSA);
+         sesion.setActivo(true);
 
-        sesionAutenticacionRepository.save(sesion);
-    }
+         sesionAutenticacionRepository.save(sesion);
+     }
 
-    private String normalizarTexto(String valor) {
-        return StringUtils.hasText(valor) ? valor.trim() : null;
-    }
+     private String normalizarTexto(String valor) {
+         return StringUtils.hasText(valor) ? valor.trim() : null;
+     }
 
-    private RolUsuario resolveRole(String correoNormalizado) {
-        return adminEmail.equalsIgnoreCase(correoNormalizado) ? RolUsuario.ADMIN : RolUsuario.USER;
-    }
+     private RolUsuario resolveRole(String correoNormalizado) {
+         return (correoNormalizado != null && adminEmails.stream().anyMatch(admin -> admin.trim().equalsIgnoreCase(correoNormalizado))) ? RolUsuario.ADMIN : RolUsuario.USER;
+     }
 
     @Override
     @Transactional

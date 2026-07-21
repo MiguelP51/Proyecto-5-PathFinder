@@ -34,8 +34,8 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CustomUserDetailsService userDetailsService;
 
-    @Value("${app.admin.email:jhuamanp@pucp.edu.pe}")
-    private String adminEmail;
+    @Value("${app.admin.emails:jhuamanp@pucp.edu.pe}")
+    private List<String> adminEmails;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -83,14 +83,15 @@ public class SecurityConfig {
             return false;
         }
 
-        if (adminEmail.equalsIgnoreCase(authentication.getName())) {
+        String authName = authentication.getName();
+        if (adminEmails.stream().anyMatch(email -> email.trim().equalsIgnoreCase(authName))) {
             return true;
         }
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof OAuth2User oAuth2User) {
             String email = oAuth2User.getAttribute("email");
-            return adminEmail.equalsIgnoreCase(email);
+            return email != null && adminEmails.stream().anyMatch(admin -> admin.trim().equalsIgnoreCase(email));
         }
 
         return false;

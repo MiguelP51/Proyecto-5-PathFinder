@@ -64,4 +64,24 @@ public class AdminUserController {
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @DeleteMapping("/{idUsuario}/reset")
+    @Audit(modulo = "ESTUDIANTES", accion = "REINICIAR_PROGRESO")
+    public ResponseEntity<ApiResponse<Void>> reiniciarEstudiante(
+            @PathVariable Integer idUsuario,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            userService.reiniciarEstudiante(idUsuario, userDetails.getUsername());
+            return ResponseEntity.ok(
+                    ApiResponse.success("Progreso y datos del estudiante reiniciados correctamente", null)
+            );
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

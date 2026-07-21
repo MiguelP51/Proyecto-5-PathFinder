@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -33,8 +34,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${app.oauth2.authorized-redirect-uris}")
     private String redirectUri;
 
-    @Value("${app.admin.email:jhuamanp@pucp.edu.pe}")
-    private String adminEmail;
+    @Value("${app.admin.emails:jhuamanp@pucp.edu.pe}")
+    private List<String> adminEmails;
 
     private final HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
 
@@ -43,7 +44,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     );
 
     private RolUsuario resolveRole(String email) {
-        if (adminEmail.equalsIgnoreCase(email))  return RolUsuario.ADMIN;
+        if (email != null && adminEmails.stream().anyMatch(admin -> admin.trim().equalsIgnoreCase(email))) {
+            return RolUsuario.ADMIN;
+        }
         if (MENTORS.contains(email)) return RolUsuario.MENTOR;
         return RolUsuario.USER;
     }
