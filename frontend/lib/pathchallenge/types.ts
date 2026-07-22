@@ -2,6 +2,13 @@ export interface PathChallengeTaskDTO {
   idPathChallengeTask?: number;
   descripcion: string;
   orden?: number;
+  titulo?: string;
+  tipoTarea?: string;
+  contenido?: string;
+  opcionesJson?: string;
+  opciones?: string[];
+  obligatoria?: boolean;
+  configJson?: string;
 }
 
 export interface PathChallengeRequestDTO {

@@ -2,6 +2,7 @@ package com.pathfinder.controller;
 
 import com.pathfinder.dto.admin.pathchallenge.PathChallengeRequestDTO;
 import com.pathfinder.dto.admin.pathchallenge.PathChallengeResponseDTO;
+import com.pathfinder.dto.admin.pathchallenge.PathChallengeTaskDTO;
 import com.pathfinder.service.PathChallengeService;
 import com.pathfinder.audit.annotation.Audit;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,30 @@ public class PathChallengeController {
     @Audit(modulo = "CHALLENGES", accion = "CREACION_CHALLENGE")
     public ResponseEntity<PathChallengeResponseDTO> createPathChallenge(@RequestBody PathChallengeRequestDTO request) {
         return new ResponseEntity<>(pathChallengeService.createPathChallenge(request), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/{id}/tasks")
+    @Audit(modulo = "CHALLENGES", accion = "CREACION_TAREA_CHALLENGE")
+    public ResponseEntity<PathChallengeTaskDTO> createPathChallengeTask(
+            @PathVariable Integer id,
+            @RequestBody PathChallengeTaskDTO request
+    ) {
+        return new ResponseEntity<>(
+                pathChallengeService.createPathChallengeTask(id, request),
+                HttpStatus.CREATED
+        );
+    }
+
+    @PutMapping("/{id}/tasks/{taskId}")
+    @Audit(modulo = "CHALLENGES", accion = "EDICION_TAREA_CHALLENGE")
+    public ResponseEntity<PathChallengeTaskDTO> updatePathChallengeTask(
+            @PathVariable Integer id,
+            @PathVariable Integer taskId,
+            @RequestBody PathChallengeTaskDTO request
+    ) {
+        return ResponseEntity.ok(
+                pathChallengeService.updatePathChallengeTask(id, taskId, request)
+        );
     }
 
     @PutMapping("/{id}")
